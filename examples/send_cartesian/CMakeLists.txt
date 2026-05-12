@@ -1,0 +1,3 @@
+add_executable(willow_example_send_cartesian main.cpp)
+target_compile_features(willow_example_send_cartesian PUBLIC cxx_std_20)
+target_link_libraries(willow_example_send_cartesian PUBLIC asio ${PROJECT_NAME})
