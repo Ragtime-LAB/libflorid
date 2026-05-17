@@ -1,9 +1,8 @@
 #include <florid/core/ArmCore.hpp>
 #include <cstring>
 
-namespace florid::core
+namespace florid
 {
-    using namespace florid;
     namespace
     {
         void copy_float(const float* src, float* dst, unsigned n) noexcept
@@ -141,4 +140,4 @@ namespace florid::core
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
     }
 
-} // namespace florid::core
+} // namespace florid

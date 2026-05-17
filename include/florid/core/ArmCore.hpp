@@ -9,10 +9,8 @@
 #include "traits.hpp"
 #include "RobotControl.hpp"
 
-namespace florid::core
+namespace florid
 {
-    using namespace florid;
-
     struct PackedCommandView
     {
         const uint8_t* data;

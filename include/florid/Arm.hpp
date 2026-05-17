@@ -189,7 +189,7 @@ private:
 
     Transport*    m_transport;
     Transport*    m_cfg_transport;
-    core::ArmCore m_core;
+    ArmCore m_core;
     double        m_max_frequency_hz{0.0};
     double        m_next_tick_ms{0.0};
     bool          m_tick_initialized{false};
