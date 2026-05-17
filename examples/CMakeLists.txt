@@ -1,3 +1,4 @@
 add_subdirectory(send)
 add_subdirectory(send_joint)
 add_subdirectory(send_cartesian)
+add_subdirectory(active_joint_control)

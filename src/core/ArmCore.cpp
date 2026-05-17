@@ -117,4 +117,28 @@ namespace florid::core
         return {reinterpret_cast<const uint8_t*>(&m_tx_config_command), sizeof(m_tx_config_command)};
     }
 
+    PackedCommandView ArmCore::pack_hybrid(const Torques& torque_cmd,
+                                           const JointPositions& motion_cmd)
+    {
+        m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
+        copy_float(motion_cmd.q,        m_tx_joint_command.state.q,   6);
+        copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
+        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
+        m_tx_joint_command.header.seq_num = ++m_seq_num;
+        return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
+    }
+
+    PackedCommandView ArmCore::pack_hybrid(const Torques& torque_cmd,
+                                           const JointVelocities& motion_cmd)
+    {
+        m_tx_joint_command.control_mode = protocol::ControlMode::JointVelocity;
+        copy_float(motion_cmd.dq,       m_tx_joint_command.state.dq,  6);
+        copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
+        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
+        m_tx_joint_command.header.seq_num = ++m_seq_num;
+        return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
+    }
+
 } // namespace florid::core

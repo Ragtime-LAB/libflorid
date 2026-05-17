@@ -106,4 +106,29 @@ void Arm::setWatchdogTimeout(Duration timeout)
     send_config(m_cfg_transport, protocol::ConfigType::SetWatchdogTimeout, data, 1);
 }
 
+ActiveControl<Torques> Arm::startTorqueControl()
+{
+    return ActiveControl<Torques>(*this);
+}
+
+ActiveControl<JointPositions> Arm::startJointPositionControl()
+{
+    return ActiveControl<JointPositions>(*this);
+}
+
+ActiveControl<JointVelocities> Arm::startJointVelocityControl()
+{
+    return ActiveControl<JointVelocities>(*this);
+}
+
+ActiveControl<CartesianPose> Arm::startCartesianPoseControl()
+{
+    return ActiveControl<CartesianPose>(*this);
+}
+
+ActiveControl<CartesianVelocities> Arm::startCartesianVelocityControl()
+{
+    return ActiveControl<CartesianVelocities>(*this);
+}
+
 } // namespace florid

@@ -43,6 +43,11 @@ namespace florid::core
                                       const float* data,
                                       unsigned count);
 
+        PackedCommandView pack_hybrid(const Torques& torque_cmd,
+                                      const JointPositions& motion_cmd);
+        PackedCommandView pack_hybrid(const Torques& torque_cmd,
+                                      const JointVelocities& motion_cmd);
+
         RobotControl& robot_control() { return m_robot_control; }
 
     private:

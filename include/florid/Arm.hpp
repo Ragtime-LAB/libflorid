@@ -10,6 +10,9 @@
 
 namespace florid {
 
+template <typename ControlType>
+class ActiveControl;
+
 class Arm {
 public:
     explicit Arm(Transport& control_transport,
@@ -88,6 +91,50 @@ public:
         }
     }
 
+    template <typename TorqueCb, typename MotionCb>
+    void control(TorqueCb&& torque_cb, MotionCb&& motion_cb)
+    {
+        auto& ctrl = m_core.robot_control();
+
+        m_finish_flag = false;
+        ctrl.setFinishFlag(&m_finish_flag);
+
+        while (!ctrl.isStopped() && !m_finish_flag)
+        {
+            update();
+
+            if (m_max_frequency_hz > 0.0)
+            {
+                const double now = detail::get_tick_ms();
+                const double period = 1000.0 / m_max_frequency_hz;
+
+                if (!m_tick_initialized)
+                {
+                    m_next_tick_ms     = now;
+                    m_tick_initialized = true;
+                }
+
+                if (now < m_next_tick_ms) continue;
+
+                m_next_tick_ms += period;
+                if (m_next_tick_ms <= now)
+                    m_next_tick_ms = now + period;
+            }
+
+            auto state      = m_core.get_robot_state();
+            auto torque_cmd = torque_cb(state, ctrl);
+            auto motion_cmd = motion_cb(state, ctrl);
+
+            auto raw = m_core.pack_hybrid(torque_cmd, motion_cmd);
+            m_transport->send(raw.data, raw.size);
+
+            if (torque_cmd.motion_finished || motion_cmd.motion_finished)
+            {
+                m_finish_flag = true;
+            }
+        }
+    }
+
     // ── 配置 ───────────────────────────────────────────────────
 
     void setMaxFrequencyHz(double hz);
@@ -114,6 +161,12 @@ public:
     void setWatchdogTimeout(Duration timeout);
 
     // ── 主动控制（高级用户手动循环） ────────────────────────────
+
+    ActiveControl<Torques>              startTorqueControl();
+    ActiveControl<JointPositions>       startJointPositionControl();
+    ActiveControl<JointVelocities>      startJointVelocityControl();
+    ActiveControl<CartesianPose>        startCartesianPoseControl();
+    ActiveControl<CartesianVelocities>  startCartesianVelocityControl();
 
     RobotState update() { m_transport->poll(); return m_core.get_robot_state(); }
 
@@ -144,5 +197,7 @@ private:
 };
 
 } // namespace florid
+
+#include "core/ActiveControl.hpp"
 
 #endif // FLORID_ARM_HPP
