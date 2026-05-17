@@ -5,7 +5,7 @@ using namespace florid::protocol;
 
 TEST(Packets, PacketHeaderSize)
 {
-    EXPECT_EQ(sizeof(PacketHeader), 8u); // 1 + 1 + 2 + 4 = 8
+    EXPECT_EQ(sizeof(PacketHeader), 8u);
 }
 
 TEST(Packets, PacketHeaderDefaultMagic)
@@ -21,7 +21,7 @@ TEST(Packets, JointCmdPacketTypeId)
 
 TEST(Packets, JointCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(JointCmdPacket), 88u); // header(8) + timestamp(8) + state(72)
+    EXPECT_EQ(sizeof(JointCmdPacket), 96u); // header(8) + timestamp(8) + mode(1)+pad(3) + state(72) + trailing(4)
 }
 
 TEST(Packets, CartesianPoseCmdPacketTypeId)
@@ -31,12 +31,27 @@ TEST(Packets, CartesianPoseCmdPacketTypeId)
 
 TEST(Packets, CartesianPoseCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 80u); // header(8) + timestamp(8) + pose(64)
+    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 88u); // header(8) + timestamp(8) + mode(1)+pad(3) + pose(64) + trailing(4)
+}
+
+TEST(Packets, CartesianVelocityCmdPacketTypeId)
+{
+    EXPECT_EQ(CartesianVelocityCmdPacket::TYPE_ID, PacketType::CartesianVelocityCommand);
+}
+
+TEST(Packets, CartesianVelocityCmdPacketSize)
+{
+    EXPECT_EQ(sizeof(CartesianVelocityCmdPacket), 48u); // header(8) + timestamp(8) + mode(1)+pad(3) + v[6](24) + trailing(4)
 }
 
 TEST(Packets, SessionCfgPacketTypeId)
 {
     EXPECT_EQ(SessionCfgPacket::TYPE_ID, PacketType::SessionConfig);
+}
+
+TEST(Packets, SessionCfgPacketSize)
+{
+    EXPECT_EQ(sizeof(SessionCfgPacket), 24u);
 }
 
 TEST(Packets, SessionStatusPacketTypeId)
@@ -51,7 +66,17 @@ TEST(Packets, ArmStatusPacketTypeId)
 
 TEST(Packets, ArmStatusPacketSize)
 {
-    EXPECT_EQ(sizeof(ArmStatusPacket), 88u); // header(8) + mode(1) + _pad(7) + state(72)
+    EXPECT_EQ(sizeof(ArmStatusPacket), 208u);
+}
+
+TEST(Packets, ConfigCmdPacketTypeId)
+{
+    EXPECT_EQ(ConfigCmdPacket::TYPE_ID, PacketType::ConfigCommand);
+}
+
+TEST(Packets, ConfigCmdPacketSize)
+{
+    EXPECT_EQ(sizeof(ConfigCmdPacket), 88u);
 }
 
 TEST(Packets, ArmModeValues)
@@ -70,10 +95,14 @@ TEST(Packets, ArmStatusLayout)
     as.state.q[0] = 1.0;
     as.state.dq[1] = 2.0;
     as.state.tau[2] = 3.0;
+    as.errors = 0x42u;
+    as.timestamp = 1.618;
     EXPECT_EQ(as.mode, ArmMode::RUNNING);
     EXPECT_FLOAT_EQ(as.state.q[0], 1.0f);
     EXPECT_FLOAT_EQ(as.state.dq[1], 2.0f);
     EXPECT_FLOAT_EQ(as.state.tau[2], 3.0f);
+    EXPECT_EQ(as.errors, 0x42u);
+    EXPECT_DOUBLE_EQ(as.timestamp, 1.618);
 }
 
 TEST(Packets, JointStateLayout)
@@ -115,4 +144,52 @@ TEST(Packets, SessionStatusValues)
 {
     EXPECT_EQ(static_cast<uint8_t>(SessionStatus::SUCCESS), 0);
     EXPECT_EQ(static_cast<uint8_t>(SessionStatus::FAILURE), 1);
+}
+
+TEST(Packets, ControlModeValues)
+{
+    EXPECT_EQ(static_cast<uint8_t>(ControlMode::JointPosition), 0x01);
+    EXPECT_EQ(static_cast<uint8_t>(ControlMode::JointVelocity), 0x02);
+    EXPECT_EQ(static_cast<uint8_t>(ControlMode::Torque), 0x03);
+    EXPECT_EQ(static_cast<uint8_t>(ControlMode::CartesianPose), 0x04);
+    EXPECT_EQ(static_cast<uint8_t>(ControlMode::CartesianVelocity), 0x05);
+}
+
+TEST(Packets, ConfigTypeValues)
+{
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::Stop), 0x01);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::AutomaticErrorRecovery), 0x02);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetCollisionBehavior), 0x10);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetJointImpedance), 0x11);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetCartesianImpedance), 0x12);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetK), 0x13);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetEE), 0x14);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetLoad), 0x15);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetWatchdogTimeout), 0x16);
+}
+
+TEST(Packets, JointCmdHasControlMode)
+{
+    JointCmdPacket pkt{};
+    pkt.control_mode = ControlMode::Torque;
+    EXPECT_EQ(pkt.control_mode, ControlMode::Torque);
+}
+
+TEST(Packets, CartesianPoseCmdHasControlMode)
+{
+    CartesianPoseCmdPacket pkt{};
+    pkt.control_mode = ControlMode::CartesianPose;
+    EXPECT_EQ(pkt.control_mode, ControlMode::CartesianPose);
+}
+
+TEST(Packets, CartesianVelocityCmdDefaultControlMode)
+{
+    CartesianVelocityCmdPacket pkt{};
+    EXPECT_EQ(pkt.control_mode, ControlMode::CartesianVelocity);
+}
+
+TEST(Packets, SessionCfgHasWatchdogTimeout)
+{
+    SessionCfgPacket cfg{};
+    EXPECT_EQ(cfg.watchdog_timeout_ms, 500u);
 }

@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::cout << "Sending JointCommand to " << address.to_string() << ':' << port << " at " << hz << " Hz\n";
+    std::cout << "Sending JointPositions to " << address.to_string() << ':' << port << " at " << hz << " Hz\n";
 
     try
     {
@@ -124,23 +124,19 @@ int main(int argc, char* argv[])
         std::cout << "TCP session established on " << ip_text << ':' << kSessionPort << " (Joint mode)\n";
 
         florid::detail::UdpClient client{ip_text, port};
-        florid::Arm arm{client};
-        arm.set_control_frequency_hz(hz);
+        florid::Arm arm{client, &tcp};
+        arm.setMaxFrequencyHz(hz);
 
-        arm.control([&](const florid::core::ArmStatus&)
+        arm.control([&](const florid::RobotState&, florid::RobotControl&)
         {
             const double t = ToSeconds(Clock::now());
 
-            florid::core::JointCommand cmd{};
-            // Six joints oscillate with different phases and frequencies
+            florid::JointPositions cmd{};
             for (int i = 0; i < 6; ++i)
             {
                 const double freq = 0.2 + i * 0.15;
                 const double phase = i * std::numbers::pi / 3.0;
-                cmd.q[i]   = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * freq * t + phase));
-                cmd.dq[i]  = static_cast<float>(2.0 * std::numbers::pi * freq * 0.5 *
-                                                std::cos(2.0 * std::numbers::pi * freq * t + phase));
-                cmd.tau[i] = 0.0f;
+                cmd.q[i] = static_cast<float>(0.5 * std::sin(2.0 * std::numbers::pi * freq * t + phase));
             }
             return cmd;
         });

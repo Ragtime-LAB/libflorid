@@ -7,7 +7,7 @@ using namespace florid::protocol;
 class ParserTest : public ::testing::Test
 {
 protected:
-    TcpParser<256> parser;
+    TcpParser<512> parser;
 };
 
 TEST_F(ParserTest, SinglePacket)
@@ -112,12 +112,10 @@ TEST_F(ParserTest, SplitHeaderThenPayload)
     int called = 0;
     auto handler = [&](const auto&) { ++called; };
 
-    // 先喂前 4 字节（包头的一部分）
     auto result1 = parser.feed(reinterpret_cast<uint8_t*>(&pkt), 4, handler);
     EXPECT_EQ(result1.packets_processed, 0u);
     EXPECT_TRUE(result1.has_remaining);
 
-    // 再喂剩余部分
     auto result2 = parser.feed(reinterpret_cast<uint8_t*>(&pkt) + 4, sizeof(pkt) - 4, handler);
     EXPECT_EQ(result2.packets_processed, 1u);
     EXPECT_FALSE(result2.has_remaining);
@@ -148,12 +146,11 @@ TEST_F(ParserTest, MagicWordResync)
 
 TEST_F(ParserTest, InvalidLengthSkippedThenValidPacket)
 {
-    // 构造一个长度非法的包（小于 sizeof(PacketHeader)）
     uint8_t bad[8];
     std::memset(bad, 0, sizeof(bad));
     bad[0] = 0xA5;
     bad[1] = static_cast<uint8_t>(PacketType::JointCommand);
-    bad[2] = 4; // length = 4 < 8
+    bad[2] = 4;
     bad[3] = 0;
 
     JointCmdPacket good{};
@@ -179,22 +176,22 @@ TEST_F(ParserTest, UnknownTypeConsumesPacketButDispatchFails)
     uint8_t buf[16];
     std::memset(buf, 0, sizeof(buf));
     buf[0] = 0xA5;
-    buf[1] = 0xFF; // unknown type
+    buf[1] = 0xFF;
     *reinterpret_cast<uint16_t*>(buf + 2) = sizeof(buf);
 
     int called = 0;
     auto handler = [&](const auto&) { ++called; };
 
     auto result = parser.feed(buf, sizeof(buf), handler);
-    EXPECT_EQ(result.packets_processed, 1u); // 包被消费掉
-    EXPECT_TRUE(result.dispatch_failed);     // 但分发失败
+    EXPECT_EQ(result.packets_processed, 1u);
+    EXPECT_TRUE(result.dispatch_failed);
     EXPECT_FALSE(result.has_remaining);
     EXPECT_EQ(called, 0);
 }
 
 TEST_F(ParserTest, BufferOverflowResetsParser)
 {
-    uint8_t large_buf[512];
+    uint8_t large_buf[600];
     std::memset(large_buf, 0, sizeof(large_buf));
 
     int called = 0;
@@ -228,12 +225,10 @@ TEST_F(ParserTest, CompletePartialHeaderInSecondFeed)
     int called = 0;
     auto handler = [&](const auto&) { ++called; };
 
-    // 先喂 4 字节（包头的一半）
     auto result1 = parser.feed(reinterpret_cast<uint8_t*>(&pkt), 4, handler);
     EXPECT_EQ(result1.packets_processed, 0u);
     EXPECT_TRUE(result1.has_remaining);
 
-    // 再喂剩余部分
     auto result2 = parser.feed(reinterpret_cast<uint8_t*>(&pkt) + 4, sizeof(pkt) - 4, handler);
     EXPECT_EQ(result2.packets_processed, 1u);
     EXPECT_FALSE(result2.has_remaining);
@@ -242,12 +237,11 @@ TEST_F(ParserTest, CompletePartialHeaderInSecondFeed)
 
 TEST_F(ParserTest, LengthExceedsBufferSize)
 {
-    // length > BufferSize (256)
     uint8_t buf[16];
     std::memset(buf, 0, sizeof(buf));
     buf[0] = 0xA5;
     buf[1] = static_cast<uint8_t>(PacketType::JointCommand);
-    *reinterpret_cast<uint16_t*>(buf + 2) = 300; // > 256
+    *reinterpret_cast<uint16_t*>(buf + 2) = 600;
 
     int called = 0;
     auto handler = [&](const auto&) { ++called; };
@@ -255,6 +249,5 @@ TEST_F(ParserTest, LengthExceedsBufferSize)
     auto result = parser.feed(buf, sizeof(buf), handler);
     EXPECT_EQ(result.packets_processed, 0u);
     EXPECT_EQ(called, 0);
-    // 非法 length 导致逐字节跳过，最终剩余少量无法构成包头的数据
     EXPECT_TRUE(result.has_remaining);
 }

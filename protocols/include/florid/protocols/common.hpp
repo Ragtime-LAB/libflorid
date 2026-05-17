@@ -11,7 +11,18 @@ namespace florid::protocol
         CartesianPoseCommand = 0x12,
         ArmState = 0x21,
         SessionConfig = 0x31,
-        SessionStatus = 0x32
+        SessionStatus = 0x32,
+        CartesianVelocityCommand = 0x13,
+        ConfigCommand = 0x41
+    };
+
+    enum class ControlMode : uint8_t
+    {
+        JointPosition = 0x01,
+        JointVelocity = 0x02,
+        Torque = 0x03,
+        CartesianPose = 0x04,
+        CartesianVelocity = 0x05
     };
 
     struct PacketHeader

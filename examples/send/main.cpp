@@ -177,8 +177,8 @@ int main(int argc, char* argv[])
         std::cout << "TCP session established on " << ip_text << ':' << kSessionPort << '\n';
 
         florid::detail::UdpClient client{ip_text, port};
-        florid::Arm arm{client};
-        arm.set_control_frequency_hz(0.0);
+        florid::Arm arm{client, &tcp};
+        arm.setMaxFrequencyHz(0.0);
 
         std::mt19937 rng{std::random_device{}()};
         std::uniform_real_distribution<double> jitter_scale_distribution(
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 
         auto next_send = Clock::now();
 
-        arm.control([&](const florid::core::ArmStatus&)
+        arm.control([&](const florid::RobotState&, florid::RobotControl&)
         {
             const double jitter_scale = jitter_scale_distribution(rng);
             const double period_sec = (1.0 / hz) * jitter_scale;
@@ -199,7 +199,7 @@ int main(int argc, char* argv[])
 
             const double t = ToSeconds(Clock::now());
 
-            florid::core::CartesianPose pose{};
+            florid::CartesianPose pose{};
             pose.T[0] = static_cast<float>(CurveHelixX(t));
             pose.T[1] = static_cast<float>(CurveJitterSine(t));
             pose.T[2] = static_cast<float>(CurveTriangle(t));

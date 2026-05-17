@@ -48,6 +48,30 @@ TEST(Dispatcher, DispatchCartesianPoseCmdPacket)
     EXPECT_TRUE(called);
 }
 
+TEST(Dispatcher, DispatchCartesianVelocityCmdPacket)
+{
+    CartesianVelocityCmdPacket pkt{};
+    pkt.header.magic_word = 0xA5;
+    pkt.header.type = PacketType::CartesianVelocityCommand;
+    pkt.header.length = sizeof(CartesianVelocityCmdPacket);
+    pkt.v[0] = 0.1f;
+    pkt.v[3] = 0.5f;
+
+    bool called = false;
+    auto handler = [&](const auto& p)
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(p)>, CartesianVelocityCmdPacket>)
+        {
+            called = true;
+            EXPECT_FLOAT_EQ(p.v[0], 0.1f);
+            EXPECT_FLOAT_EQ(p.v[3], 0.5f);
+        }
+    };
+
+    EXPECT_TRUE(Dispatcher<>::dispatch(reinterpret_cast<uint8_t*>(&pkt), sizeof(pkt), handler));
+    EXPECT_TRUE(called);
+}
+
 TEST(Dispatcher, DispatchSessionStatusPacket)
 {
     SessionStatusPacket pkt{};
@@ -94,6 +118,32 @@ TEST(Dispatcher, DispatchArmStatusPacket)
     EXPECT_TRUE(called);
 }
 
+TEST(Dispatcher, DispatchConfigCmdPacket)
+{
+    ConfigCmdPacket pkt{};
+    pkt.header.magic_word = 0xA5;
+    pkt.header.type = PacketType::ConfigCommand;
+    pkt.header.length = sizeof(ConfigCmdPacket);
+    pkt.config_type = ConfigType::SetJointImpedance;
+    pkt.data[0] = 100.0f;
+    pkt.data[1] = 200.0f;
+
+    bool called = false;
+    auto handler = [&](const auto& p)
+    {
+        if constexpr (std::is_same_v<std::decay_t<decltype(p)>, ConfigCmdPacket>)
+        {
+            called = true;
+            EXPECT_EQ(p.config_type, ConfigType::SetJointImpedance);
+            EXPECT_FLOAT_EQ(p.data[0], 100.0f);
+            EXPECT_FLOAT_EQ(p.data[1], 200.0f);
+        }
+    };
+
+    EXPECT_TRUE(Dispatcher<>::dispatch(reinterpret_cast<uint8_t*>(&pkt), sizeof(pkt), handler));
+    EXPECT_TRUE(called);
+}
+
 TEST(Dispatcher, WrongMagicWord)
 {
     JointCmdPacket pkt{};
@@ -124,9 +174,7 @@ TEST(Dispatcher, WrongLengthParameterMismatch)
     pkt.header.length = sizeof(JointCmdPacket);
 
     auto handler = [](const auto&) {};
-    // len > header.length
     EXPECT_FALSE(Dispatcher<>::dispatch(reinterpret_cast<uint8_t*>(&pkt), sizeof(pkt) + 1, handler));
-    // len < header.length
     EXPECT_FALSE(Dispatcher<>::dispatch(reinterpret_cast<uint8_t*>(&pkt), sizeof(pkt) - 1, handler));
 }
 
@@ -135,7 +183,7 @@ TEST(Dispatcher, UnknownType)
     uint8_t buf[32];
     std::memset(buf, 0, sizeof(buf));
     buf[0] = 0xA5;
-    buf[1] = 0xFF; // unknown type
+    buf[1] = 0xFF;
     *reinterpret_cast<uint16_t*>(buf + 2) = sizeof(buf);
 
     auto handler = [](const auto&) {};
@@ -151,7 +199,6 @@ TEST(Dispatcher, DataTooShortForHeader)
 
 TEST(Dispatcher, SessionCfgPacketNotInDefaultRegistry)
 {
-    // SessionCfgPacket 不在 FloridProtocolRegistry 中，默认 Dispatcher 无法分发
     SessionCfgPacket pkt{};
     pkt.header.magic_word = 0xA5;
     pkt.header.type = PacketType::SessionConfig;

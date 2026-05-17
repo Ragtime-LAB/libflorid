@@ -4,6 +4,7 @@
 #include <utility>
 #include "cmd.hpp"
 #include "status.hpp"
+#include "config_cmd.hpp"
 
 namespace florid::protocol
 {
@@ -15,13 +16,16 @@ namespace florid::protocol
     using AllProtocolRegistry = PacketRegistry<
         JointCmdPacket,
         CartesianPoseCmdPacket,
+        CartesianVelocityCmdPacket,
         ArmStatusPacket,
-        SessionStatusPacket
+        SessionStatusPacket,
+        ConfigCmdPacket
     >;
 
     using CmdProtocolRegistry = PacketRegistry<
         JointCmdPacket,
-        CartesianPoseCmdPacket
+        CartesianPoseCmdPacket,
+        CartesianVelocityCmdPacket
     >;
 
     using StatusProtocolRegistry = PacketRegistry<

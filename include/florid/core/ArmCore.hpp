@@ -1,20 +1,22 @@
 #ifndef FLORID_ARMCORE_HPP
 #define FLORID_ARMCORE_HPP
 
-#include <algorithm>
 #include <cstdint>
 #include <cstddef>
 #include <florid/protocols/protocols.hpp>
 #include <florid/detail/Seqlock.hpp>
 #include <florid/detail/timestamp.hpp>
 #include "traits.hpp"
+#include "RobotControl.hpp"
 
 namespace florid::core
 {
+    using namespace florid;
+
     struct PackedCommandView
     {
         const uint8_t* data;
-        size_t size;
+        size_t          size;
     };
 
     class ArmCore
@@ -24,36 +26,46 @@ namespace florid::core
 
         void feed_incoming_data(const uint8_t* data, size_t len);
 
-
-        ArmStatus get_current_status();
-
+        RobotState get_robot_state();
 
         template <typename UserCommand>
         PackedCommandView pack_command(const UserCommand& cmd)
         {
             static_assert(
                 is_control_command<UserCommand>::value,
-                "Unsupported command type: expected florid::core::JointCommand or florid::core::CartesianPose");
+                "Unsupported command type: expected Torques, JointPositions, "
+                "JointVelocities, CartesianPose, or CartesianVelocities");
 
             return pack_impl(cmd);
         }
+
+        PackedCommandView pack_config(protocol::ConfigType type,
+                                      const float* data,
+                                      unsigned count);
+
+        RobotControl& robot_control() { return m_robot_control; }
 
     private:
         void handle_packet(const protocol::ArmStatusPacket& packet);
 
         template <typename T>
-        void handle_packet(const T&)
-        {
-            // Ignored
-        }
+        void handle_packet(const T&) {}
 
-        PackedCommandView pack_impl(const JointCommand& cmd);
+        PackedCommandView pack_impl(const Torques& cmd);
+        PackedCommandView pack_impl(const JointPositions& cmd);
+        PackedCommandView pack_impl(const JointVelocities& cmd);
         PackedCommandView pack_impl(const CartesianPose& cmd);
+        PackedCommandView pack_impl(const CartesianVelocities& cmd);
 
-        detail::SeqlockBuf<ArmStatus> m_latest_status;
-        protocol::JointCmdPacket m_tx_joint_command{};
-        protocol::CartesianPoseCmdPacket m_tx_cart_command{};
-        uint32_t m_seq_num{};
+        detail::SeqlockBuf<RobotState>    m_latest_state;
+        protocol::JointCmdPacket          m_tx_joint_command{};
+        protocol::CartesianPoseCmdPacket  m_tx_cart_command{};
+        protocol::CartesianVelocityCmdPacket m_tx_cart_vel_command{};
+        protocol::ConfigCmdPacket         m_tx_config_command{};
+        uint32_t                          m_seq_num{};
+        bool                              m_finish_flag{false};
+        bool                              m_stop_flag{false};
+        RobotControl                      m_robot_control{&m_stop_flag};
     };
 }
 

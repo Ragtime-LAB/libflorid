@@ -4,6 +4,7 @@
 #include "common.hpp"
 #include "cmd.hpp"
 #include "status.hpp"
+#include "config_cmd.hpp"
 #include "dispatcher.hpp"
 #include "parser.hpp"
 #include "version.hpp"

@@ -67,14 +67,8 @@ namespace
         return elapsed.count();
     }
 
-    // Fill a 4x4 column-major homogeneous transform with identity rotation + translation
-    void MakePose(florid::core::CartesianPose& pose, float x, float y, float z)
+    void MakePose(florid::CartesianPose& pose, float x, float y, float z)
     {
-        // Column-major layout:
-        //  0  4  8  12
-        //  1  5  9  13
-        //  2  6 10  14
-        //  3  7 11  15
         pose.T[0]  = 1.0f; pose.T[4]  = 0.0f; pose.T[8]  = 0.0f; pose.T[12] = x;
         pose.T[1]  = 0.0f; pose.T[5]  = 1.0f; pose.T[9]  = 0.0f; pose.T[13] = y;
         pose.T[2]  = 0.0f; pose.T[6]  = 0.0f; pose.T[10] = 1.0f; pose.T[14] = z;
@@ -138,35 +132,33 @@ int main(int argc, char* argv[])
         std::cout << "TCP session established on " << ip_text << ':' << kSessionPort << " (Point mode)\n";
 
         florid::detail::UdpClient client{ip_text, port};
-        florid::Arm arm{client};
-        arm.set_control_frequency_hz(hz);
+        florid::Arm arm{client, &tcp};
+        arm.setMaxFrequencyHz(hz);
 
-        // Straight-line segment in Y direction, keeping X/Z fixed
-        constexpr float kX = 300.0f;   // mm
-        constexpr float kZ = 200.0f;   // mm
-        constexpr float kYStart = -100.0f; // mm
-        constexpr float kYEnd   =  100.0f; // mm
+        constexpr float kX = 300.0f;
+        constexpr float kZ = 200.0f;
+        constexpr float kYStart = -100.0f;
+        constexpr float kYEnd   =  100.0f;
         constexpr double kPeriodSec = 4.0;
 
-        arm.control([&](const florid::core::ArmStatus&)
+        arm.control([&](const florid::RobotState&, florid::RobotControl&)
         {
             const double t = ToSeconds(Clock::now());
 
-            // Normalised progress 0..1..0 over the period
             const double phase = std::fmod(t, kPeriodSec);
             double s;
             if (phase < kPeriodSec * 0.5)
             {
-                s = phase / (kPeriodSec * 0.5); // 0 -> 1
+                s = phase / (kPeriodSec * 0.5);
             }
             else
             {
-                s = (kPeriodSec - phase) / (kPeriodSec * 0.5); // 1 -> 0
+                s = (kPeriodSec - phase) / (kPeriodSec * 0.5);
             }
 
             const float y = static_cast<float>(kYStart + (kYEnd - kYStart) * s);
 
-            florid::core::CartesianPose pose{};
+            florid::CartesianPose pose{};
             MakePose(pose, kX, y, kZ);
             return pose;
         });

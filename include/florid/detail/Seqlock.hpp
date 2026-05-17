@@ -8,7 +8,7 @@ namespace florid::detail
     template <typename T>
     class SeqlockBuf
     {
-        static_assert(std::is_trivial_v<T>);
+        static_assert(std::is_trivially_copyable_v<T>);
 
     public:
         // no lock

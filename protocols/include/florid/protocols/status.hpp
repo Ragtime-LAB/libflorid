@@ -33,8 +33,13 @@ namespace florid::protocol
     {
         static constexpr auto TYPE_ID = PacketType::ArmState;
         PacketHeader header{.type = PacketType::ArmState};
+        double timestamp{};
         ArmMode mode{};
-        uint8_t _pad[7]{};
+        uint8_t _pad0[3]{};
+        uint32_t errors{};
+        float tau_desired[6]{};
+        float O_T_EE[16]{};
+        float F_ext[6]{};
         JointState state;
     };
 }

@@ -3,7 +3,7 @@
 
 #include "types.hpp"
 
-namespace florid::core
+namespace florid
 {
     template <bool Value>
     struct bool_constant
@@ -68,12 +68,27 @@ namespace florid::core
     };
 
     template <>
-    struct is_control_command_impl<JointCommand> : true_type
+    struct is_control_command_impl<Torques> : true_type
+    {
+    };
+
+    template <>
+    struct is_control_command_impl<JointPositions> : true_type
+    {
+    };
+
+    template <>
+    struct is_control_command_impl<JointVelocities> : true_type
     {
     };
 
     template <>
     struct is_control_command_impl<CartesianPose> : true_type
+    {
+    };
+
+    template <>
+    struct is_control_command_impl<CartesianVelocities> : true_type
     {
     };
 
