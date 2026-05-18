@@ -1,8 +1,46 @@
 #include <florid/Arm.hpp>
+#include <florid/detail/TcpClient.hpp>
+#include <florid/detail/UdpClient.hpp>
 
-namespace florid {
+namespace florid
+{
+    namespace
+    {
+        struct HostTransport
+        {
+            detail::TcpClient tcp;
+            detail::UdpClient udp;
 
-Arm::Arm(Transport& control_transport, Transport* config_transport)
+            HostTransport(const char* ip, uint16_t udp_port)
+                : tcp(ip, 6041), udp(ip, udp_port) {}
+        };
+    }
+
+    Arm::Arm(const char* ip, uint16_t udp_port, protocol::SessionMode mode)
+        : m_max_frequency_hz(0.0)
+        , m_next_tick_ms(0.0)
+        , m_tick_initialized(false)
+        , m_finish_flag(false)
+    {
+        auto* ht = new HostTransport(ip, udp_port);
+        m_host_impl = ht;
+
+        if (ht->tcp.is_connected())
+        {
+            ht->tcp.configure_session(mode);
+            m_cfg_transport = &ht->tcp;
+        }
+        m_transport = &ht->udp;
+        m_transport->set_receive_callback(&Arm::on_receive_thunk, this);
+    }
+
+    Arm::~Arm()
+    {
+        if (m_host_impl)
+            delete static_cast<HostTransport*>(m_host_impl);
+    }
+
+    Arm::Arm(Transport& control_transport, Transport* config_transport)
     : m_transport(&control_transport),
       m_cfg_transport(config_transport)
 {

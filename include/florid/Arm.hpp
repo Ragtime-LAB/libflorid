@@ -15,14 +15,19 @@ class ActiveControl;
 
 class Arm {
 public:
+    // ── 嵌入式：手动注入 Transport ──────────────────────────────
     explicit Arm(Transport& control_transport,
                   Transport* config_transport = nullptr);
+
+    // ── Host：自动创建 TCP+UDP ─────────────────────────────────
+    Arm(const char* ip, uint16_t udp_port = 6040,
+        protocol::SessionMode mode = protocol::SessionMode::Joint);
 
     Arm(const Arm&) = delete;
     Arm& operator=(const Arm&) = delete;
     Arm(Arm&&) = delete;
     Arm& operator=(Arm&&) = delete;
-    ~Arm() = default;
+    ~Arm();
 
     // ── 状态读取 ───────────────────────────────────────────────
 
@@ -187,9 +192,10 @@ public:
 private:
     static void on_receive_thunk(void* context, const uint8_t* data, size_t len);
 
-    Transport*    m_transport;
-    Transport*    m_cfg_transport;
-    ArmCore m_core;
+    Transport*    m_transport{nullptr};
+    Transport*    m_cfg_transport{nullptr};
+    ArmCore       m_core;
+    void*         m_host_impl{nullptr};  // PIMPL: owns TcpClient+UdpClient
     double        m_max_frequency_hz{0.0};
     double        m_next_tick_ms{0.0};
     bool          m_tick_initialized{false};

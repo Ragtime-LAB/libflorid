@@ -1,48 +1,46 @@
-#include <florid/Arm.hpp>
-#include <florid/detail/UdpClient.hpp>
-#include <florid/detail/TcpClient.hpp>
-#include <asio.hpp>
-
-#include <chrono>
-#include <exception>
-#include <iostream>
-#include <string>
+#include "examples_common.hpp"
 
 namespace
 {
-    void PrintUsage(const char* p) { std::cerr << "Usage: " << p << " <ip>\n"; }
-    const char* mN(florid::RobotMode m) {
-        switch(m){case florid::RobotMode::Init:return"INIT";case florid::RobotMode::Idle:return"IDLE";
-        case florid::RobotMode::Running:return"RUN";case florid::RobotMode::Fault:return"FAULT";
-        case florid::RobotMode::EStop:return"ESTOP";default:return"?";}
+    void Usage(const char* p) { std::cerr << "Usage: " << p << " <ip>\n"; }
+
+    const char* modeName(florid::RobotMode m)
+    {
+        switch (m) {
+        case florid::RobotMode::Init:    return "INIT";
+        case florid::RobotMode::Idle:    return "IDLE";
+        case florid::RobotMode::Running: return "RUN";
+        case florid::RobotMode::Fault:   return "FAULT";
+        case florid::RobotMode::EStop:   return "ESTOP";
+        default:                         return "?";
+        }
     }
 }
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2) { PrintUsage(argv[0]); return 1; }
-    const std::string ip = argv[1];
-    asio::error_code ec; asio::ip::make_address(ip, ec);
-    if (ec) { std::cerr << "Invalid IP\n"; return 1; }
+    if (argc != 2) { Usage(argv[0]); return 1; }
+    std::string ip;
+    if (!example::parseIP(argv[1], ip)) { std::cerr << "Invalid IP\n"; return 1; }
 
-    try
+    return example::runExample([&]
     {
-        constexpr uint16_t kTCP=6041, kUDP=6040;
-        florid::detail::TcpClient tcp{ip, kTCP};
-        if (!tcp.is_connected()) { std::cerr << "TCP refused\n"; return 1; }
-        tcp.configure_session(florid::protocol::SessionMode::Joint);
+        florid::Arm arm(ip.c_str());
+        std::cout << "Reading robot state...\n";
 
-        florid::detail::UdpClient udp{ip, kUDP};
-        florid::Arm arm{udp, &tcp};
-
-        arm.read([&](const florid::RobotState& s) -> bool {
-            std::cout<<"["<<mN(s.mode)<<"] q=[";
-            for(int i=0;i<6;++i)std::cout<<s.q[i]<<(i<5?"|":"");
-            std::cout<<"] errs="<<(s.errors?"0x":"")<<std::hex<<s.errors<<std::dec
-                     <<" F_ext=["<<s.F_ext[0]<<","<<s.F_ext[1]<<","<<s.F_ext[2]<<"]"
-                     <<"                    \r"<<std::flush;
-            return s.mode!=florid::RobotMode::Fault && s.mode!=florid::RobotMode::EStop;
+        arm.read([&](const florid::RobotState& state) -> bool
+        {
+            std::cout
+                << "[" << modeName(state.mode) << "] "
+                << "q=[" << state.q[0] << ", " << state.q[1] << ", "
+                << state.q[2] << ", " << state.q[3] << ", "
+                << state.q[4] << ", " << state.q[5] << "] "
+                << "errs=" << (state.errors ? "0x" : "")
+                << std::hex << state.errors << std::dec
+                << " F_ext=[" << state.F_ext[0] << "," << state.F_ext[1] << "," << state.F_ext[2] << "]"
+                << "                    \r" << std::flush;
+            return state.mode != florid::RobotMode::Fault
+                && state.mode != florid::RobotMode::EStop;
         });
-    }
-    catch(const std::exception& e) { std::cerr << "Error: " << e.what() << '\n'; return 1; }
+    });
 }
