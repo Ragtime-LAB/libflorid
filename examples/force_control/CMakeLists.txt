@@ -1,0 +1,3 @@
+add_executable(florid_example_force_control main.cpp)
+target_compile_features(florid_example_force_control PUBLIC cxx_std_20)
+target_link_libraries(florid_example_force_control PUBLIC asio ${PROJECT_NAME})

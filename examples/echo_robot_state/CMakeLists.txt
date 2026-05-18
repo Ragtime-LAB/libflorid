@@ -1,0 +1,3 @@
+add_executable(florid_example_echo_robot_state main.cpp)
+target_compile_features(florid_example_echo_robot_state PUBLIC cxx_std_20)
+target_link_libraries(florid_example_echo_robot_state PUBLIC asio ${PROJECT_NAME})
