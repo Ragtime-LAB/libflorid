@@ -1,61 +1,61 @@
 #ifndef FLORID_MODEL_HPP
 #define FLORID_MODEL_HPP
 
-#include <cstdint>
-#include <florid/ArmConfig.hpp>
+#include <florid/Frame.hpp>
 
 namespace florid
 {
-    enum class Frame : uint8_t
-    {
-        kJoint1 = 1,
-        kJoint2,
-        kJoint3,
-        kJoint4,
-        kJoint5,
-        kJoint6,
-        kFlange = 6,
-        kEndEffector = 6,
-    };
-
+    template <typename Traits>
     class Model
     {
     public:
-        static constexpr int kDOF = 6;
+        static constexpr int kDOF = Traits::kDOF;
 
-        Model(const ArmConfig& config);
-
-        Model(const float a[6],
-              const float alpha[6],
-              const float d[6],
-              const float theta_offset[6] = nullptr);
-
+        Model() = default;
         ~Model() = default;
 
-        Model(const Model&) = default;
-        Model& operator=(const Model&) = default;
+        // ── 运动学 ────────────────────────────────────────────
 
-        void forwardKinematics(const float* q, float* T_out) const;
-
-        void pose(Frame frame, const float* q, float* T_out) const;
-
-        void bodyJacobian(const float* q, float* J_out) const;
-
-        void zeroJacobian(const float* q, float* J_out) const;
-
-    private:
-        float m_a[6];
-        float m_alpha[6];
-        float m_d[6];
-        float m_theta_offset[6];
-        float m_cos_alpha[6];
-        float m_sin_alpha[6];
-
-        struct TmpFK
+        void forwardKinematics(const float* q, float* T_out) const
         {
-            float data[112]; // 7 * 16 floats for T_0_0..T_0_6
-        };
-        void computeFK(const float* q, TmpFK& out) const;
+            Traits::fk(q, T_out);
+        }
+
+        void pose(Frame frame, const float* q, float* T_out) const
+        {
+            Traits::pose(static_cast<int>(frame), q, T_out);
+        }
+
+        void zeroJacobian(const float* q, float* J_out) const
+        {
+            Traits::zeroJacobian(q, J_out);
+        }
+
+        void bodyJacobian(const float* q, float* J_out) const
+        {
+            Traits::bodyJacobian(q, J_out);
+        }
+
+        // ── 动力学 ────────────────────────────────────────────
+
+        template <bool Enable = Traits::kHasMass>
+        void mass(const float* q, float* M_out) const
+        {
+            static_assert(Enable, "mass() not available for this Traits");
+            Traits::mass(q, M_out);
+        }
+
+        template <bool Enable = Traits::kHasCoriolis>
+        void coriolis(const float* q, const float* dq, float* C_out) const
+        {
+            static_assert(Enable, "coriolis() not available for this Traits");
+            Traits::coriolis(q, dq, C_out);
+        }
+
+        void gravity(const float* q, const float g_vec[3], float* g_out) const
+        {
+            Traits::gravity(q, g_vec, g_out);
+        }
     };
 
 } // namespace florid

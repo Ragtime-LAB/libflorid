@@ -131,8 +131,7 @@ def generate_traits_hpp(urdf_path, output_dir, traits_name="CustomRobotTraits"):
 
     hpp = f"""#pragma once
 // ---------------------------------------------------------
-// 由 urdf2traits.py 自动生成
-// DO NOT EDIT DIRECTLY!
+// 由 urdf2traits.py 自动生成 — DO NOT EDIT DIRECTLY!
 // URDF: {os.path.basename(urdf_path)}
 // DOF:  {kDOF}   Joints: {njoints_total}
 // ---------------------------------------------------------
@@ -142,7 +141,6 @@ def generate_traits_hpp(urdf_path, output_dir, traits_name="CustomRobotTraits"):
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
-#include <florid/ArmConfig.hpp>
 
 namespace florid::detail {{
 
@@ -157,26 +155,33 @@ struct {traits_name} {{
     static constexpr bool kHasMass     = true;
     static constexpr bool kHasCoriolis = true;
 
+    // 推荐的安全参数（可覆盖）
+    static constexpr float collision_lower[6]   = {{20, 20, 20, 20, 10, 10}};
+    static constexpr float collision_upper[6]   = {{20, 20, 20, 20, 10, 10}};
+    static constexpr float joint_impedance[6]   = {{3000, 3000, 3000, 2500, 2500, 2000}};
+    static constexpr float cartesian_impedance[6] = {{600, 600, 600, 30, 30, 30}};
+    static constexpr uint16_t watchdog_timeout_ms = 500;
+
     // ── 运动学 ──────────────────────────────────────────
-    static void fk(const ArmConfig&, const float* q, float* T_out) {{
+    static void fk(const float* q, float* T_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{T_out}};
         detail::casadi_fk(a, r, nullptr, nullptr, 0);
     }}
 
-    static void zeroJacobian(const ArmConfig&, const float* q, float* J_out) {{
+    static void zeroJacobian(const float* q, float* J_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{J_out}};
         detail::casadi_zero_jacobian(a, r, nullptr, nullptr, 0);
     }}
 
-    static void bodyJacobian(const ArmConfig&, const float* q, float* J_out) {{
+    static void bodyJacobian(const float* q, float* J_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{J_out}};
         detail::casadi_body_jacobian(a, r, nullptr, nullptr, 0);
     }}
 
-    static void pose(const ArmConfig&, int frame, const float* q, float* T_out) {{
+    static void pose(int frame, const float* q, float* T_out) {{
         switch(frame) {{
 {pose_cases}
             default: break;
@@ -184,19 +189,19 @@ struct {traits_name} {{
     }}
 
     // ── 动力学 ──────────────────────────────────────────
-    static void gravity(const ArmConfig&, const float* q, const float g_vec[3], float* g_out) {{
+    static void gravity(const float* q, const float g_vec[3], float* g_out) {{
         const float* a[2] = {{q, g_vec}};
         float* r[1] = {{g_out}};
         detail::casadi_gravity(a, r, nullptr, nullptr, 0);
     }}
 
-    static void mass(const ArmConfig&, const float* q, float* M_out) {{
+    static void mass(const float* q, float* M_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{M_out}};
         detail::casadi_mass(a, r, nullptr, nullptr, 0);
     }}
 
-    static void coriolis(const ArmConfig&, const float* q, const float* dq, float* C_out) {{
+    static void coriolis(const float* q, const float* dq, float* C_out) {{
         const float* a[2] = {{q, dq}};
         float* r[1] = {{C_out}};
         detail::casadi_coriolis(a, r, nullptr, nullptr, 0);
