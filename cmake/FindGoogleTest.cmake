@@ -1,5 +1,5 @@
-find_package(GTest REQUIRED)
-if (NOT GTest_FOUND AND NOT TARGET GTest::GTest)
+find_package(GTest QUIET)
+if (NOT GTest_FOUND)
     FetchContent_Declare(
             googletest
             GIT_REPOSITORY https://github.com/google/googletest.git
