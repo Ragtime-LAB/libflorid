@@ -40,6 +40,7 @@ namespace florid::protocol
         float tau_desired[6]{};
         float O_T_EE[16]{};
         float F_ext[6]{};
+        float base_gravity[3]{};
         JointState state;
     };
 }

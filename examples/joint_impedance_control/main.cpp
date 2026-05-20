@@ -1,4 +1,6 @@
 #include "examples_common.hpp"
+#include <florid/Model.hpp>
+#include <florid/traits/PantheraTraits.hpp>
 #include <chrono>
 #include <thread>
 
@@ -16,21 +18,34 @@ int main(int argc, char* argv[])
         example::applyDefaults(arm);
         arm.setMaxFrequencyHz(1000.0);
 
+        florid::Model<florid::PantheraTraits> model;
+
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         auto st = arm.readOnce();
         float qd[6];
         for (int i = 0; i < 6; ++i) qd[i] = st.q[i];
 
-        std::cout << "Joint impedance — holding pose.\n";
+        std::cout << "Joint impedance + IMU gravity comp — holding pose.\n"
+                  << "  (base_gravity from RobotState, works regardless of mounting)\n";
+
         const float Kp[6] = {600, 600, 600, 600, 250, 150};
         const float Kd[6] = { 50,  50,  50,  30,  25,  15};
 
         arm.control([&](const florid::RobotState& st, florid::RobotControl&)
             -> florid::Torques
         {
+            // ── IMU 重力补偿 ─────────────────────────────────
+            //   base_gravity 来自臂端 IMU，自动适应桌装/墙装/倒装
+            float g_comp[6];
+            model.gravity(st.q, st.base_gravity, g_comp);
+
+            // ── PD 控制 ──────────────────────────────────────
             florid::Torques cmd{};
             for (int i = 0; i < 6; ++i)
-                cmd.tau[i] = Kp[i]*(qd[i]-st.q[i]) + Kd[i]*(0-st.dq[i]);
+                cmd.tau[i] = Kp[i] * (qd[i] - st.q[i])
+                           + Kd[i] * (0    - st.dq[i])
+                           + g_comp[i];
+
             return cmd;
         });
     });

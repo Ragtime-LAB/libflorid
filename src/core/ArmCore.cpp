@@ -43,6 +43,7 @@ namespace florid
 
             copy_float(packet.O_T_EE,       state.O_T_EE,       16);
             copy_float(packet.F_ext,        state.F_ext,        6);
+            copy_float(packet.base_gravity, state.base_gravity, 3);
             copy_float(packet.tau_desired,  state.tau_desired,  6);
             copy_float(packet.state.q,      state.q,            6);
             copy_float(packet.state.dq,     state.dq,           6);

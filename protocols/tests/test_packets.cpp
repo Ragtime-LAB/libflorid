@@ -66,7 +66,7 @@ TEST(Packets, ArmStatusPacketTypeId)
 
 TEST(Packets, ArmStatusPacketSize)
 {
-    EXPECT_EQ(sizeof(ArmStatusPacket), 208u);
+    EXPECT_EQ(sizeof(ArmStatusPacket), 224u);
 }
 
 TEST(Packets, ConfigCmdPacketTypeId)
@@ -97,12 +97,17 @@ TEST(Packets, ArmStatusLayout)
     as.state.tau[2] = 3.0;
     as.errors = 0x42u;
     as.timestamp = 1.618;
+    as.base_gravity[0] = 0.0f;
+    as.base_gravity[1] = 1.0f;
+    as.base_gravity[2] = -9.81f;
     EXPECT_EQ(as.mode, ArmMode::RUNNING);
     EXPECT_FLOAT_EQ(as.state.q[0], 1.0f);
     EXPECT_FLOAT_EQ(as.state.dq[1], 2.0f);
     EXPECT_FLOAT_EQ(as.state.tau[2], 3.0f);
     EXPECT_EQ(as.errors, 0x42u);
     EXPECT_DOUBLE_EQ(as.timestamp, 1.618);
+    EXPECT_FLOAT_EQ(as.base_gravity[1], 1.0f);
+    EXPECT_FLOAT_EQ(as.base_gravity[2], -9.81f);
 }
 
 TEST(Packets, JointStateLayout)
