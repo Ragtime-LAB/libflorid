@@ -1,0 +1,4 @@
+add_executable(florid_example_switch_control_mode main.cpp)
+target_compile_features(florid_example_switch_control_mode PUBLIC cxx_std_20)
+target_link_libraries(florid_example_switch_control_mode PUBLIC asio ${PROJECT_NAME})
+target_include_directories(florid_example_switch_control_mode PRIVATE ${CMAKE_SOURCE_DIR}/examples)

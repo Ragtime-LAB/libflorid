@@ -16,6 +16,7 @@ namespace florid::protocol
         SetEE                   = 0x14,
         SetLoad                 = 0x15,
         SetWatchdogTimeout      = 0x16,
+        SwitchControlMode       = 0x20,
     };
 
     struct ConfigCmdPacket

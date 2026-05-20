@@ -144,6 +144,13 @@ void Arm::setWatchdogTimeout(Duration timeout)
     send_config(m_cfg_transport, protocol::ConfigType::SetWatchdogTimeout, data, 1);
 }
 
+void Arm::switchControlMode(protocol::ControlMode mode)
+{
+    float data[1]{};
+    data[0] = static_cast<float>(static_cast<uint8_t>(mode));
+    send_config(m_cfg_transport, protocol::ConfigType::SwitchControlMode, data, 1);
+}
+
 ActiveControl<Torques> Arm::startTorqueControl()
 {
     return ActiveControl<Torques>(*this);

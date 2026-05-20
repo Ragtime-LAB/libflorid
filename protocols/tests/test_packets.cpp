@@ -166,6 +166,7 @@ TEST(Packets, ConfigTypeValues)
     EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetEE), 0x14);
     EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetLoad), 0x15);
     EXPECT_EQ(static_cast<uint8_t>(ConfigType::SetWatchdogTimeout), 0x16);
+    EXPECT_EQ(static_cast<uint8_t>(ConfigType::SwitchControlMode), 0x20);
 }
 
 TEST(Packets, JointCmdHasControlMode)

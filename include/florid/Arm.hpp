@@ -165,6 +165,8 @@ public:
 
     void setWatchdogTimeout(Duration timeout);
 
+    void switchControlMode(protocol::ControlMode mode);
+
     // ── 主动控制（高级用户手动循环） ────────────────────────────
 
     ActiveControl<Torques>              startTorqueControl();
