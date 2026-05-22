@@ -27,6 +27,8 @@ public:
      */
     void poll() override {}
 
+    uint16_t localPort() { return m_socket.local_endpoint().port(); }
+
 private:
     void do_receive();
 

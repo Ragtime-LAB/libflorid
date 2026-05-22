@@ -27,7 +27,7 @@ namespace florid
 
         if (ht->tcp.is_connected())
         {
-            ht->tcp.configure_session(mode, udp_port);
+            ht->tcp.configure_session(mode, ht->udp.localPort());
             m_cfg_transport = &ht->tcp;
         }
         m_transport = &ht->udp;
