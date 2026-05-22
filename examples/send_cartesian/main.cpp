@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
         florid::Arm arm(ip.c_str(), port, florid::protocol::SessionMode::Point);
         arm.setMaxFrequencyHz(hz);
         constexpr float kX=300,kZ=200,kY0=-100,kY1=100; constexpr double kP=4.0;
-        arm.control([&](const florid::RobotState&, florid::RobotControl&) {
+        arm.control([&](const florid::ArmState&, florid::ArmControl&) {
             double t=ToSec(Clock::now()), ph=std::fmod(t,kP);
             double r=(ph<kP*.5)?(ph/(kP*.5)):((kP-ph)/(kP*.5));
             float y=kY0+(kY1-kY0)*static_cast<float>(r);

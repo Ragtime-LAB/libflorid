@@ -43,9 +43,9 @@ namespace florid
             return *this;
         }
 
-        RobotState readOnce()
+        ArmState readOnce()
         {
-            if (!m_arm) return RobotState{};
+            if (!m_arm) return ArmState{};
             return m_arm->update();
         }
 

@@ -53,9 +53,9 @@ void Arm::on_receive_thunk(void* context, const uint8_t* data, const size_t len)
     self->m_core.feed_incoming_data(data, len);
 }
 
-RobotState Arm::readOnce()
+ArmState Arm::readOnce()
 {
-    return m_core.get_robot_state();
+    return m_core.get_arm_state();
 }
 
 void Arm::setMaxFrequencyHz(const double hz)

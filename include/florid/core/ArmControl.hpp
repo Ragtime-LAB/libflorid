@@ -1,12 +1,12 @@
-#ifndef FLORID_ROBOTCONTROL_HPP
-#define FLORID_ROBOTCONTROL_HPP
+#ifndef FLORID_ARMCONTROL_HPP
+#define FLORID_ARMCONTROL_HPP
 
 namespace florid
 {
-    class RobotControl
+    class ArmControl
     {
     public:
-        RobotControl(bool* stop_flag) noexcept : m_stop_flag(stop_flag) {}
+        ArmControl(bool* stop_flag) noexcept : m_stop_flag(stop_flag) {}
 
         void finishMotion() noexcept
         {
@@ -30,4 +30,4 @@ namespace florid
 
 } // namespace florid
 
-#endif // FLORID_ROBOTCONTROL_HPP
+#endif // FLORID_ARMCONTROL_HPP

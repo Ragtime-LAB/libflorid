@@ -4,14 +4,14 @@ namespace
 {
     void Usage(const char* p) { std::cerr << "Usage: " << p << " <ip>\n"; }
 
-    const char* modeName(florid::RobotMode m)
+    const char* modeName(florid::ArmMode m)
     {
         switch (m) {
-        case florid::RobotMode::Init:    return "INIT";
-        case florid::RobotMode::Idle:    return "IDLE";
-        case florid::RobotMode::Running: return "RUN";
-        case florid::RobotMode::Fault:   return "FAULT";
-        case florid::RobotMode::EStop:   return "ESTOP";
+        case florid::ArmMode::Init:    return "INIT";
+        case florid::ArmMode::Idle:    return "IDLE";
+        case florid::ArmMode::Running: return "RUN";
+        case florid::ArmMode::Fault:   return "FAULT";
+        case florid::ArmMode::EStop:   return "ESTOP";
         default:                         return "?";
         }
     }
@@ -26,9 +26,9 @@ int main(int argc, char* argv[])
     return example::runExample([&]
     {
         florid::Arm arm(ip.c_str());
-        std::cout << "Reading robot state...\n";
+        std::cout << "Reading arm state...\n";
 
-        arm.read([&](const florid::RobotState& state) -> bool
+        arm.read([&](const florid::ArmState& state) -> bool
         {
             std::cout
                 << "[" << modeName(state.mode) << "] "
@@ -39,8 +39,8 @@ int main(int argc, char* argv[])
                 << std::hex << state.errors << std::dec
                 << " F_ext=[" << state.F_ext[0] << "," << state.F_ext[1] << "," << state.F_ext[2] << "]"
                 << "                    \r" << std::flush;
-            return state.mode != florid::RobotMode::Fault
-                && state.mode != florid::RobotMode::EStop;
+            return state.mode != florid::ArmMode::Fault
+                && state.mode != florid::ArmMode::EStop;
         });
     });
 }

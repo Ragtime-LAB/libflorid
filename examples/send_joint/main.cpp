@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     {
         florid::Arm arm(ip.c_str(), port);
         arm.setMaxFrequencyHz(hz);
-        arm.control([&](const florid::RobotState&, florid::RobotControl&) {
+        arm.control([&](const florid::ArmState&, florid::ArmControl&) {
             double t=ToSec(Clock::now());
             florid::JointPositions cmd{};
             for(int i=0;i<6;++i){

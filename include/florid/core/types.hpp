@@ -6,7 +6,7 @@
 
 namespace florid
 {
-    enum class RobotMode : uint8_t
+    enum class ArmMode : uint8_t
     {
         Init = 0,
         Idle = 1,
@@ -21,10 +21,10 @@ namespace florid
         CartesianImpedance = 1,
     };
 
-    struct RobotState
+    struct ArmState
     {
         double       time{};
-        RobotMode    mode{};
+        ArmMode    mode{};
         uint32_t     errors{};
         float        q[6]{};
         float        dq[6]{};

@@ -64,8 +64,8 @@ int main(int argc, char *argv[]) {
     while (true) {
       auto s = arm.update();
 
-      if (s.mode == florid::RobotMode::Fault ||
-          s.mode == florid::RobotMode::EStop) {
+      if (s.mode == florid::ArmMode::Fault ||
+          s.mode == florid::ArmMode::EStop) {
         std::cerr << "\nFault/estop.\n";
         return;
       }

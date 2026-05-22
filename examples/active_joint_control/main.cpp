@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
         while(true) {
             st=control.readOnce();
-            if(st.mode==florid::RobotMode::Fault||st.mode==florid::RobotMode::EStop){std::cerr<<"\nFault\n";return;}
+            if(st.mode==florid::ArmMode::Fault||st.mode==florid::ArmMode::EStop){std::cerr<<"\nFault\n";return;}
             double t=ToSec(Clock::now())-t0;
             florid::JointPositions cmd{};
             for(int i=0;i<6;++i){

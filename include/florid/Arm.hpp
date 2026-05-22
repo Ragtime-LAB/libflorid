@@ -3,7 +3,7 @@
 
 #include "core/ArmCore.hpp"
 #include "core/Duration.hpp"
-#include "core/RobotControl.hpp"
+#include "core/ArmControl.hpp"
 #include "detail/tick.hpp"
 #include "detail/Transport.hpp"
 #include <stddef.h>
@@ -31,7 +31,7 @@ public:
 
     // ── 状态读取 ───────────────────────────────────────────────
 
-    RobotState readOnce();
+    ArmState readOnce();
 
     template <typename Callable>
     void read(Callable&& cb)
@@ -39,7 +39,7 @@ public:
         while (true)
         {
             update();
-            auto state = m_core.get_robot_state();
+            auto state = m_core.get_arm_state();
             if (!cb(state)) break;
         }
     }
@@ -49,14 +49,14 @@ public:
     template <typename Callable>
     void control(Callable&& cb)
     {
-        using ReturnType = decltype(cb(m_core.get_robot_state(),
-                                       m_core.robot_control()));
+        using ReturnType = decltype(cb(m_core.get_arm_state(),
+                                       m_core.arm_control()));
         static_assert(
             is_control_command<ReturnType>::value,
             "Control callback must return Torques, JointPositions, "
             "JointVelocities, CartesianPose, or CartesianVelocities");
 
-        auto& ctrl = m_core.robot_control();
+        auto& ctrl = m_core.arm_control();
 
         m_finish_flag = false;
         ctrl.setFinishFlag(&m_finish_flag);
@@ -83,8 +83,8 @@ public:
                     m_next_tick_ms = now + period;
             }
 
-            auto state = m_core.get_robot_state();
-            auto cmd   = cb(state, m_core.robot_control());
+            auto state = m_core.get_arm_state();
+            auto cmd   = cb(state, m_core.arm_control());
 
             auto raw = m_core.pack_command(cmd);
             m_transport->send(raw.data, raw.size);
@@ -99,7 +99,7 @@ public:
     template <typename TorqueCb, typename MotionCb>
     void control(TorqueCb&& torque_cb, MotionCb&& motion_cb)
     {
-        auto& ctrl = m_core.robot_control();
+        auto& ctrl = m_core.arm_control();
 
         m_finish_flag = false;
         ctrl.setFinishFlag(&m_finish_flag);
@@ -126,7 +126,7 @@ public:
                     m_next_tick_ms = now + period;
             }
 
-            auto state      = m_core.get_robot_state();
+            auto state      = m_core.get_arm_state();
             auto torque_cmd = torque_cb(state, ctrl);
             auto motion_cmd = motion_cb(state, ctrl);
 
@@ -175,7 +175,7 @@ public:
     ActiveControl<CartesianPose>        startCartesianPoseControl();
     ActiveControl<CartesianVelocities>  startCartesianVelocityControl();
 
-    RobotState update() { m_transport->poll(); return m_core.get_robot_state(); }
+    ArmState update() { m_transport->poll(); return m_core.get_arm_state(); }
 
     template <typename Command>
     void writeOnce(const Command& cmd)
@@ -189,7 +189,7 @@ public:
         m_transport->send(raw.data, raw.size);
     }
 
-    RobotControl& controlHandle() { return m_core.robot_control(); }
+    ArmControl& controlHandle() { return m_core.arm_control(); }
 
 private:
     static void on_receive_thunk(void* context, const uint8_t* data, size_t len);

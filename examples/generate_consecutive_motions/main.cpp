@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 
         std::cout << "Consecutive motions: A → hold → B\n";
 
-        arm.control([&](const florid::RobotState& s, florid::RobotControl& ctrl)
+        arm.control([&](const florid::ArmState& s, florid::ArmControl& ctrl)
             -> florid::JointPositions
         {
             if (t0 == 0.0) t0 = s.time;
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
                 // 本部分不需要发送 JointPositions，这里改成力矩模式：
                 // 为了方便，这里返回一个 MotionFinished JointPositions 直接跳
-                // 实际上可以用 robot.control(torque_cb, motion_cb)
+                // 实际上可以用 arm.control(torque_cb, motion_cb)
                 if (s.time - t0 > 3.0) { motion = 2; t0 = s.time; }
                 for (int i = 0; i < 6; ++i) cmd.q[i] = q_a[i];  // 保持
                 return cmd;

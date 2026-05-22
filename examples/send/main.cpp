@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         std::uniform_real_distribution<double> js(1.-jitter/100.,1.+jitter/100.);
         auto next=Clock::now();
 
-        arm.control([&](const florid::RobotState&, florid::RobotControl&)
+        arm.control([&](const florid::ArmState&, florid::ArmControl&)
         {
             next += std::chrono::duration_cast<Clock::duration>(std::chrono::duration<double>((1./hz)*js(rng)));
             std::this_thread::sleep_until(next);

@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
         std::cout << "Cartesian impedance — holding EE pose.\n";
         const float Kx[6]={600,600,600,30,30,30}, Dx[6]={30,30,30,2,2,2};
 
-        arm.control([&](const florid::RobotState& s, florid::RobotControl&)
+        arm.control([&](const florid::ArmState& s, florid::ArmControl&)
             -> florid::Torques
         {
             float Tc[16]; model.forwardKinematics(s.q, Tc);

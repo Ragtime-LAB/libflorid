@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 
         std::cout << "Joint velocity motion — sinusoidal.\n";
 
-        arm.control([&](const florid::RobotState& s, florid::RobotControl&)
+        arm.control([&](const florid::ArmState& s, florid::ArmControl&)
             -> florid::JointVelocities
         {
             double t = s.time - t0;

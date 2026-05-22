@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
         float integral[6]={};
 
         std::cout << "Force control — Fx=5N.\n";
-        arm.control([&](const florid::RobotState& s, florid::RobotControl&) -> florid::Torques
+        arm.control([&](const florid::ArmState& s, florid::ArmControl&) -> florid::Torques
         {
             float err[6],Fc[6];
             for(int i=0;i<6;++i){err[i]=Fd[i]-s.F_ext[i];integral[i]+=Ki[i]*err[i];Fc[i]=Kp[i]*err[i]+integral[i];}

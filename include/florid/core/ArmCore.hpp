@@ -7,7 +7,7 @@
 #include <florid/detail/Seqlock.hpp>
 #include <florid/detail/timestamp.hpp>
 #include "traits.hpp"
-#include "RobotControl.hpp"
+#include "ArmControl.hpp"
 
 namespace florid
 {
@@ -24,7 +24,7 @@ namespace florid
 
         void feed_incoming_data(const uint8_t* data, size_t len);
 
-        RobotState get_robot_state();
+        ArmState get_arm_state();
 
         template <typename UserCommand>
         PackedCommandView pack_command(const UserCommand& cmd)
@@ -46,7 +46,7 @@ namespace florid
         PackedCommandView pack_hybrid(const Torques& torque_cmd,
                                       const JointVelocities& motion_cmd);
 
-        RobotControl& robot_control() { return m_robot_control; }
+        ArmControl& arm_control() { return m_arm_control; }
 
     private:
         void handle_packet(const protocol::ArmStatusPacket& packet);
@@ -60,7 +60,7 @@ namespace florid
         PackedCommandView pack_impl(const CartesianPose& cmd);
         PackedCommandView pack_impl(const CartesianVelocities& cmd);
 
-        detail::SeqlockBuf<RobotState>    m_latest_state;
+        detail::SeqlockBuf<ArmState>    m_latest_state;
         protocol::JointCmdPacket          m_tx_joint_command{};
         protocol::CartesianPoseCmdPacket  m_tx_cart_command{};
         protocol::CartesianVelocityCmdPacket m_tx_cart_vel_command{};
@@ -68,7 +68,7 @@ namespace florid
         uint32_t                          m_seq_num{};
         bool                              m_finish_flag{false};
         bool                              m_stop_flag{false};
-        RobotControl                      m_robot_control{&m_stop_flag};
+        ArmControl                      m_arm_control{&m_stop_flag};
     };
 }
 

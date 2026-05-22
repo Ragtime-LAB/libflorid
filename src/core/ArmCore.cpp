@@ -28,17 +28,17 @@ namespace florid
             [this](const auto& packet) { this->handle_packet(packet); });
     }
 
-    RobotState ArmCore::get_robot_state()
+    ArmState ArmCore::get_arm_state()
     {
         return m_latest_state.read();
     }
 
     void ArmCore::handle_packet(const protocol::ArmStatusPacket& packet)
     {
-        m_latest_state.manipulate([&packet](RobotState& state)
+        m_latest_state.manipulate([&packet](ArmState& state)
         {
             state.time    = packet.timestamp;
-            state.mode    = static_cast<RobotMode>(packet.mode);
+            state.mode    = static_cast<ArmMode>(packet.mode);
             state.errors  = packet.errors;
 
             copy_float(packet.O_T_EE,       state.O_T_EE,       16);

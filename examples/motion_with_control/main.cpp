@@ -39,8 +39,8 @@ int main(int argc, char* argv[])
         std::cout << "Motion + torque control — hybrid.\n";
 
         // ── 力矩回调：PD + 阻尼 ─────────────────────────────
-        auto torque_cb = [&](const florid::RobotState& s,
-                              florid::RobotControl& ctrl) -> florid::Torques
+        auto torque_cb = [&](const florid::ArmState& s,
+                              florid::ArmControl& ctrl) -> florid::Torques
         {
             florid::Torques cmd{};
             for (int i = 0; i < 6; ++i)
@@ -49,8 +49,8 @@ int main(int argc, char* argv[])
         };
 
         // ── 运动回调：三次多项轨迹 ──────────────────────────
-        auto motion_cb = [&](const florid::RobotState& s,
-                              florid::RobotControl& ctrl) -> florid::JointPositions
+        auto motion_cb = [&](const florid::ArmState& s,
+                              florid::ArmControl& ctrl) -> florid::JointPositions
         {
             if (t0 == 0.0) t0 = s.time;
             double t = s.time - t0;
