@@ -199,3 +199,9 @@ TEST(Packets, SessionCfgHasWatchdogTimeout)
     SessionCfgPacket cfg{};
     EXPECT_EQ(cfg.watchdog_timeout_ms, 500u);
 }
+
+TEST(Packets, SessionCfgClientUdpPort)
+{
+    SessionCfgPacket cfg{};
+    EXPECT_EQ(cfg.client_udp_port, 0u);  // default = no telemetry
+}

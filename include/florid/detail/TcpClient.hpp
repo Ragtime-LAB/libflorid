@@ -24,7 +24,8 @@ namespace florid::detail
         void set_receive_callback(ReceiveFunctor callback, void* context) override;
         void poll() override {}
 
-        bool configure_session(protocol::SessionMode mode);
+        bool configure_session(protocol::SessionMode mode,
+                                uint16_t client_udp_port = 0);
 
         bool is_connected() const { return m_connected; }
 

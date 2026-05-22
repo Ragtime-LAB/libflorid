@@ -49,8 +49,9 @@ namespace florid::protocol
         double timestamp{};
         ProtocolVersion version{};
         uint16_t watchdog_timeout_ms{500};
+        uint16_t client_udp_port{0};  // arm 向此端口发 telemetry（0 = 不发送）
         SessionMode mode{};
-        uint8_t _pad[3]{};
+        uint8_t _pad[1]{};
     };
 }
 

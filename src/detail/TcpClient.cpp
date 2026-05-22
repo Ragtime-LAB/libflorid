@@ -64,7 +64,8 @@ namespace florid::detail
         m_on_receive_context = context;
     }
 
-    bool TcpClient::configure_session(const SessionMode mode)
+    bool TcpClient::configure_session(const SessionMode mode,
+                                       const uint16_t client_udp_port)
     {
         if (!m_connected)
         {
@@ -77,6 +78,7 @@ namespace florid::detail
         cfg.timestamp = 0.0;
         cfg.version = CURRENT_PROTOCOL_VERSION.raw;
         cfg.mode = mode;
+        cfg.client_udp_port = client_udp_port;
 
         static_assert(sizeof(cfg) == 24, "SessionCfgPacket size mismatch");
 
