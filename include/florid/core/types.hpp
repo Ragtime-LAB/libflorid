@@ -43,6 +43,8 @@ namespace florid
     struct Torques : Finishable
     {
         float tau[6]{};
+        float kp[6]{};   // per-frame 增益（0 = 用默认）
+        float kd[6]{};
 
         static Torques MotionFinished(const Torques& command)
         {
@@ -55,6 +57,8 @@ namespace florid
     struct JointPositions : Finishable
     {
         float q[6]{};
+        float kp[6]{};
+        float kd[6]{};
 
         static JointPositions MotionFinished(const JointPositions& command)
         {
@@ -67,6 +71,8 @@ namespace florid
     struct JointVelocities : Finishable
     {
         float dq[6]{};
+        float kp[6]{};
+        float kd[6]{};
 
         static JointVelocities MotionFinished(const JointVelocities& command)
         {
