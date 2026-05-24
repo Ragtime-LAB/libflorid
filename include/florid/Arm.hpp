@@ -147,8 +147,6 @@ public:
     void setCollisionBehavior(const float (&lower_torques)[6],
                               const float (&upper_torques)[6]);
 
-    void setJointImpedance(const float (&K_theta)[6]);
-
     void setCartesianImpedance(const float (&K_x)[6]);
 
     void setK(const float (&EE_T_K)[16]);

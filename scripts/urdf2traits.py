@@ -158,7 +158,6 @@ struct {traits_name} {{
     // 推荐的安全参数（可覆盖）
     static constexpr float collision_lower[6]   = {{20, 20, 20, 20, 10, 10}};
     static constexpr float collision_upper[6]   = {{20, 20, 20, 20, 10, 10}};
-    static constexpr float joint_impedance[6]   = {{3000, 3000, 3000, 2500, 2500, 2000}};
     static constexpr float cartesian_impedance[6] = {{600, 600, 600, 30, 30, 30}};
     static constexpr uint16_t watchdog_timeout_ms = 500;
 

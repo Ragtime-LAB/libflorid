@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
         << "Joint impedance + IMU gravity comp — holding pose.\n"
         << "  (applies kp/kd from each callback, sent per-frame — no TCP/UDP race)\n";
 
-    const float Kp[6] = {30, 30, 30, 15, 10, 5};
-    const float Kd[6] = {3, 3, 3, 2, 1, 0.5};
+    constexpr float Kp[6] = {3, 3, 3, 3, 2, 2};
+    constexpr float Kd[6] = {1, 1, 1, 1, 0.8, 0.8};
 
     arm.control([&](const florid::ArmState &st,
                     florid::ArmControl &) -> florid::Torques {

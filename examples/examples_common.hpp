@@ -55,7 +55,6 @@ inline void applyDefaults(florid::Arm& arm)
     arm.setCollisionBehavior(
         PantheraTraits::collision_lower,
         PantheraTraits::collision_upper);
-    arm.setJointImpedance(PantheraTraits::joint_impedance);
     arm.setWatchdogTimeout(
         florid::Duration(PantheraTraits::watchdog_timeout_ms));
 }
