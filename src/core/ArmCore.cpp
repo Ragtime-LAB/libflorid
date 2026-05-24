@@ -55,6 +55,8 @@ namespace florid
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::Torque;
         copy_float(cmd.tau,              m_tx_joint_command.state.tau, 6);
+        copy_float(m_kp,                 m_tx_joint_command.kp, 6);
+        copy_float(m_kd,                 m_tx_joint_command.kd, 6);
         m_tx_joint_command.timestamp    = detail::get_timestamp();
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
@@ -65,6 +67,8 @@ namespace florid
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
         copy_float(cmd.q,               m_tx_joint_command.state.q, 6);
+        copy_float(m_kp,                m_tx_joint_command.kp, 6);
+        copy_float(m_kd,                m_tx_joint_command.kd, 6);
         m_tx_joint_command.timestamp    = detail::get_timestamp();
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
@@ -75,6 +79,8 @@ namespace florid
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointVelocity;
         copy_float(cmd.dq,              m_tx_joint_command.state.dq, 6);
+        copy_float(m_kp,                m_tx_joint_command.kp, 6);
+        copy_float(m_kd,                m_tx_joint_command.kd, 6);
         m_tx_joint_command.timestamp    = detail::get_timestamp();
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
@@ -123,6 +129,8 @@ namespace florid
         m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
         copy_float(motion_cmd.q,        m_tx_joint_command.state.q,   6);
         copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
+        copy_float(m_kp,                m_tx_joint_command.kp, 6);
+        copy_float(m_kd,                m_tx_joint_command.kd, 6);
         m_tx_joint_command.timestamp    = detail::get_timestamp();
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
@@ -135,6 +143,8 @@ namespace florid
         m_tx_joint_command.control_mode = protocol::ControlMode::JointVelocity;
         copy_float(motion_cmd.dq,       m_tx_joint_command.state.dq,  6);
         copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
+        copy_float(m_kp,                m_tx_joint_command.kp, 6);
+        copy_float(m_kd,                m_tx_joint_command.kd, 6);
         m_tx_joint_command.timestamp    = detail::get_timestamp();
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;

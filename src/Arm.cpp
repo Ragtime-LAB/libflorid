@@ -99,6 +99,9 @@ void Arm::setCollisionBehavior(const float (&lower_torques)[6],
 void Arm::setJointImpedance(const float (&K_theta)[6])
 {
     send_config(m_cfg_transport, protocol::ConfigType::SetJointImpedance, K_theta, 6);
+    // 本地也存一份，后续 pack 时填入 JointCmdPacket 的 kp/kd
+    float kd_default[6] = {5, 5, 5, 5, 5, 5};
+    m_core.set_gains(K_theta, kd_default);
 }
 
 void Arm::setCartesianImpedance(const float (&K_x)[6])

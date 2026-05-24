@@ -48,6 +48,11 @@ namespace florid
 
         ArmControl& arm_control() { return m_arm_control; }
 
+        void set_gains(const float* kp, const float* kd)
+        {
+            for (int i = 0; i < 6; ++i) { m_kp[i] = kp[i]; m_kd[i] = kd[i]; }
+        }
+
     private:
         void handle_packet(const protocol::ArmStatusPacket& packet);
 
@@ -68,6 +73,8 @@ namespace florid
         uint32_t                          m_seq_num{};
         bool                              m_finish_flag{false};
         bool                              m_stop_flag{false};
+        float                             m_kp[6]{};
+        float                             m_kd[6]{5, 5, 5, 5, 5, 5};
         ArmControl                      m_arm_control{&m_stop_flag};
     };
 }

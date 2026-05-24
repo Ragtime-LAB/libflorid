@@ -21,7 +21,7 @@ TEST(Packets, JointCmdPacketTypeId)
 
 TEST(Packets, JointCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(JointCmdPacket), 96u); // header(8) + timestamp(8) + mode(1)+pad(3) + state(72) + trailing(4)
+    EXPECT_EQ(sizeof(JointCmdPacket), 144u); // header(8)+ts(8)+mode(1)+pad(3)+kp(24)+kd(24)+state(72)+trail(4)
 }
 
 TEST(Packets, CartesianPoseCmdPacketTypeId)
@@ -179,6 +179,17 @@ TEST(Packets, JointCmdHasControlMode)
     JointCmdPacket pkt{};
     pkt.control_mode = ControlMode::Torque;
     EXPECT_EQ(pkt.control_mode, ControlMode::Torque);
+}
+
+TEST(Packets, JointCmdHasGains)
+{
+    JointCmdPacket pkt{};
+    pkt.kp[0] = 100.0f;
+    pkt.kd[3] = 5.0f;
+    EXPECT_FLOAT_EQ(pkt.kp[0], 100.0f);
+    EXPECT_FLOAT_EQ(pkt.kd[3], 5.0f);
+    // default is zero
+    EXPECT_FLOAT_EQ(pkt.kp[2], 0.0f);
 }
 
 TEST(Packets, CartesianPoseCmdHasControlMode)

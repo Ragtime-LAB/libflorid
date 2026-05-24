@@ -12,6 +12,8 @@ namespace florid::protocol
         double timestamp{};
         ControlMode control_mode{};
         uint8_t _pad[3]{};
+        float kp[6]{};     // 每帧自带刚度和阻尼，消除 TCP/UDP 竞态
+        float kd[6]{};
         JointState state;
     };
 
