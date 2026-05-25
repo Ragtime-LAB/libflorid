@@ -1,5 +1,6 @@
 #include "examples_common.hpp"
 #include <chrono>
+#include <iomanip>
 #include <florid/Model.hpp>
 #include <florid/traits/PantheraTraits.hpp>
 #include <thread>
@@ -27,7 +28,7 @@ int main(int argc, char *argv[]) {
     florid::Model<florid::PantheraTraits> model;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    auto st = arm.readOnce();
+    const auto st = arm.readOnce();
     float qd[6];
     for (int i = 0; i < 6; ++i)
       qd[i] = st.q[i];
@@ -36,21 +37,24 @@ int main(int argc, char *argv[]) {
         << "Joint impedance + IMU gravity comp — holding pose.\n"
         << "  (applies kp/kd from each callback, sent per-frame — no TCP/UDP race)\n";
 
-    constexpr float Kp[6] = {3, 3, 3, 3, 2, 2};
-    constexpr float Kd[6] = {1, 1, 1, 1, 0.8, 0.8};
+    constexpr float Kp[6] = {5, 5, 5, 5, 5, 5};
+    constexpr float Kd[6] = {1,  1,  1,  1,  1,  1};
 
     arm.control([&](const florid::ArmState &st,
                     florid::ArmControl &) -> florid::Torques {
       // ── IMU 重力补偿 ─────────────────────────────────
-      //   base_gravity 来自臂端 IMU，自动适应桌装/墙装/倒装
       float g_comp[6];
       model.gravity(st.q, st.base_gravity, g_comp);
 
-      // ── PD 控制 ──────────────────────────────────────
+      // ── PD 控制 + 臂端 MIT 增益 ──────────────────────
       florid::Torques cmd{};
       for (int i = 0; i < 6; ++i)
+      {
         cmd.tau[i] =
             Kp[i] * (qd[i] - st.q[i]) + Kd[i] * (0 - st.dq[i]) + g_comp[i];
+        cmd.kp[i] = 0.0f;
+        cmd.kd[i] = 1.0f;
+      }
 
       return cmd;
     });
