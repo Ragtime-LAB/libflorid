@@ -37,9 +37,6 @@ int main(int argc, char *argv[]) {
         << "Joint impedance + IMU gravity comp — holding pose.\n"
         << "  (applies kp/kd from each callback, sent per-frame — no TCP/UDP race)\n";
 
-    constexpr float Kp[6] = {5, 5, 5, 5, 5, 5};
-    constexpr float Kd[6] = {1,  1,  1,  1,  1,  1};
-
     arm.control([&](const florid::ArmState &st,
                     florid::ArmControl &) -> florid::Torques {
       // ── IMU 重力补偿 ─────────────────────────────────
@@ -50,10 +47,9 @@ int main(int argc, char *argv[]) {
       florid::Torques cmd{};
       for (int i = 0; i < 6; ++i)
       {
-        cmd.tau[i] =
-            Kp[i] * (qd[i] - st.q[i]) + Kd[i] * (0 - st.dq[i]) + g_comp[i];
+        cmd.tau[i] = g_comp[i];
         cmd.kp[i] = 0.0f;
-        cmd.kd[i] = 1.0f;
+        cmd.kd[i] = 0.8f;
       }
 
       return cmd;

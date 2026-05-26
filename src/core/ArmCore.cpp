@@ -63,6 +63,10 @@ namespace florid
     PackedCommandView ArmCore::pack_impl(const Torques& cmd)
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::Torque;
+        for (int i = 0; i < 6; ++i) {
+            m_tx_joint_command.state.q[i]  = 0;
+            m_tx_joint_command.state.dq[i] = 0;
+        }
         copy_float(cmd.tau,              m_tx_joint_command.state.tau, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
@@ -75,6 +79,10 @@ namespace florid
     PackedCommandView ArmCore::pack_impl(const JointPositions& cmd)
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
+        for (int i = 0; i < 6; ++i) {
+            m_tx_joint_command.state.dq[i]  = 0;
+            m_tx_joint_command.state.tau[i] = 0;
+        }
         copy_float(cmd.q,               m_tx_joint_command.state.q, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
@@ -87,6 +95,10 @@ namespace florid
     PackedCommandView ArmCore::pack_impl(const JointVelocities& cmd)
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointVelocity;
+        for (int i = 0; i < 6; ++i) {
+            m_tx_joint_command.state.q[i]   = 0;
+            m_tx_joint_command.state.tau[i] = 0;
+        }
         copy_float(cmd.dq,              m_tx_joint_command.state.dq, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
