@@ -57,6 +57,7 @@ namespace florid
     struct JointPositions : Finishable
     {
         float q[6]{};
+        float dq[6]{};
         float kp[6]{};
         float kd[6]{};
 

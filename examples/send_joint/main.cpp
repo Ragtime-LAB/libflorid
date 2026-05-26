@@ -5,6 +5,7 @@
 
 namespace {
     using Clock = std::chrono::steady_clock;
+    constexpr double kPi = 3.14159265358979323846;
     void Usage(const char* p) { std::cerr << "Usage: " << p << " <ip> <port> <hz>\n"; }
     double ToSec(const Clock::time_point& tp) {
         return std::chrono::duration<double>(tp.time_since_epoch()).count();
@@ -19,7 +20,7 @@ int main(int argc, char* argv[])
     { Usage(argv[0]); return 1; }
 
     std::cout << "Joint interpolation test @ " << hz << " Hz\n"
-              << "  Cycling j1..j6, 3s each, 0 ↔ 0.4 rad\n";
+              << "  Cycling j1..j6, 0 -> 0.5 -> 0 rad with q+dq sine samples\n";
 
     return example::runExample([&]
     {
@@ -27,10 +28,10 @@ int main(int argc, char* argv[])
         arm.setMaxFrequencyHz(hz);
         example::applyDefaults(arm);
 
-        constexpr double kPeriod = 3.0;          // 每个关节 3 秒
-        constexpr float  kAmplitude = 0.4f;       // 0 → 0.4 → 0 rad
-        constexpr float  kKp = 20.0f;
-        constexpr float  kKd = 0.4f;
+        constexpr double kPeriod = 2.5;           // seconds per joint
+        constexpr float  kAmplitude = 0.5f;       // 0 -> 0.5 -> 0 rad
+        constexpr float  kKp = 15.0f;
+        constexpr float  kKd = 0.5f;
 
         double t0 = 0.0;
         float base_q[6]{};
@@ -48,16 +49,17 @@ int main(int argc, char* argv[])
             int joint = static_cast<int>(elapsed / kPeriod) % 6;
             double phase = std::fmod(elapsed, kPeriod);
 
-            float val;
-            if (phase < kPeriod * 0.5)
-                val = kAmplitude * static_cast<float>(phase / (kPeriod * 0.5));
-            else
-                val = kAmplitude * static_cast<float>((kPeriod - phase) / (kPeriod * 0.5));
+            const double omega = 2.0 * kPi / kPeriod;
+            const float val = 0.5f * kAmplitude
+                * static_cast<float>(1.0 - std::cos(omega * phase));
+            const float vel = 0.5f * kAmplitude
+                * static_cast<float>(omega * std::sin(omega * phase));
 
             florid::JointPositions cmd{};
             for (int i = 0; i < 6; ++i)
             {
                 cmd.q[i]  = base_q[i]; // 空闲关节保持锁存位置
+                cmd.dq[i] = 0.0f;
                 cmd.kp[i] = kKp;
                 cmd.kd[i] = kKd;
             }
@@ -67,11 +69,13 @@ int main(int argc, char* argv[])
             {
                 for (int i = 0; i < 6; ++i) base_q[i] = s.q[i];
                 last_joint = joint;
-                std::cout << "\n-> j" << (joint + 1) << ": 0 ↔ " << kAmplitude
+                std::cout << "\n-> j" << (joint + 1) << ": 0 -> " << kAmplitude
+                          << " -> 0"
                           << " rad  " << std::flush;
             }
 
             cmd.q[joint] = base_q[joint] + val;   // 活动关节在锁存位置基础上偏移
+            cmd.dq[joint] = vel;
 
             return cmd;
         });
