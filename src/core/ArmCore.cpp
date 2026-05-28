@@ -140,6 +140,8 @@ namespace florid
     {
         m_tx_cart_command.control_mode = protocol::ControlMode::CartesianPose;
         copy_float(cmd.T,              m_tx_cart_command.pose.T, 16);
+        merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
+                    m_tx_cart_command.kp, m_tx_cart_command.kd);
         m_tx_cart_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
         m_tx_cart_command.intent = command_intent(m_control_session_active);
         m_tx_cart_command.header.length = static_cast<uint16_t>(sizeof(m_tx_cart_command));
@@ -151,6 +153,8 @@ namespace florid
     {
         m_tx_cart_vel_command.control_mode = protocol::ControlMode::CartesianVelocity;
         copy_float(cmd.v,                  m_tx_cart_vel_command.v, 6);
+        merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
+                    m_tx_cart_vel_command.kp, m_tx_cart_vel_command.kd);
         m_tx_cart_vel_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
         m_tx_cart_vel_command.intent = command_intent(m_control_session_active);
         m_tx_cart_vel_command.header.length = static_cast<uint16_t>(sizeof(m_tx_cart_vel_command));

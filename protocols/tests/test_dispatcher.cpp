@@ -30,6 +30,8 @@ TEST(Dispatcher, DispatchCartesianPoseCmdPacket)
     pkt.header.length = sizeof(CartesianPoseCmdPacket);
     pkt.timestamp_us = 1618;
     pkt.intent = CommandIntent::Stream;
+    pkt.kp[0] = 20.0f;
+    pkt.kd[0] = 0.4f;
     pkt.pose.T[0] = 1.0;
     pkt.pose.T[15] = 1.0;
 
@@ -41,6 +43,8 @@ TEST(Dispatcher, DispatchCartesianPoseCmdPacket)
             called = true;
             EXPECT_EQ(p.timestamp_us, 1618u);
             EXPECT_EQ(p.intent, CommandIntent::Stream);
+            EXPECT_FLOAT_EQ(p.kp[0], 20.0f);
+            EXPECT_FLOAT_EQ(p.kd[0], 0.4f);
             EXPECT_FLOAT_EQ(p.pose.T[0], 1.0f);
             EXPECT_FLOAT_EQ(p.pose.T[15], 1.0f);
         }
@@ -56,6 +60,8 @@ TEST(Dispatcher, DispatchCartesianVelocityCmdPacket)
     pkt.header.magic_word = 0xA5;
     pkt.header.type = PacketType::CartesianVelocityCommand;
     pkt.header.length = sizeof(CartesianVelocityCmdPacket);
+    pkt.kp[1] = 18.0f;
+    pkt.kd[1] = 0.3f;
     pkt.v[0] = 0.1f;
     pkt.v[3] = 0.5f;
 
@@ -65,6 +71,8 @@ TEST(Dispatcher, DispatchCartesianVelocityCmdPacket)
         if constexpr (std::is_same_v<std::decay_t<decltype(p)>, CartesianVelocityCmdPacket>)
         {
             called = true;
+            EXPECT_FLOAT_EQ(p.kp[1], 18.0f);
+            EXPECT_FLOAT_EQ(p.kd[1], 0.3f);
             EXPECT_FLOAT_EQ(p.v[0], 0.1f);
             EXPECT_FLOAT_EQ(p.v[3], 0.5f);
         }

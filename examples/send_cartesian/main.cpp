@@ -20,8 +20,11 @@ int main(int argc, char* argv[])
 
     return example::runExample([&]
     {
-        florid::Arm arm(ip.c_str(), port, florid::protocol::SessionMode::Point);
+        florid::Arm arm(ip.c_str(), port);
         arm.setMaxFrequencyHz(hz);
+
+        constexpr float kKp = 20.0f;
+        constexpr float kKd = 0.4f;
 
         // 等臂端推来有效状态再抓 T_hold
         float T_hold[16];
@@ -43,6 +46,11 @@ int main(int argc, char* argv[])
         {
             florid::CartesianPose cmd{};
             std::memcpy(cmd.T, T_hold, sizeof(cmd.T));
+            for (int i = 0; i < 6; ++i)
+            {
+                cmd.kp[i] = kKp;
+                cmd.kd[i] = kKd;
+            }
             return cmd;
         });
     });

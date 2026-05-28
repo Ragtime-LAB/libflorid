@@ -86,6 +86,8 @@ namespace florid
     struct CartesianPose : Finishable
     {
         float T[16]{};
+        float kp[6]{};
+        float kd[6]{};
 
         bool hasElbow() const { return false; }
 
@@ -100,6 +102,8 @@ namespace florid
     struct CartesianVelocities : Finishable
     {
         float v[6]{};
+        float kp[6]{};
+        float kd[6]{};
 
         static CartesianVelocities MotionFinished(const CartesianVelocities& command)
         {

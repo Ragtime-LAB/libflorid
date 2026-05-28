@@ -26,6 +26,8 @@ namespace florid::protocol
         ControlMode control_mode{};
         CommandIntent intent{CommandIntent::PointTarget};
         uint8_t _pad[2]{};
+        float kp[6]{};
+        float kd[6]{};
         CartesianPose pose;
     };
 
@@ -37,6 +39,8 @@ namespace florid::protocol
         ControlMode control_mode{ControlMode::CartesianVelocity};
         CommandIntent intent{CommandIntent::PointTarget};
         uint8_t _pad[2]{};
+        float kp[6]{};
+        float kd[6]{};
         float v[6]{};  // {vx, vy, vz, wx, wy, wz}
     };
 

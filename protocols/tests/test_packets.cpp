@@ -31,7 +31,7 @@ TEST(Packets, CartesianPoseCmdPacketTypeId)
 
 TEST(Packets, CartesianPoseCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 88u); // header(8) + timestamp_us(8) + mode(1)+intent(1)+pad(2) + pose(64) + trailing(4)
+    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 136u); // header(8)+timestamp_us(8)+mode(1)+intent(1)+pad(2)+kp(24)+kd(24)+pose(64)+trail(4)
 }
 
 TEST(Packets, CartesianVelocityCmdPacketTypeId)
@@ -41,7 +41,7 @@ TEST(Packets, CartesianVelocityCmdPacketTypeId)
 
 TEST(Packets, CartesianVelocityCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(CartesianVelocityCmdPacket), 48u); // header(8) + timestamp_us(8) + mode(1)+intent(1)+pad(2) + v[6](24) + trailing(4)
+    EXPECT_EQ(sizeof(CartesianVelocityCmdPacket), 96u); // header(8)+timestamp_us(8)+mode(1)+intent(1)+pad(2)+kp(24)+kd(24)+v[6](24)+trail(4)
 }
 
 TEST(Packets, SessionCfgPacketTypeId)
@@ -205,10 +205,28 @@ TEST(Packets, CartesianPoseCmdHasControlMode)
     EXPECT_EQ(pkt.control_mode, ControlMode::CartesianPose);
 }
 
+TEST(Packets, CartesianPoseCmdHasJointGains)
+{
+    CartesianPoseCmdPacket pkt{};
+    pkt.kp[1] = 42.0f;
+    pkt.kd[4] = 3.5f;
+    EXPECT_FLOAT_EQ(pkt.kp[1], 42.0f);
+    EXPECT_FLOAT_EQ(pkt.kd[4], 3.5f);
+}
+
 TEST(Packets, CartesianVelocityCmdDefaultControlMode)
 {
     CartesianVelocityCmdPacket pkt{};
     EXPECT_EQ(pkt.control_mode, ControlMode::CartesianVelocity);
+}
+
+TEST(Packets, CartesianVelocityCmdHasJointGains)
+{
+    CartesianVelocityCmdPacket pkt{};
+    pkt.kp[2] = 12.0f;
+    pkt.kd[5] = 0.8f;
+    EXPECT_FLOAT_EQ(pkt.kp[2], 12.0f);
+    EXPECT_FLOAT_EQ(pkt.kd[5], 0.8f);
 }
 
 TEST(Packets, SessionCfgHasWatchdogTimeout)
