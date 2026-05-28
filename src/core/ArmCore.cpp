@@ -26,6 +26,19 @@ namespace florid
         }
     }
 
+    uint64_t command_timestamp_us(bool active, double session_start_timestamp)
+    {
+        if (!active)
+            return 0;
+        return static_cast<uint64_t>((detail::get_timestamp() - session_start_timestamp) * 1000.0);
+    }
+
+    protocol::CommandIntent command_intent(bool active)
+    {
+        return active ? protocol::CommandIntent::Stream
+                      : protocol::CommandIntent::PointTarget;
+    }
+
     ArmCore::ArmCore()
     {
         m_tx_config_command.header.length = static_cast<uint16_t>(sizeof(m_tx_config_command));
@@ -41,6 +54,17 @@ namespace florid
     ArmState ArmCore::get_arm_state()
     {
         return m_latest_state.read();
+    }
+
+    void ArmCore::begin_control_session()
+    {
+        m_control_session_start_timestamp = detail::get_timestamp();
+        m_control_session_active = true;
+    }
+
+    void ArmCore::end_control_session()
+    {
+        m_control_session_active = false;
     }
 
     void ArmCore::handle_packet(const protocol::ArmStatusPacket& packet)
@@ -70,7 +94,8 @@ namespace florid
         copy_float(cmd.tau,              m_tx_joint_command.state.tau, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
-        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_joint_command.intent = command_intent(m_control_session_active);
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
@@ -80,13 +105,14 @@ namespace florid
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
         for (int i = 0; i < 6; ++i) {
-            m_tx_joint_command.state.dq[i]  = 0;
+            m_tx_joint_command.state.dq[i]  = cmd.dq[i];
             m_tx_joint_command.state.tau[i] = 0;
         }
         copy_float(cmd.q,               m_tx_joint_command.state.q, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
-        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_joint_command.intent = command_intent(m_control_session_active);
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
@@ -102,7 +128,8 @@ namespace florid
         copy_float(cmd.dq,              m_tx_joint_command.state.dq, 6);
         merge_gains(cmd.kp, cmd.kd, m_kp, m_kd,
                     m_tx_joint_command.kp, m_tx_joint_command.kd);
-        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_joint_command.intent = command_intent(m_control_session_active);
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
@@ -112,7 +139,8 @@ namespace florid
     {
         m_tx_cart_command.control_mode = protocol::ControlMode::CartesianPose;
         copy_float(cmd.T,              m_tx_cart_command.pose.T, 16);
-        m_tx_cart_command.timestamp    = detail::get_timestamp();
+        m_tx_cart_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_cart_command.intent = command_intent(m_control_session_active);
         m_tx_cart_command.header.length = static_cast<uint16_t>(sizeof(m_tx_cart_command));
         m_tx_cart_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_cart_command), sizeof(m_tx_cart_command)};
@@ -122,7 +150,8 @@ namespace florid
     {
         m_tx_cart_vel_command.control_mode = protocol::ControlMode::CartesianVelocity;
         copy_float(cmd.v,                  m_tx_cart_vel_command.v, 6);
-        m_tx_cart_vel_command.timestamp    = detail::get_timestamp();
+        m_tx_cart_vel_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_cart_vel_command.intent = command_intent(m_control_session_active);
         m_tx_cart_vel_command.header.length = static_cast<uint16_t>(sizeof(m_tx_cart_vel_command));
         m_tx_cart_vel_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_cart_vel_command), sizeof(m_tx_cart_vel_command)};
@@ -149,10 +178,12 @@ namespace florid
     {
         m_tx_joint_command.control_mode = protocol::ControlMode::JointPosition;
         copy_float(motion_cmd.q,        m_tx_joint_command.state.q,   6);
+        copy_float(motion_cmd.dq,       m_tx_joint_command.state.dq,  6);
         copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
         copy_float(m_kp,                m_tx_joint_command.kp, 6);
         copy_float(m_kd,                m_tx_joint_command.kd, 6);
-        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_joint_command.intent = command_intent(m_control_session_active);
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};
@@ -166,7 +197,8 @@ namespace florid
         copy_float(torque_cmd.tau,      m_tx_joint_command.state.tau, 6);
         copy_float(m_kp,                m_tx_joint_command.kp, 6);
         copy_float(m_kd,                m_tx_joint_command.kd, 6);
-        m_tx_joint_command.timestamp    = detail::get_timestamp();
+        m_tx_joint_command.timestamp_us = command_timestamp_us(m_control_session_active, m_control_session_start_timestamp);
+        m_tx_joint_command.intent = command_intent(m_control_session_active);
         m_tx_joint_command.header.length = static_cast<uint16_t>(sizeof(m_tx_joint_command));
         m_tx_joint_command.header.seq_num = ++m_seq_num;
         return {reinterpret_cast<const uint8_t*>(&m_tx_joint_command), sizeof(m_tx_joint_command)};

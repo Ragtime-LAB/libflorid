@@ -13,15 +13,7 @@ namespace florid
     public:
         explicit ActiveControl(Arm& arm) : m_arm(&arm) {}
 
-        ~ActiveControl()
-        {
-            if (m_arm && !m_finished)
-            {
-                ControlType cmd{};
-                cmd.motion_finished = true;
-                m_arm->writeOnce(cmd);
-            }
-        }
+        ~ActiveControl() = default;
 
         ActiveControl(const ActiveControl&) = delete;
         ActiveControl& operator=(const ActiveControl&) = delete;

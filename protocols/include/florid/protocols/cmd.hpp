@@ -9,9 +9,10 @@ namespace florid::protocol
     {
         static constexpr auto TYPE_ID = PacketType::JointCommand;
         PacketHeader header{.type = PacketType::JointCommand};
-        double timestamp{};
+        uint64_t timestamp_us{};
         ControlMode control_mode{};
-        uint8_t _pad[3]{};
+        CommandIntent intent{CommandIntent::PointTarget};
+        uint8_t _pad[2]{};
         float kp[6]{};     // 每帧自带刚度和阻尼，消除 TCP/UDP 竞态
         float kd[6]{};
         JointState state;
@@ -21,9 +22,10 @@ namespace florid::protocol
     {
         static constexpr auto TYPE_ID = PacketType::CartesianPoseCommand;
         PacketHeader header{.type = PacketType::CartesianPoseCommand};
-        double timestamp{};
+        uint64_t timestamp_us{};
         ControlMode control_mode{};
-        uint8_t _pad[3]{};
+        CommandIntent intent{CommandIntent::PointTarget};
+        uint8_t _pad[2]{};
         CartesianPose pose;
     };
 
@@ -31,9 +33,10 @@ namespace florid::protocol
     {
         static constexpr auto TYPE_ID = PacketType::CartesianVelocityCommand;
         PacketHeader header{.type = PacketType::CartesianVelocityCommand};
-        double timestamp{};
+        uint64_t timestamp_us{};
         ControlMode control_mode{ControlMode::CartesianVelocity};
-        uint8_t _pad[3]{};
+        CommandIntent intent{CommandIntent::PointTarget};
+        uint8_t _pad[2]{};
         float v[6]{};  // {vx, vy, vz, wx, wy, wz}
     };
 
@@ -48,7 +51,7 @@ namespace florid::protocol
     {
         static constexpr auto TYPE_ID = PacketType::SessionConfig;
         PacketHeader header{.type = PacketType::SessionConfig};
-        double timestamp{};
+        uint64_t timestamp_us{};
         ProtocolVersion version{};
         uint16_t watchdog_timeout_ms{500};
         uint16_t client_udp_port{0};  // arm 向此端口发 telemetry（0 = 不发送）

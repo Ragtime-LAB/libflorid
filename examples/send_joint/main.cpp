@@ -49,15 +49,23 @@ int main(int argc, char* argv[])
             double phase = std::fmod(elapsed, kPeriod);
 
             float val;
+            float vel;
             if (phase < kPeriod * 0.5)
+            {
                 val = kAmplitude * static_cast<float>(phase / (kPeriod * 0.5));
+                vel = kAmplitude / static_cast<float>(kPeriod * 0.5);
+            }
             else
+            {
                 val = kAmplitude * static_cast<float>((kPeriod - phase) / (kPeriod * 0.5));
+                vel = -kAmplitude / static_cast<float>(kPeriod * 0.5);
+            }
 
             florid::JointPositions cmd{};
             for (int i = 0; i < 6; ++i)
             {
                 cmd.q[i]  = base_q[i]; // 空闲关节保持锁存位置
+                cmd.dq[i] = 0.0f;
                 cmd.kp[i] = kKp;
                 cmd.kd[i] = kKd;
             }
@@ -72,6 +80,7 @@ int main(int argc, char* argv[])
             }
 
             cmd.q[joint] = base_q[joint] + val;   // 活动关节在锁存位置基础上偏移
+            cmd.dq[joint] = vel;
 
             return cmd;
         });

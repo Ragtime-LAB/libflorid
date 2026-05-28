@@ -47,6 +47,8 @@ namespace florid
                                       const JointVelocities& motion_cmd);
 
         ArmControl& arm_control() { return m_arm_control; }
+        void begin_control_session();
+        void end_control_session();
 
         void set_gains(const float* kp, const float* kd)
         {
@@ -71,6 +73,8 @@ namespace florid
         protocol::CartesianVelocityCmdPacket m_tx_cart_vel_command{};
         protocol::ConfigCmdPacket         m_tx_config_command{};
         uint32_t                          m_seq_num{};
+        double                            m_control_session_start_timestamp{};
+        bool                              m_control_session_active{};
         bool                              m_finish_flag{false};
         bool                              m_stop_flag{false};
         float                             m_kp[6]{};
