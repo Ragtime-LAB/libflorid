@@ -49,11 +49,18 @@ int main(int argc, char* argv[])
             int joint = static_cast<int>(elapsed / kPeriod) % 6;
             double phase = std::fmod(elapsed, kPeriod);
 
-            const double omega = 2.0 * kPi / kPeriod;
-            const float val = 0.5f * kAmplitude
-                * static_cast<float>(1.0 - std::cos(omega * phase));
-            const float vel = 0.5f * kAmplitude
-                * static_cast<float>(omega * std::sin(omega * phase));
+            float val;
+            float vel;
+            if (phase < kPeriod * 0.5)
+            {
+                val = kAmplitude * static_cast<float>(phase / (kPeriod * 0.5));
+                vel = kAmplitude / static_cast<float>(kPeriod * 0.5);
+            }
+            else
+            {
+                val = kAmplitude * static_cast<float>((kPeriod - phase) / (kPeriod * 0.5));
+                vel = -kAmplitude / static_cast<float>(kPeriod * 0.5);
+            }
 
             florid::JointPositions cmd{};
             for (int i = 0; i < 6; ++i)

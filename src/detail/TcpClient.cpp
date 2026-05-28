@@ -75,7 +75,7 @@ namespace florid::detail
         SessionCfgPacket cfg{};
         cfg.header.length = static_cast<uint16_t>(sizeof(SessionCfgPacket));
         cfg.header.seq_num = 1;
-        cfg.timestamp = 0.0;
+        cfg.timestamp_us = 0;
         cfg.version = CURRENT_PROTOCOL_VERSION.raw;
         cfg.mode = mode;
         cfg.client_udp_port = client_udp_port;

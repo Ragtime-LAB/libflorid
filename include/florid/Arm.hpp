@@ -60,6 +60,7 @@ public:
 
         m_finish_flag = false;
         ctrl.setFinishFlag(&m_finish_flag);
+        m_core.begin_control_session();
 
         while (!ctrl.isStopped() && !m_finish_flag)
         {
@@ -94,6 +95,7 @@ public:
                 m_finish_flag = true;
             }
         }
+        m_core.end_control_session();
     }
 
     template <typename TorqueCb, typename MotionCb>
@@ -103,6 +105,7 @@ public:
 
         m_finish_flag = false;
         ctrl.setFinishFlag(&m_finish_flag);
+        m_core.begin_control_session();
 
         while (!ctrl.isStopped() && !m_finish_flag)
         {
@@ -138,6 +141,7 @@ public:
                 m_finish_flag = true;
             }
         }
+        m_core.end_control_session();
     }
 
     // ── 配置 ───────────────────────────────────────────────────

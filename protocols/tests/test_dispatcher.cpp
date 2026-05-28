@@ -28,7 +28,8 @@ TEST(Dispatcher, DispatchCartesianPoseCmdPacket)
     pkt.header.magic_word = 0xA5;
     pkt.header.type = PacketType::CartesianPoseCommand;
     pkt.header.length = sizeof(CartesianPoseCmdPacket);
-    pkt.timestamp = 1.618;
+    pkt.timestamp_us = 1618;
+    pkt.intent = CommandIntent::Stream;
     pkt.pose.T[0] = 1.0;
     pkt.pose.T[15] = 1.0;
 
@@ -38,7 +39,8 @@ TEST(Dispatcher, DispatchCartesianPoseCmdPacket)
         if constexpr (std::is_same_v<std::decay_t<decltype(p)>, CartesianPoseCmdPacket>)
         {
             called = true;
-            EXPECT_DOUBLE_EQ(p.timestamp, 1.618);
+            EXPECT_EQ(p.timestamp_us, 1618u);
+            EXPECT_EQ(p.intent, CommandIntent::Stream);
             EXPECT_FLOAT_EQ(p.pose.T[0], 1.0f);
             EXPECT_FLOAT_EQ(p.pose.T[15], 1.0f);
         }

@@ -21,7 +21,7 @@ TEST(Packets, JointCmdPacketTypeId)
 
 TEST(Packets, JointCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(JointCmdPacket), 144u); // header(8)+ts(8)+mode(1)+pad(3)+kp(24)+kd(24)+state(72)+trail(4)
+    EXPECT_EQ(sizeof(JointCmdPacket), 144u); // header(8)+timestamp_us(8)+mode(1)+intent(1)+pad(2)+kp(24)+kd(24)+state(72)+trail(4)
 }
 
 TEST(Packets, CartesianPoseCmdPacketTypeId)
@@ -31,7 +31,7 @@ TEST(Packets, CartesianPoseCmdPacketTypeId)
 
 TEST(Packets, CartesianPoseCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 88u); // header(8) + timestamp(8) + mode(1)+pad(3) + pose(64) + trailing(4)
+    EXPECT_EQ(sizeof(CartesianPoseCmdPacket), 88u); // header(8) + timestamp_us(8) + mode(1)+intent(1)+pad(2) + pose(64) + trailing(4)
 }
 
 TEST(Packets, CartesianVelocityCmdPacketTypeId)
@@ -41,7 +41,7 @@ TEST(Packets, CartesianVelocityCmdPacketTypeId)
 
 TEST(Packets, CartesianVelocityCmdPacketSize)
 {
-    EXPECT_EQ(sizeof(CartesianVelocityCmdPacket), 48u); // header(8) + timestamp(8) + mode(1)+pad(3) + v[6](24) + trailing(4)
+    EXPECT_EQ(sizeof(CartesianVelocityCmdPacket), 48u); // header(8) + timestamp_us(8) + mode(1)+intent(1)+pad(2) + v[6](24) + trailing(4)
 }
 
 TEST(Packets, SessionCfgPacketTypeId)
@@ -179,6 +179,12 @@ TEST(Packets, JointCmdHasControlMode)
     JointCmdPacket pkt{};
     pkt.control_mode = ControlMode::Torque;
     EXPECT_EQ(pkt.control_mode, ControlMode::Torque);
+}
+
+TEST(Packets, JointCmdDefaultIntent)
+{
+    JointCmdPacket pkt{};
+    EXPECT_EQ(pkt.intent, CommandIntent::PointTarget);
 }
 
 TEST(Packets, JointCmdHasGains)

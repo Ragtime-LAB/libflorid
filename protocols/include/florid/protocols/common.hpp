@@ -25,6 +25,12 @@ namespace florid::protocol
         CartesianVelocity = 0x05
     };
 
+    enum class CommandIntent : uint8_t
+    {
+        PointTarget = 0x01,
+        Stream = 0x02
+    };
+
     struct PacketHeader
     {
         uint8_t magic_word = 0xA5;
