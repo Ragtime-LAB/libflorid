@@ -20,6 +20,7 @@ except ImportError as e:
         sys.exit(1)
 def generate_traits_hpp(urdf_path, output_dir, traits_name="CustomRobotTraits"):
     print(f"Loading URDF from: {urdf_path}")
+    detail_namespace = re.sub(r'(?<!^)(?=[A-Z])', '_', traits_name).lower()
     
     # 1. 加载 Pinocchio 模型
     model = pin.buildModelFromUrdf(urdf_path)
@@ -124,7 +125,7 @@ def generate_traits_hpp(urdf_path, output_dir, traits_name="CustomRobotTraits"):
     for i in range(1, cmodel.njoints):
         pose_cases += f"            case {i}: {{ "
         pose_cases += f"const float* a_[1] = {{q}}; float* r_[1] = {{T_out}}; "
-        pose_cases += f"detail::casadi_pose_{i}(a_, r_, nullptr, nullptr, 0); "
+        pose_cases += f"detail::{detail_namespace}::casadi_pose_{i}(a_, r_, nullptr, nullptr, 0); "
         pose_cases += f"}} break;\n"
 
     njoints_total = cmodel.njoints
@@ -142,11 +143,11 @@ def generate_traits_hpp(urdf_path, output_dir, traits_name="CustomRobotTraits"):
 #include <cstring>
 #include <cstdlib>
 
-namespace florid::detail {{
+namespace florid::detail::{detail_namespace} {{
 
 {c_code}
 
-}} // namespace florid::detail
+}} // namespace florid::detail::{detail_namespace}
 
 namespace florid {{
 
@@ -165,19 +166,19 @@ struct {traits_name} {{
     static void fk(const float* q, float* T_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{T_out}};
-        detail::casadi_fk(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_fk(a, r, nullptr, nullptr, 0);
     }}
 
     static void zeroJacobian(const float* q, float* J_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{J_out}};
-        detail::casadi_zero_jacobian(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_zero_jacobian(a, r, nullptr, nullptr, 0);
     }}
 
     static void bodyJacobian(const float* q, float* J_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{J_out}};
-        detail::casadi_body_jacobian(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_body_jacobian(a, r, nullptr, nullptr, 0);
     }}
 
     static void pose(int frame, const float* q, float* T_out) {{
@@ -191,19 +192,19 @@ struct {traits_name} {{
     static void gravity(const float* q, const float g_vec[3], float* g_out) {{
         const float* a[2] = {{q, g_vec}};
         float* r[1] = {{g_out}};
-        detail::casadi_gravity(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_gravity(a, r, nullptr, nullptr, 0);
     }}
 
     static void mass(const float* q, float* M_out) {{
         const float* a[1] = {{q}};
         float* r[1] = {{M_out}};
-        detail::casadi_mass(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_mass(a, r, nullptr, nullptr, 0);
     }}
 
     static void coriolis(const float* q, const float* dq, float* C_out) {{
         const float* a[2] = {{q, dq}};
         float* r[1] = {{C_out}};
-        detail::casadi_coriolis(a, r, nullptr, nullptr, 0);
+        detail::{detail_namespace}::casadi_coriolis(a, r, nullptr, nullptr, 0);
     }}
 }};
 

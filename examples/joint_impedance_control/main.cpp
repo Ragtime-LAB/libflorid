@@ -1,8 +1,7 @@
 #include "examples_common.hpp"
+#include "florid/Model.hpp"
 #include <chrono>
-#include <iomanip>
-#include <florid/Model.hpp>
-#include <florid/traits/PantheraTraits.hpp>
+#include <florid/traits/WillowTraits.hpp>
 #include <thread>
 
 namespace {
@@ -25,7 +24,7 @@ int main(int argc, char *argv[]) {
     example::applyDefaults(arm);
     arm.setMaxFrequencyHz(1000.0);
 
-    florid::Model<florid::PantheraTraits> model;
+    florid::Model<florid::WillowTraits> model;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     const auto st = arm.readOnce();
@@ -33,9 +32,9 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 6; ++i)
       qd[i] = st.q[i];
 
-    std::cout
-        << "Joint impedance + IMU gravity comp — holding pose.\n"
-        << "  (applies kp/kd from each callback, sent per-frame — no TCP/UDP race)\n";
+    std::cout << "Joint impedance + IMU gravity comp — holding pose.\n"
+              << "  (applies kp/kd from each callback, sent per-frame — no "
+                 "TCP/UDP race)\n";
 
     arm.control([&](const florid::ArmState &st,
                     florid::ArmControl &) -> florid::Torques {
@@ -45,8 +44,7 @@ int main(int argc, char *argv[]) {
 
       // ── PD 控制 + 臂端 MIT 增益 ──────────────────────
       florid::Torques cmd{};
-      for (int i = 0; i < 6; ++i)
-      {
+      for (int i = 0; i < 6; ++i) {
         cmd.tau[i] = g_comp[i];
         cmd.kp[i] = 0.0f;
         cmd.kd[i] = 0.8f;
