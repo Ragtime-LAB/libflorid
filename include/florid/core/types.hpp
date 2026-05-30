@@ -43,7 +43,7 @@ namespace florid
     struct Torques : Finishable
     {
         float tau[6]{};
-        float kp[6]{};   // per-frame 增益（0 = 用默认）
+        float kp[6]{};   // per-frame gains; zero means zero gain
         float kd[6]{};
 
         static Torques MotionFinished(const Torques& command)
