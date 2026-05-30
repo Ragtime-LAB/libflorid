@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
         arm.setMaxFrequencyHz(1000.0);
 
         florid::Model<florid::PantheraTraits> model;
-        const float Fd[6]={5,0,0,0,0,0},Kp[6]={.3,.3,.3,.3,.3,.3},Ki[6]={.15,.15,.15,.15,.15,.15};
+        const float Fd[6]={0,1,0,0,0,0},Kp[6]={.3,.3,.3,.3,.3,.3},Ki[6]={.15,.15,.15,.15,.15,.15};
         float integral[6]={};
 
         std::cout << "Force control — Fx=5N.\n";

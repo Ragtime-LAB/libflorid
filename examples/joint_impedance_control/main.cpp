@@ -27,14 +27,13 @@ int main(int argc, char *argv[]) {
     florid::Model<florid::WillowTraits> model;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    const auto st = arm.readOnce();
-    float qd[6];
-    for (int i = 0; i < 6; ++i)
-      qd[i] = st.q[i];
+    arm.readOnce();
+    const float qd[6] = {0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
+    const float K[6] = {4.0f, 10.0f, 10.0f, 2.0f, 2.0f, 1.0f};
+    const float B[6] = {0.5f, 0.8f, 0.8f, 0.2f, 0.2f, 0.1f};
 
     std::cout << "Joint impedance + IMU gravity comp — holding pose.\n"
-              << "  (applies kp/kd from each callback, sent per-frame — no "
-                 "TCP/UDP race)\n";
+              << "  (tau = gravity + Kp*(q_des-q) + Kd*(0-dq))\n";
 
     arm.control([&](const florid::ArmState &st,
                     florid::ArmControl &) -> florid::Torques {
@@ -42,12 +41,14 @@ int main(int argc, char *argv[]) {
       float g_comp[6];
       model.gravity(st.q, st.base_gravity, g_comp);
 
-      // ── PD 控制 + 臂端 MIT 增益 ──────────────────────
+      // ── 关节阻抗：重力补偿 + 位置/速度反馈 ───────────
       florid::Torques cmd{};
       for (int i = 0; i < 6; ++i) {
-        cmd.tau[i] = g_comp[i];
+        const float q_err = qd[i] - st.q[i];
+        const float dq_err = -st.dq[i];
+        cmd.tau[i] = g_comp[i] + K[i] * q_err + B[i] * dq_err;
         cmd.kp[i] = 0.0f;
-        cmd.kd[i] = 0.8f;
+        cmd.kd[i] = 0.0f;
       }
 
       return cmd;
