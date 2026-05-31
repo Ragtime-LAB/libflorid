@@ -1,0 +1,55 @@
+name: Python Test
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential ninja-build libpython3-dev pybind11-dev
+          pip install pybind11 numpy
+
+      - name: Setup cmake
+        uses: lukka/get-cmake@latest
+
+      - name: Configure
+        run: >
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTS=ON
+          -DBUILD_PYFLORID=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: C++ Tests
+        run: cd build && ctest --output-on-failure
+
+      - name: Python Smoke Test
+        run: |
+          PYTHONPATH=build/pyflorid python -c "
+          import _pyflorid
+          m = _pyflorid.Model()
+          import numpy as np
+          q = np.zeros(6, dtype='float32')
+          T = m.forward_kinematics(q)
+          M = m.mass(q)
+          assert M.shape == (6, 6)
+          print('pyflorid smoke test passed')
+          "
