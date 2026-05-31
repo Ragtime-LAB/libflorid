@@ -1,3 +1,0 @@
-add_executable(willow_example_send_joint main.cpp)
-target_compile_features(willow_example_send_joint PUBLIC cxx_std_20)
-target_link_libraries(willow_example_send_joint PUBLIC asio ${PROJECT_NAME})

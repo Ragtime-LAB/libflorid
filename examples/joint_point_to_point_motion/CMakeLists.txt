@@ -1,4 +1,0 @@
-add_executable(florid_example_point_to_point main.cpp)
-target_compile_features(florid_example_point_to_point PUBLIC cxx_std_20)
-target_link_libraries(florid_example_point_to_point PUBLIC asio ${PROJECT_NAME})
-target_include_directories(florid_example_point_to_point PRIVATE ${CMAKE_SOURCE_DIR}/examples)
