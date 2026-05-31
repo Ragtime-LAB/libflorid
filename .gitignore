@@ -5,3 +5,5 @@ cmake-build*
 libfranka
 urdfs
 AGENTS.md
+out
+compile_commands.json

@@ -200,7 +200,7 @@ private:
     Transport*    m_cfg_transport{nullptr};
     ArmCore       m_core;
     void*         m_host_impl{nullptr};  // PIMPL: owns TcpClient+UdpClient
-    double        m_max_frequency_hz{0.0};
+    double        m_max_frequency_hz{500.0};
     double        m_next_tick_ms{0.0};
     bool          m_tick_initialized{false};
     bool          m_finish_flag{false};

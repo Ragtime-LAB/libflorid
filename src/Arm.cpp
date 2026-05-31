@@ -17,7 +17,7 @@ namespace florid
     }
 
     Arm::Arm(const char* ip, uint16_t udp_port, protocol::SessionMode mode)
-        : m_max_frequency_hz(0.0)
+        : m_max_frequency_hz(500.0)
         , m_next_tick_ms(0.0)
         , m_tick_initialized(false)
         , m_finish_flag(false)
@@ -41,11 +41,12 @@ namespace florid
     }
 
     Arm::Arm(Transport& control_transport, Transport* config_transport)
-    : m_transport(&control_transport),
-      m_cfg_transport(config_transport)
-{
-    m_transport->set_receive_callback(&Arm::on_receive_thunk, this);
-}
+        : m_transport(&control_transport)
+        , m_cfg_transport(config_transport)
+        , m_max_frequency_hz(500.0)
+    {
+        m_transport->set_receive_callback(&Arm::on_receive_thunk, this);
+    }
 
 void Arm::on_receive_thunk(void* context, const uint8_t* data, const size_t len)
 {
