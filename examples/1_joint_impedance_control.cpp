@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
       qd[i] = initial.q[i];
     }
 
-    const float K[6] = {0.4f, 1.2f, 1.2f, 0.25f, 0.12f, 0.05f};
-    const float B[6] = {0.12f, 0.35f, 0.35f, 0.08f, 0.04f, 0.02f};
+    const float K[6] = {2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+    const float B[6] = {0.3f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
 
     std::cout << "Joint impedance + IMU gravity comp — holding current pose.\n"
               << "  Conservative gains: tau = gravity + K*(q_des-q) - B*dq\n";
