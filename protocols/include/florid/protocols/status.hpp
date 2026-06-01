@@ -34,6 +34,9 @@ namespace florid::protocol
         static constexpr auto TYPE_ID = PacketType::ArmState;
         PacketHeader header{.type = PacketType::ArmState};
         double timestamp{};
+        uint32_t source_seq{};
+        uint32_t _pad_source{};
+        uint64_t source_timestamp_us{};
         ArmMode mode{};
         uint8_t _pad0[3]{};
         uint32_t errors{};

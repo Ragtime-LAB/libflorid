@@ -59,6 +59,50 @@ ArmState Arm::readOnce()
     return m_core.get_arm_state();
 }
 
+ArmState Arm::update()
+{
+    return updateThreadSafe();
+}
+
+ArmState Arm::updateThreadSafe()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    m_transport->poll();
+    return m_core.get_arm_state();
+}
+
+void Arm::beginControlSession()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    if (!m_core.control_session_active())
+        m_core.begin_control_session();
+}
+
+void Arm::endControlSession()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    if (m_core.control_session_active())
+        m_core.end_control_session();
+}
+
+bool Arm::isControlSessionActive()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    return m_core.control_session_active();
+}
+
+uint64_t Arm::lastCommandTimestampUs()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    return m_core.last_command_timestamp_us();
+}
+
+uint32_t Arm::lastCommandSeq()
+{
+    std::lock_guard<std::mutex> lock(m_io_mutex);
+    return m_core.last_command_seq();
+}
+
 void Arm::setMaxFrequencyHz(const double hz)
 {
     m_max_frequency_hz = (hz > 0.0 && hz <= 1000.0) ? hz : 0.0;
@@ -147,9 +191,11 @@ void Arm::switchControlMode(protocol::ControlMode mode)
     send_config(m_cfg_transport, protocol::ConfigType::SwitchControlMode, data, 1);
 }
 
-ActiveControl<Torques> Arm::startTorqueControl()
+ActiveControl<Torques> Arm::startTorqueControl(double rate_hz,
+                                                double command_timeout_ms,
+                                                bool auto_start)
 {
-    return ActiveControl<Torques>(*this);
+    return ActiveControl<Torques>(*this, rate_hz, command_timeout_ms, auto_start);
 }
 
 ActiveControl<JointPositions> Arm::startJointPositionControl()

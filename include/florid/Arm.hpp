@@ -7,6 +7,7 @@
 #include "detail/tick.hpp"
 #include "detail/Transport.hpp"
 #include <stddef.h>
+#include <mutex>
 
 namespace florid {
 
@@ -171,13 +172,15 @@ public:
 
     // ── 主动控制（高级用户手动循环） ────────────────────────────
 
-    ActiveControl<Torques>              startTorqueControl();
+    ActiveControl<Torques>              startTorqueControl(double rate_hz = 500.0,
+                                                           double command_timeout_ms = 20.0,
+                                                           bool auto_start = true);
     ActiveControl<JointPositions>       startJointPositionControl();
     ActiveControl<JointVelocities>      startJointVelocityControl();
     ActiveControl<CartesianPose>        startCartesianPoseControl();
     ActiveControl<CartesianVelocities>  startCartesianVelocityControl();
 
-    ArmState update() { m_transport->poll(); return m_core.get_arm_state(); }
+    ArmState update();
 
     template <typename Command>
     void writeOnce(const Command& cmd)
@@ -187,14 +190,30 @@ public:
             "writeOnce requires Torques, JointPositions, "
             "JointVelocities, CartesianPose, or CartesianVelocities");
 
-        auto raw = m_core.pack_command(cmd);
-        m_transport->send(raw.data, raw.size);
+        sendCommand(cmd);
     }
 
     ArmControl& controlHandle() { return m_core.arm_control(); }
 
 private:
+    friend class ActiveControl<Torques>;
+
     static void on_receive_thunk(void* context, const uint8_t* data, size_t len);
+
+    template <typename Command>
+    void sendCommand(const Command& cmd)
+    {
+        std::lock_guard<std::mutex> lock(m_io_mutex);
+        auto raw = m_core.pack_command(cmd);
+        m_transport->send(raw.data, raw.size);
+    }
+
+    ArmState updateThreadSafe();
+    void beginControlSession();
+    void endControlSession();
+    bool isControlSessionActive();
+    uint64_t lastCommandTimestampUs();
+    uint32_t lastCommandSeq();
 
     Transport*    m_transport{nullptr};
     Transport*    m_cfg_transport{nullptr};
@@ -204,6 +223,7 @@ private:
     double        m_next_tick_ms{0.0};
     bool          m_tick_initialized{false};
     bool          m_finish_flag{false};
+    std::mutex    m_io_mutex;
 };
 
 } // namespace florid

@@ -49,6 +49,10 @@ namespace florid
         ArmControl& arm_control() { return m_arm_control; }
         void begin_control_session();
         void end_control_session();
+        bool control_session_active() const { return m_control_session_active; }
+
+        uint64_t last_command_timestamp_us() const;
+        uint32_t last_command_seq() const;
 
         void set_gains(const float* kp, const float* kd)
         {

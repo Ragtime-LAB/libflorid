@@ -66,7 +66,7 @@ TEST(Packets, ArmStatusPacketTypeId)
 
 TEST(Packets, ArmStatusPacketSize)
 {
-    EXPECT_EQ(sizeof(ArmStatusPacket), 224u);
+    EXPECT_EQ(sizeof(ArmStatusPacket), 240u);
 }
 
 TEST(Packets, ConfigCmdPacketTypeId)

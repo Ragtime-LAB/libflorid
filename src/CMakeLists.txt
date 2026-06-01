@@ -1,5 +1,6 @@
 add_library(${PROJECT_NAME}
         Arm.cpp
+        core/ActiveControl.cpp
         core/ArmCore.cpp
         detail/TcpClient.cpp
         detail/UdpClient.cpp

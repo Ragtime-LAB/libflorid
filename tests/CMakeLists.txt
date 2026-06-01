@@ -1,5 +1,6 @@
 add_executable(florid_test
     test_model.cpp
+    test_active_control.cpp
 )
 
 target_include_directories(florid_test PRIVATE
