@@ -161,7 +161,31 @@ void bind_active_control(py::module_& m, const char* name)
 {
     py::class_<florid::ActiveControl<ControlT>>(m, name)
         .def("read_once", &florid::ActiveControl<ControlT>::readOnce)
-        .def("write_once", &florid::ActiveControl<ControlT>::writeOnce);
+        .def("write_once", &florid::ActiveControl<ControlT>::writeOnce)
+        .def("stop", [](florid::ActiveControl<ControlT>&) {})
+        .def("__enter__", [](florid::ActiveControl<ControlT>& self) -> florid::ActiveControl<ControlT>& {
+            return self;
+        }, py::return_value_policy::reference_internal)
+        .def("__exit__", [](florid::ActiveControl<ControlT>&, py::object, py::object, py::object) {});
+}
+
+template <>
+void bind_active_control<florid::Torques>(py::module_& m, const char* name)
+{
+    py::class_<florid::ActiveControl<florid::Torques>>(m, name)
+        .def("read_once", &florid::ActiveControl<florid::Torques>::readOnce)
+        .def("write_once", &florid::ActiveControl<florid::Torques>::writeOnce)
+        .def("stop", &florid::ActiveControl<florid::Torques>::stop)
+        .def("diagnostics", &florid::ActiveControl<florid::Torques>::diagnostics)
+        .def("__enter__", &florid::ActiveControl<florid::Torques>::enter,
+             py::return_value_policy::reference_internal)
+        .def("__exit__",
+             [](florid::ActiveControl<florid::Torques>& self,
+                py::object,
+                py::object,
+                py::object) {
+                 self.exit();
+             });
 }
 
 } // namespace
@@ -181,6 +205,7 @@ PYBIND11_MODULE(_pyflorid, m)
     using florid::JointPositions;
     using florid::JointVelocities;
     using florid::PantheraTraits;
+    using florid::TorqueControlDiagnostics;
     using florid::Torques;
     using florid::WillowTraits;
     using SessionMode = florid::protocol::SessionMode;
@@ -222,6 +247,8 @@ PYBIND11_MODULE(_pyflorid, m)
 
     py::class_<ArmState>(m, "ArmState")
         .def_readwrite("time", &ArmState::time)
+        .def_readwrite("source_seq", &ArmState::source_seq)
+        .def_readwrite("source_timestamp_us", &ArmState::source_timestamp_us)
         .def_readwrite("mode", &ArmState::mode)
         .def_readwrite("errors", &ArmState::errors)
         .def_property_readonly("q", [](const ArmState& s) { return vector_to_numpy<6>(s.q); })
@@ -308,6 +335,18 @@ PYBIND11_MODULE(_pyflorid, m)
         .def("is_stopped", &ArmControl::isStopped)
         .def("is_finished", &ArmControl::isFinished);
 
+    py::class_<TorqueControlDiagnostics>(m, "TorqueControlDiagnostics")
+        .def_readonly("actual_hz", &TorqueControlDiagnostics::actual_hz)
+        .def_readonly("period_us_avg", &TorqueControlDiagnostics::period_us_avg)
+        .def_readonly("period_us_max", &TorqueControlDiagnostics::period_us_max)
+        .def_readonly("overrun_count", &TorqueControlDiagnostics::overrun_count)
+        .def_readonly("command_age_us", &TorqueControlDiagnostics::command_age_us)
+        .def_readonly("sent_count", &TorqueControlDiagnostics::sent_count)
+        .def_readonly("last_sdk_timestamp_us", &TorqueControlDiagnostics::last_sdk_timestamp_us)
+        .def_readonly("last_sdk_seq", &TorqueControlDiagnostics::last_sdk_seq)
+        .def_readonly("state_age_us", &TorqueControlDiagnostics::state_age_us)
+        .def_readonly("stale_command_count", &TorqueControlDiagnostics::stale_command_count);
+
     bind_active_control<Torques>(m, "TorqueControl");
     bind_active_control<JointPositions>(m, "JointPositionControl");
     bind_active_control<JointVelocities>(m, "JointVelocityControl");
@@ -386,7 +425,10 @@ PYBIND11_MODULE(_pyflorid, m)
         .def("switch_control_mode", &Arm::switchControlMode)
         .def("stop", &Arm::stop)
         .def("automatic_error_recovery", &Arm::automaticErrorRecovery)
-        .def("start_torque_control", &Arm::startTorqueControl)
+        .def("start_torque_control", &Arm::startTorqueControl,
+             py::arg("rate_hz") = 500.0,
+             py::arg("command_timeout_ms") = 20.0,
+             py::arg("auto_start") = true)
         .def("start_joint_position_control", &Arm::startJointPositionControl)
         .def("start_joint_velocity_control", &Arm::startJointVelocityControl)
         .def("start_cartesian_pose_control", &Arm::startCartesianPoseControl)

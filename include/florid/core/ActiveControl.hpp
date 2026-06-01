@@ -2,6 +2,14 @@
 #define FLORID_ACTIVE_CONTROL_HPP
 
 #include "types.hpp"
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <utility>
 
 namespace florid
 {
@@ -51,6 +59,43 @@ namespace florid
     private:
         Arm* m_arm;
         bool m_finished{false};
+    };
+
+    template <>
+    class ActiveControl<Torques>
+    {
+    public:
+        explicit ActiveControl(Arm& arm,
+                               double rate_hz = 500.0,
+                               double command_timeout_ms = 20.0,
+                               bool auto_start = true);
+
+        ~ActiveControl();
+
+        ActiveControl(const ActiveControl&) = delete;
+        ActiveControl& operator=(const ActiveControl&) = delete;
+
+        ActiveControl(ActiveControl&& other) noexcept;
+        ActiveControl& operator=(ActiveControl&& other) noexcept;
+
+        ArmState readOnce();
+        void writeOnce(const Torques& cmd);
+        void stop();
+        TorqueControlDiagnostics diagnostics() const;
+
+        ActiveControl& enter()
+        {
+            return *this;
+        }
+
+        void exit()
+        {
+            stop();
+        }
+
+    private:
+        struct Impl;
+        std::shared_ptr<Impl> m_impl;
     };
 
 } // namespace florid

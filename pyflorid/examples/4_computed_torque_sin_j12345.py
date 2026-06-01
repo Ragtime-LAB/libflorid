@@ -39,8 +39,16 @@ PHASE_OFFSETS = np.zeros(6, dtype=np.float32)
 
 # CT_KP = np.array([200.0, 230.0, 350.0, 200.0, 200.0, 0.0], dtype=np.float32)
 # CT_KD = np.array([20.0, 23.0, 35.0, 20.0, 20.0, 0.0], dtype=np.float32)
-CT_KP = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
-CT_KD = np.array([10.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+CT_KP = np.array([150.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+CT_KD = np.array([5.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+
+
+def lowpass_alpha(dt: float, cutoff_hz: float) -> float:
+    if cutoff_hz <= 0.0 or dt <= 0.0:
+        return 1.0
+    rc = 1.0 / (2.0 * np.pi * cutoff_hz)
+    return float(dt / (rc + dt))
+
 
 def build_trajectory() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     lower = JOINT_LIMITS[:, 0]
@@ -165,11 +173,18 @@ def save_results(output_dir: Path, result: dict[str, list | np.ndarray]) -> None
 
 
 def main() -> None:
-    args = make_parser("Computed torque sin trajectory using Willow model").parse_args()
+    parser = make_parser(
+        "Computed torque sin trajectory using Willow model",
+        (("--dq-lowpass-hz",), {
+            "type": float,
+            "default": 0.0,
+            "help": "Temporary dq low-pass cutoff in Hz; 0 disables filtering.",
+        }),
+    )
+    args = parser.parse_args()
 
     arm = pyflorid.Arm(args.ip)
     apply_defaults(arm)
-    arm.set_max_frequency_hz(CONTROL_RATE)
     model = pyflorid.WillowModel()
 
     lower, upper, amplitudes = build_trajectory()
@@ -197,72 +212,127 @@ def main() -> None:
     feedback_log: list[np.ndarray] = []
     total_log: list[np.ndarray] = []
     commanded_log: list[np.ndarray] = []
+    filtered_dq_log: list[np.ndarray] = []
+    state_time_log: list[float] = []
+    host_time_log: list[float] = []
+    j1_state_log: list[dict[str, float]] = []
+    diagnostics: dict[str, float | int] = {}
+    dq_filter_meta: dict[str, float | bool] = {
+        "enabled": args.dq_lowpass_hz > 0.0,
+        "cutoff_hz": args.dq_lowpass_hz,
+    }
+    dq_filtered: np.ndarray | None = None
+    filter_prev_time: float | None = None
 
     print("\nStarting computed torque sin trajectory. Press Ctrl+C to stop.")
+    if args.dq_lowpass_hz > 0.0:
+        print(f"Using temporary dq low-pass filter: cutoff={args.dq_lowpass_hz:.2f} Hz")
     start_time = time.time()
     step = 0
     try:
-        while (time.time() - start_time) < DURATION:
-            loop_start = time.time()
+        with arm.start_torque_control(rate_hz=CONTROL_RATE) as control:
+            while (time.time() - start_time) < DURATION:
+                loop_start = time.time()
+                state = control.read_once()
+                ensure_safe_mode(state)
+                q = state.q.astype(np.float32)
+                dq = state.dq.astype(np.float32)
 
-            state = arm.update()
-            ensure_safe_mode(state)
-            q = state.q.astype(np.float32)
-            dq = state.dq.astype(np.float32)
+                t = loop_start - start_time
+                if args.dq_lowpass_hz > 0.0:
+                    if dq_filtered is None:
+                        dq_filtered = dq.copy()
+                    else:
+                        filter_dt = dt if filter_prev_time is None else max(loop_start - filter_prev_time, 1e-6)
+                        alpha = lowpass_alpha(filter_dt, args.dq_lowpass_hz)
+                        dq_filtered = dq_filtered + alpha * (dq - dq_filtered)
+                    filter_prev_time = loop_start
+                    dq_control = dq_filtered.astype(np.float32)
+                else:
+                    dq_control = dq
 
-            t = loop_start - start_time
-            q_des = CENTER_POS + amplitudes * np.sin(omega * t + PHASE_OFFSETS)
-            dq_des = amplitudes * omega * np.cos(omega * t + PHASE_OFFSETS)
-            ddq_des = -amplitudes * (omega ** 2) * np.sin(omega * t + PHASE_OFFSETS)
-            q_des = np.clip(q_des, lower, upper)
+                q_des = CENTER_POS + amplitudes * np.sin(omega * t + PHASE_OFFSETS)
+                dq_des = amplitudes * omega * np.cos(omega * t + PHASE_OFFSETS)
+                ddq_des = -amplitudes * (omega ** 2) * np.sin(omega * t + PHASE_OFFSETS)
+                q_des = np.clip(q_des, lower, upper)
 
-            pos_err = q_des - q
-            vel_err = dq_des - dq
+                pos_err = q_des - q
+                vel_err = dq_des - dq_control
 
-            gravity_tau = model.gravity(q, state.base_gravity.astype(np.float32))
-            coriolis_tau = model.coriolis(q, dq)
-            mass_matrix = model.mass(q)
-            inertia_ff_tau = mass_matrix @ ddq_des
-            feedback_tau = mass_matrix @ (CT_KP * pos_err + CT_KD * vel_err)
+                gravity_tau = model.gravity(q, state.base_gravity.astype(np.float32))
+                coriolis_tau = model.coriolis(q, dq_control)
+                mass_matrix = model.mass(q)
+                inertia_ff_tau = mass_matrix @ ddq_des
+                feedback_tau = mass_matrix @ (CT_KP * pos_err + CT_KD * vel_err)
 
-            total_tau = gravity_tau + coriolis_tau + inertia_ff_tau + feedback_tau
-            commanded_tau = clip_torque(total_tau, TAU_LIMIT)
+                total_tau = gravity_tau + coriolis_tau + inertia_ff_tau + feedback_tau
+                commanded_tau = clip_torque(total_tau, TAU_LIMIT)
 
-            torque_cmd = pyflorid.Torques()
-            torque_cmd.tau = commanded_tau.astype(np.float32)
-            torque_cmd.kp = np.zeros(6, dtype=np.float32)
-            torque_cmd.kd = np.zeros(6, dtype=np.float32)
+                torque_cmd = pyflorid.Torques()
+                torque_cmd.tau = commanded_tau.astype(np.float32)
+                torque_cmd.kp = np.zeros(6, dtype=np.float32)
+                torque_cmd.kd = np.zeros(6, dtype=np.float32)
 
-            arm.write_once(torque_cmd)
+                control.write_once(torque_cmd)
 
-            t_log.append(t)
-            desired_pos_log.append(q_des.copy())
-            actual_pos_log.append(q.copy())
-            desired_vel_log.append(dq_des.copy())
-            actual_vel_log.append(dq.copy())
-            desired_acc_log.append(ddq_des.copy())
-            gravity_log.append(gravity_tau.copy())
-            coriolis_log.append(coriolis_tau.copy())
-            inertia_ff_log.append(inertia_ff_tau.copy())
-            feedback_log.append(feedback_tau.copy())
-            total_log.append(total_tau.copy())
-            commanded_log.append(commanded_tau.copy())
+                t_log.append(t)
+                desired_pos_log.append(q_des.copy())
+                actual_pos_log.append(q.copy())
+                desired_vel_log.append(dq_des.copy())
+                actual_vel_log.append(dq.copy())
+                filtered_dq_log.append(dq_control.copy())
+                desired_acc_log.append(ddq_des.copy())
+                gravity_log.append(gravity_tau.copy())
+                coriolis_log.append(coriolis_tau.copy())
+                inertia_ff_log.append(inertia_ff_tau.copy())
+                feedback_log.append(feedback_tau.copy())
+                total_log.append(total_tau.copy())
+                commanded_log.append(commanded_tau.copy())
+                state_time_log.append(float(state.time))
+                host_time_log.append(float(loop_start))
+                j1_state_log.append({
+                    "t": float(t),
+                    "host_time": float(loop_start),
+                    "state_time": float(state.time),
+                    "source_seq": int(state.source_seq),
+                    "source_timestamp_us": int(state.source_timestamp_us),
+                    "q": float(q[0]),
+                    "dq": float(dq[0]),
+                    "dq_filtered": float(dq_control[0]),
+                    "tau": float(state.tau[0]),
+                })
 
-            if step % 50 == 0:
-                print(
-                    f"\rt={t:.2f}s | "
-                    f"J1:{q_des[0]:.3f}/{q[0]:.3f} "
-                    f"J2:{q_des[1]:.3f}/{q[1]:.3f} "
-                    f"J3:{q_des[2]:.3f}/{q[2]:.3f} "
-                    f"J4:{q_des[3]:.3f}/{q[3]:.3f}",
-                    end="",
-                    flush=True,
-                )
+                if step % 50 == 0:
+                    diag = control.diagnostics()
+                    print(
+                        f"\rt={t:.2f}s | "
+                        f"J1:{q_des[0]:.3f}/{q[0]:.3f} "
+                        f"J2:{q_des[1]:.3f}/{q[1]:.3f} "
+                        f"J3:{q_des[2]:.3f}/{q[2]:.3f} "
+                        f"J4:{q_des[3]:.3f}/{q[3]:.3f} "
+                        f"| stream={diag.actual_hz:.1f}Hz age={diag.command_age_us}us",
+                        end="",
+                        flush=True,
+                    )
 
-            step += 1
-            elapsed = time.time() - loop_start
-            if elapsed < dt:
-                time.sleep(dt - elapsed)
+                step += 1
+                elapsed = time.time() - loop_start
+                if elapsed < dt:
+                    time.sleep(dt - elapsed)
+
+            diag = control.diagnostics()
+            diagnostics = {
+                "actual_hz": diag.actual_hz,
+                "period_us_avg": diag.period_us_avg,
+                "period_us_max": diag.period_us_max,
+                "overrun_count": diag.overrun_count,
+                "command_age_us": diag.command_age_us,
+                "sent_count": diag.sent_count,
+                "last_sdk_timestamp_us": diag.last_sdk_timestamp_us,
+                "last_sdk_seq": diag.last_sdk_seq,
+                "state_age_us": diag.state_age_us,
+                "stale_command_count": diag.stale_command_count,
+            }
     except KeyboardInterrupt:
         print("\nStopped by user.")
 
@@ -275,6 +345,7 @@ def main() -> None:
         "actual_pos": np.array(actual_pos_log, dtype=np.float32),
         "desired_vel": np.array(desired_vel_log, dtype=np.float32),
         "actual_vel": np.array(actual_vel_log, dtype=np.float32),
+        "filtered_vel": np.array(filtered_dq_log, dtype=np.float32),
         "desired_acc": np.array(desired_acc_log, dtype=np.float32),
         "gravity_torque": np.array(gravity_log, dtype=np.float32),
         "coriolis_torque": np.array(coriolis_log, dtype=np.float32),
@@ -282,6 +353,11 @@ def main() -> None:
         "feedback_torque": np.array(feedback_log, dtype=np.float32),
         "total_torque": np.array(total_log, dtype=np.float32),
         "commanded_torque": np.array(commanded_log, dtype=np.float32),
+        "state_time": np.array(state_time_log, dtype=np.float64),
+        "host_time": np.array(host_time_log, dtype=np.float64),
+        "j1_state_trace": j1_state_log,
+        "dq_filter": dq_filter_meta,
+        "diagnostics": diagnostics,
         "ct_kp": CT_KP.copy(),
         "ct_kd": CT_KD.copy(),
     }

@@ -24,6 +24,8 @@ namespace florid
     struct ArmState
     {
         double       time{};
+        uint32_t     source_seq{};
+        uint64_t     source_timestamp_us{};
         ArmMode    mode{};
         uint32_t     errors{};
         float        q[6]{};
@@ -52,6 +54,20 @@ namespace florid
             result.motion_finished = true;
             return result;
         }
+    };
+
+    struct TorqueControlDiagnostics
+    {
+        double actual_hz{};
+        uint64_t period_us_avg{};
+        uint64_t period_us_max{};
+        uint64_t overrun_count{};
+        uint64_t command_age_us{};
+        uint64_t sent_count{};
+        uint64_t last_sdk_timestamp_us{};
+        uint32_t last_sdk_seq{};
+        uint64_t state_age_us{};
+        uint64_t stale_command_count{};
     };
 
     struct JointPositions : Finishable

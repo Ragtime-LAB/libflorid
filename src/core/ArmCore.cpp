@@ -53,11 +53,23 @@ namespace florid
         m_control_session_active = false;
     }
 
+    uint64_t ArmCore::last_command_timestamp_us() const
+    {
+        return m_tx_joint_command.timestamp_us;
+    }
+
+    uint32_t ArmCore::last_command_seq() const
+    {
+        return m_tx_joint_command.header.seq_num;
+    }
+
     void ArmCore::handle_packet(const protocol::ArmStatusPacket& packet)
     {
         m_latest_state.manipulate([&packet](ArmState& state)
         {
             state.time    = packet.timestamp;
+            state.source_seq = packet.source_seq;
+            state.source_timestamp_us = packet.source_timestamp_us;
             state.mode    = static_cast<ArmMode>(packet.mode);
             state.errors  = packet.errors;
 

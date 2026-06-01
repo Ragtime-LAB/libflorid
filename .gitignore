@@ -7,3 +7,5 @@ urdfs
 AGENTS.md
 out
 compile_commands.json
+plots
+__pycache__
