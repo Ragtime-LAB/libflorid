@@ -1,12 +1,15 @@
 add_library(florid
     tick_std.cpp
     timestamp_std.cpp
+    TickProvider.cpp
+    AstrialUSBTransport.cpp
+    ArmImpl.cpp
 )
 
 target_link_libraries(florid
     PUBLIC
         fci_protocol
-        readerwriterqueue
+        astrial
 )
 
 target_include_directories(florid

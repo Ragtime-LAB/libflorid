@@ -16,7 +16,7 @@ option(BUILD_PYFLORID "Build Python bindings via pybind11" OFF)
 include(SDKDependencies)
 
 add_subdirectory(protocol)
-add_subdirectory(3rdparty/readerwriterqueue)
+add_subdirectory(3rdparty/astrial)
 add_subdirectory(src)
 
 if(BUILD_TESTS)
