@@ -1,0 +1,9 @@
+[submodule "protocol"]
+	path = protocol
+	url = https://github.com/Ragtime-LAB/fci-protocol
+[submodule "3rdparty/astrial"]
+	path = 3rdparty/astrial
+	url = https://github.com/starwey604/astrial.git
+[submodule "3rdparty/readerwriterqueue"]
+	path = 3rdparty/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue.git
