@@ -4,6 +4,8 @@ add_library(florid
     TickProvider.cpp
     AstrialUSBTransport.cpp
     ArmImpl.cpp
+    ArmCore.cpp
+    Arm.cpp
 )
 
 target_link_libraries(florid

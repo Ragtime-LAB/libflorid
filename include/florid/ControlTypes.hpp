@@ -5,6 +5,11 @@
 
 namespace florid {
 
+enum class ReconnectPolicy {
+    kThrow,
+    kWait,
+};
+
 enum class ControllerMode : std::uint8_t {
     JointImpedance = 0,
     CartesianImpedance = 1,

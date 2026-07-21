@@ -4,6 +4,8 @@
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
+#include "florid/core/ArmCore.hpp"
+#include "florid/core/traits.hpp"
 #include "florid/detail/Transport.hpp"
 #include "florid/detail/TickProvider.hpp"
 
@@ -22,13 +24,9 @@
 #include <semaphore>
 #include <chrono>
 #include <mutex>
+#include <thread>
 
 namespace florid {
-
-enum class ReconnectPolicy {
-    kThrow,
-    kWait,
-};
 
 class ArmImpl;
 
@@ -57,34 +55,88 @@ public:
     ArmImpl(const ArmImpl&) = delete;
     ArmImpl& operator=(const ArmImpl&) = delete;
 
-    // ── Receive pipeline (called from Transport callback / Astrial on_data) ──
+    // ── Receive pipeline ──
     static void s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size);
 
-    // ── Device info (fetched during construction) ──
+    // ── Device info ──
     const fci::arm::DeviceInfo& getDeviceInfo() const { return m_device_info; }
     std::uint32_t firmwarePeriodUs() const { return m_fw_dt_us; }
     fci::arm::FirmwareType firmwareType() const { return static_cast<fci::arm::FirmwareType>(m_device_info.fw_type); }
 
-    // ── Arm state access ──
+    // ── Arm state ──
     ArmState readOnce();
+    ArmControl& controlHandle() { return m_arm_control; }
 
-    // ── Connection state ──
+    // ── Control loop (template, called from Arm) ──
+    template <typename Callback>
+    void s_controlLoop(Callback s_cb) {
+        using ReturnType = std::decay_t<decltype(s_cb(std::declval<const ArmState&>(),
+                                                      std::declval<ArmControl&>()))>;
+
+        m_running = true;
+        m_stop_flag = false;
+        s_beginMotion();
+
+        while (m_running && !m_stop_flag) {
+            m_data_ready.acquire();
+
+            fci::arm::ArmStatus s_raw;
+            if (!m_rx_queue.try_dequeue(s_raw)) continue;
+
+            ArmState s_state = s_convertStatus(s_raw);
+
+            auto s_cmd = s_cb(s_state, m_arm_control);
+            s_sendCommand(s_cmd);
+
+            if (s_cmd.m_motion_finished) break;
+        }
+
+        s_endMotion();
+        m_running = false;
+    }
+
+    // ── Configuration ──
+    void setJointImpedance(const float (&s_K)[6]);
+    void setCartesianImpedance(const float (&s_K)[6]);
+    void setEEFrame(const float (&s_T)[16]);
+    void setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]);
+    void automaticErrorRecovery();
+    void stop();
+
+    // ── Connection ──
     bool isConnected() const { return m_connected.load(); }
+    ReconnectPolicy reconnectPolicy() const { return m_reconnect_policy; }
+    void setReconnectPolicy(ReconnectPolicy s_p) { m_reconnect_policy = s_p; }
 
 protected:
     virtual bool s_supportsCartesian() const { return true; }
+    virtual JointPosVel s_convertCartesian(const CartesianPose& s_cmd, const ArmState& s_state);
+
+    ArmCore m_arm_core;
+    Session m_session;
 
 private:
     void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size);
     void s_fetchDeviceInfo();
 
-    // ── Protocol session ──
-    Session m_session;
+    ArmState s_convertStatus(const fci::arm::ArmStatus& s_raw);
+
+    void s_beginMotion();
+    void s_endMotion();
+
+    template <typename CommandType>
+    void s_sendCommand(const CommandType& s_cmd) {
+        auto s_pkt = m_arm_core.s_pack(s_cmd);
+        m_session.notify(s_pkt);
+    }
+
+    void s_sendCommand(const CartesianPose& s_cmd);
+    void s_sendCommand(const CartesianVelocities& s_cmd);
 
     // ── Physical transport ──
     std::unique_ptr<Transport> m_transport;
 
-    // ── SPSC queue for control thread ──
+    // ── SPSC queue ──
     moodycamel::ReaderWriterQueue<fci::arm::ArmStatus> m_rx_queue{64};
     std::counting_semaphore<64> m_data_ready{0};
     std::uint32_t m_last_status_seq{0};
@@ -99,13 +151,11 @@ private:
     ReconnectPolicy m_reconnect_policy{ReconnectPolicy::kThrow};
     std::chrono::milliseconds m_recv_timeout{50};
 
-    // ── Control handle ──
+    // ── Control ──
     ArmControl m_arm_control;
     std::mutex m_control_mutex;
     std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};
-
-    // ── Timing ──
     double m_max_frequency_hz{500.0};
 
     friend class ArmControl;

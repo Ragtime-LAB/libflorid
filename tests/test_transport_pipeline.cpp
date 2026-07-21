@@ -186,10 +186,54 @@ void test_parse_garbage() {
     printf("  PASS\n");
 }
 
+void test_control_loop() {
+    printf("Test 4: Control loop sends commands\n");
+
+    auto s_transport = std::make_unique<MockTransport>();
+    auto* s_mock = static_cast<MockTransport*>(s_transport.get());
+    ArmImpl s_impl(std::move(s_transport));
+
+    // Prepare 5 ArmStatus frames
+    for (uint32_t s_i = 0; s_i < 5; ++s_i) {
+        fci::arm::ArmStatus s_status{};
+        s_status.seq = s_i;
+        s_status.status.q[0] = static_cast<float>(s_i);
+        auto s_frame = serializeArmStatus(s_status);
+
+        // Inject, then call readOnce in the same thread (no separate control thread)
+        // The control loop runs on the caller's thread via s_controlLoop
+        s_mock->inject(s_frame);
+        s_mock->m_sent.clear(); // reset sent buffer between iterations
+    }
+
+    // Inject one more frame for the control loop to consume
+    fci::arm::ArmStatus s_status{};
+    s_status.seq = 100;
+    s_status.status.q[0] = 1.0f;
+    auto s_frame = serializeArmStatus(s_status);
+    s_mock->inject(s_frame);
+
+    // Run control loop with a simple torque callback
+    int s_call_count = 0;
+    s_impl.s_controlLoop([&](const ArmState& s_state, ArmControl&) -> Torques {
+        s_call_count++;
+        Torques s_cmd;
+        s_cmd.m_tau[0] = s_state.m_q[0] * 10.0f;
+        if (s_call_count >= 1) s_cmd.m_motion_finished = true;
+        return s_cmd;
+    });
+
+    assert(s_call_count == 1);
+    assert(!s_mock->m_sent.empty());
+
+    printf("  PASS (callbacks=%d, sent_bytes=%zu)\n", s_call_count, s_mock->m_sent.size());
+}
+
 int main() {
     test_arm_status_roundtrip();
     test_multiple_frames();
     test_parse_garbage();
+    test_control_loop();
     printf("\nAll tests passed.\n");
     return 0;
 }
