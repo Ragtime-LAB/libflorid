@@ -40,7 +40,7 @@ int main(int s_argc, char** s_argv) {
     printf("Home done.\n\n");
 
     // Control loop: sinusoidal motion per joint
-    printf("Starting joint sine motion (kp=10.0, kd=0.2, 0→+0.3 rad)\n");
+    printf("Starting joint sine motion on joint 1 (kp=10.0, kd=0.2, 0→+0.3 rad)\n");
 
     auto s_start_time = std::chrono::steady_clock::now();
 
@@ -58,11 +58,12 @@ int main(int s_argc, char** s_argv) {
         s_cmd.m_firmware_gravity = true; // firmware computes gravity
 
         for (int s_i = 0; s_i < 6; ++s_i) {
-            // Ramp from 0 to +0.3 over ~4 seconds per joint, staggered by phase
-            double s_phase = static_cast<double>(s_i) * 0.4;
-            double s_target = 0.3 * (0.5 - 0.5 * std::cos(s_t * 1.5 + s_phase));
-            if (s_target < 0.0) s_target = 0.0;
-            if (s_target > 0.3) s_target = 0.3;
+            float s_target = 0.0f;
+            if (s_i == 1) {
+                s_target = 0.3f * static_cast<float>(0.5 - 0.5 * std::cos(s_t * 1.5));
+                if (s_target < 0.0f) s_target = 0.0f;
+                if (s_target > 0.3f) s_target = 0.3f;
+            }
 
             s_cmd.m_q[s_i]  = static_cast<float>(s_target);
             s_cmd.m_dq[s_i]  = 0.0f;
