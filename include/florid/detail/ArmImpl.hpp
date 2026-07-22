@@ -75,7 +75,9 @@ public:
 
         m_running = true;
         m_stop_flag = false;
-        s_beginMotion();
+
+        // Auto-switch motor control mode if needed
+        s_ensureMode(s_controlModeFor<ReturnType>());
 
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
@@ -91,7 +93,6 @@ public:
             if (s_cmd.m_motion_finished) break;
         }
 
-        s_endMotion();
         m_running = false;
     }
 
@@ -119,11 +120,9 @@ protected:
 private:
     void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size);
     void s_fetchDeviceInfo();
+    void s_ensureMode(fci::arm::MotorControlMode s_mode);
 
     ArmState s_convertStatus(const fci::arm::ArmStatus& s_raw);
-
-    void s_beginMotion();
-    void s_endMotion();
 
     template <typename CommandType>
     void s_sendCommand(const CommandType& s_cmd) {
@@ -133,6 +132,19 @@ private:
 
     void s_sendCommand(const CartesianPose& s_cmd);
     void s_sendCommand(const CartesianVelocities& s_cmd);
+
+    // ── Control mode helpers ──
+    template <typename CmdType>
+    static constexpr fci::arm::MotorControlMode s_controlModeFor() {
+        if constexpr (std::is_same_v<CmdType, Torques>)               return fci::arm::MotorControlMode::MIT;
+        if constexpr (std::is_same_v<CmdType, JointMIT>)               return fci::arm::MotorControlMode::MIT;
+        if constexpr (std::is_same_v<CmdType, JointPosVel>)            return fci::arm::MotorControlMode::PosVel;
+        if constexpr (std::is_same_v<CmdType, JointVel>)               return fci::arm::MotorControlMode::Vel;
+        if constexpr (std::is_same_v<CmdType, JointPVT>)               return fci::arm::MotorControlMode::PVT;
+        if constexpr (std::is_same_v<CmdType, CartesianPose>)          return fci::arm::MotorControlMode::MIT;
+        if constexpr (std::is_same_v<CmdType, CartesianVelocities>)     return fci::arm::MotorControlMode::MIT;
+        return fci::arm::MotorControlMode::MIT;
+    }
 
     // ── Physical transport ──
     std::unique_ptr<Transport> m_transport;
@@ -158,6 +170,7 @@ private:
     std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};
     double m_max_frequency_hz{500.0};
+    fci::arm::MotorControlMode m_current_mode{static_cast<fci::arm::MotorControlMode>(0xFF)}; // sentinel = "none yet"
 
     friend class ArmControl;
 };

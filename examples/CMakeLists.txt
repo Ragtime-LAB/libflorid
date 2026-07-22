@@ -8,3 +8,4 @@ endfunction()
 
 add_florid_example(echo_arm_state)
 add_florid_example(joint_sine_motion)
+add_florid_example(gravity_compensation)

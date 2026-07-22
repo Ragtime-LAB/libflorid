@@ -141,24 +141,17 @@ ArmState ArmImpl::readOnce() {
 }
 
 // ────────────────────────────────────────────────────────
-//  Control session lifecycle
+//  Control mode switch
 // ────────────────────────────────────────────────────────
 
-void ArmImpl::s_beginMotion() {
-    m_arm_core = ArmCore{};
+void ArmImpl::s_ensureMode(fci::arm::MotorControlMode s_mode) {
+    if (s_mode == m_current_mode) return;
 
-    fci::arm::StartMotionRequestPacket s_req{};
-    s_req.payload.control_mode = static_cast<std::uint8_t>(fci::arm::MotorControlMode::MIT);
-    s_req.payload.motion_gen_mode = 0;
-    s_req.payload.controller_mode = 0;
-    s_req.payload.computation_mode = 0; // kHost — SDK sends already-computed commands
-    m_session.request(s_req, 50);
-}
+    fci::arm::ArmControlModeRequestPacket s_req{};
+    s_req.payload.mode = s_mode;
+    m_session.request(s_req, 200);
 
-void ArmImpl::s_endMotion() {
-    fci::arm::StopMotionRequestPacket s_req{};
-    s_req.payload.dummy = 0;
-    m_session.request(s_req, 50);
+    m_current_mode = s_mode;
 }
 
 // ────────────────────────────────────────────────────────
@@ -196,7 +189,11 @@ void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
 void ArmImpl::home() {
     fci::arm::HomeAllRequestPacket s_req{};
     s_req.payload.dummy = 0;
-    m_session.request(s_req, 10000); // home can take seconds
+    auto s_result = m_session.request(s_req, 10000);
+
+    if (!s_result) {
+        throw CommandException("HomeAll request failed: ack timeout or transport error");
+    }
 }
 
 void ArmImpl::setJointImpedance(const float (&s_K)[6]) {
