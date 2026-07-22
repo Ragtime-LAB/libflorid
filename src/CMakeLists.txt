@@ -6,6 +6,7 @@ add_library(florid
     ArmImpl.cpp
     ArmCore.cpp
     Arm.cpp
+    LatencyEstimator.cpp
 )
 
 target_link_libraries(florid

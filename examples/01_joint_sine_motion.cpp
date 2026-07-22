@@ -43,9 +43,10 @@ int main(int s_argc, char** s_argv) {
     printf("Starting joint sine motion on joint 1 (kp=10.0, kd=0.2, 0→+0.3 rad)\n");
 
     auto s_start_time = std::chrono::steady_clock::now();
+    int s_frame_count = 0;
 
-    s_arm->control([s_start_time](const florid::ArmState&,
-                                   florid::ArmControl&) -> florid::JointMIT
+    s_arm->control([&](const florid::ArmState&,
+                        florid::ArmControl& s_ctrl) -> florid::JointMIT
     {
         constexpr float g_kp = 10.0f;
         constexpr float g_kd = 0.2f;
@@ -53,6 +54,17 @@ int main(int s_argc, char** s_argv) {
         auto s_now = std::chrono::steady_clock::now();
         double s_t = std::chrono::duration<double>(s_now - s_start_time).count();
         if (s_t < 0.0) s_t = 0.0;
+
+        // ── Latency log every 2 seconds ──
+        if (s_frame_count % 1000 == 0 && s_frame_count > 0) {
+            printf("  [t=%.1fs] age=%.2fms  rtt=%.2fms  jitter=%.0fus  rxHz=%.1f\n",
+                   s_t,
+                   s_ctrl.stateAge().toMSec(),
+                   s_ctrl.estimatedLatency().toMSec(),
+                   s_ctrl.receiveJitterUs(),
+                   s_ctrl.receiveHz());
+        }
+        s_frame_count++;
 
         florid::JointMIT s_cmd;
         s_cmd.m_firmware_gravity = true; // firmware computes gravity

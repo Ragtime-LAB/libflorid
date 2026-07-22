@@ -1,6 +1,7 @@
 #ifndef FLORID_ARM_HPP
 #define FLORID_ARM_HPP
 
+#include "florid/ArmControl.hpp"
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
@@ -14,7 +15,6 @@
 namespace florid {
 
 class ArmImpl;
-class ArmControl;
 
 class Arm {
 public:

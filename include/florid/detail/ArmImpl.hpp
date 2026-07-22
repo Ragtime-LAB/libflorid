@@ -1,6 +1,7 @@
 #ifndef FLORID_DETAIL_ARM_IMPL_HPP
 #define FLORID_DETAIL_ARM_IMPL_HPP
 
+#include "florid/ArmControl.hpp"
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
@@ -8,6 +9,7 @@
 #include "florid/core/traits.hpp"
 #include "florid/detail/Transport.hpp"
 #include "florid/detail/TickProvider.hpp"
+#include "florid/detail/LatencyEstimator.hpp"
 
 #include "fci_protocol/session/arm_control_session.hpp"
 #include "fci_protocol/transport/byte_stream_transport.hpp"
@@ -25,26 +27,10 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
-
 namespace florid {
 
-class ArmImpl;
-
-class ArmControl {
-public:
-    Duration firmwarePeriod() const;
-    Duration stateAge() const;
-    Duration estimatedLatency() const;
-    bool isReconnecting() const;
-    void finishMotion();
-    void stopControl();
-
-private:
-    friend class ArmImpl;
-    ArmImpl* m_impl{nullptr};
-};
-
 class ArmImpl {
+
 public:
     using SendFunc = std::function<void(const std::uint8_t*, std::size_t)>;
     using Session = fci::session::ArmControlSession<detail::MonotonicTickProvider, SendFunc>;
@@ -127,6 +113,7 @@ private:
     template <typename CommandType>
     void s_sendCommand(const CommandType& s_cmd) {
         auto s_pkt = m_arm_core.s_pack(s_cmd);
+        s_pkt.sdk_timestamp_us = detail::s_nowUs();
         m_session.notify(s_pkt);
     }
 
@@ -170,7 +157,8 @@ private:
     std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};
     double m_max_frequency_hz{500.0};
-    fci::arm::MotorControlMode m_current_mode{static_cast<fci::arm::MotorControlMode>(0xFF)}; // sentinel = "none yet"
+    fci::arm::MotorControlMode m_current_mode{static_cast<fci::arm::MotorControlMode>(0xFF)};
+    detail::LatencyEstimator m_latency;
 
     friend class ArmControl;
 };

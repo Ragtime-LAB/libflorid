@@ -13,11 +13,24 @@ Duration ArmControl::firmwarePeriod() const {
 }
 
 Duration ArmControl::stateAge() const {
-    return Duration::fromMSec(0);
+    if (!m_impl) return Duration::fromMSec(0);
+    return Duration::fromUSec(m_impl->m_latency.stateAgeUs(detail::s_nowUs()));
 }
 
 Duration ArmControl::estimatedLatency() const {
-    return Duration::fromMSec(0);
+    if (!m_impl) return Duration::fromMSec(0);
+    return Duration::fromUSec(
+        static_cast<std::uint64_t>(m_impl->m_latency.estimatedLatencyMs() * 1000.0));
+}
+
+double ArmControl::receiveJitterUs() const {
+    if (!m_impl) return 0.0;
+    return m_impl->m_latency.receiveJitterUs();
+}
+
+double ArmControl::receiveHz() const {
+    if (!m_impl) return 0.0;
+    return m_impl->m_latency.receiveHz(detail::s_nowUs());
 }
 
 bool ArmControl::isReconnecting() const {
@@ -85,6 +98,7 @@ void ArmImpl::s_feedBytes(const std::uint8_t* s_data, std::size_t s_size) {
     auto s_status = m_session.deserializer().get<fci::arm::ArmStatus>();
     if (s_status.seq != m_last_status_seq) {
         m_last_status_seq = s_status.seq;
+        m_latency.markReceived(s_status.last_sdk_timestamp_us, detail::s_nowUs());
         if (!m_rx_queue.enqueue(s_status)) return;
         m_data_ready.release();
     }
@@ -95,6 +109,7 @@ void ArmImpl::s_fetchDeviceInfo() {
     s_req.payload.dummy = 0;
 
     auto s_result = m_session.request(s_req, 100);
+
     if (!s_result) {
         m_device_info = {};
         m_fw_dt_us = 2000;
@@ -168,6 +183,7 @@ JointPosVel ArmImpl::s_convertCartesian(const CartesianPose& /*s_cmd*/,
 void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
     if (s_supportsCartesian()) {
         auto s_pkt = m_arm_core.s_pack(s_cmd);
+        s_pkt.sdk_timestamp_us = detail::s_nowUs();
         m_session.notify(s_pkt);
     } else {
         // Convert Cartesian → Joint space (for low-power firmware)
@@ -179,6 +195,7 @@ void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
 
 void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
     auto s_pkt = m_arm_core.s_pack(s_cmd);
+    s_pkt.sdk_timestamp_us = detail::s_nowUs();
     m_session.notify(s_pkt);
 }
 
