@@ -28,6 +28,7 @@ fci::arm::JointMITCommandPacket ArmCore::s_pack(const JointMIT& s_cmd) {
     s_copyFloats(s_cmd.m_kp, s_pkt.kp, 6);
     s_copyFloats(s_cmd.m_kd, s_pkt.kd, 6);
     s_pkt.control_mode = 1; // MIT mode
+    if (s_cmd.m_firmware_gravity) s_pkt.control_mode |= 0x04; // bind bit2 = gravity_enable
     s_pkt.seq = nextSeq();
     return s_pkt;
 }

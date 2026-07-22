@@ -66,6 +66,7 @@ public:
 
     // ── Configuration ──
 
+    void home();
     void setJointImpedance(const float (&s_K)[6]);
     void setCartesianImpedance(const float (&s_K)[6]);
     void setEEFrame(const float (&s_T)[16]);

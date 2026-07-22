@@ -42,6 +42,7 @@ struct JointMIT : Finishable {
     float m_tau[6]{};
     float m_kp[6]{};
     float m_kd[6]{};
+    bool m_firmware_gravity{false};
 
     static JointMIT MotionFinished(const JointMIT& s_cmd) {
         JointMIT s_r = s_cmd;

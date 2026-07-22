@@ -52,11 +52,25 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
 
     s_fetchDeviceInfo();
 
+    // ── Lifecycle: notify firmware SDK is connected ──
+    {
+        fci::arm::SdkClientConnectedRequestPacket s_req{};
+        s_req.payload.dummy = 0;
+        m_session.request(s_req, 50);
+    }
+
     m_connected = true;
 }
 
 ArmImpl::~ArmImpl() {
     m_running = false;
+
+    // ── Lifecycle: notify firmware SDK disconnected (best-effort) ──
+    {
+        fci::arm::SdkClientDisconnectedRequestPacket s_req{};
+        s_req.payload.dummy = 0;
+        m_session.request(s_req, 20);
+    }
 }
 
 void ArmImpl::s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size) {
@@ -132,10 +146,19 @@ ArmState ArmImpl::readOnce() {
 
 void ArmImpl::s_beginMotion() {
     m_arm_core = ArmCore{};
+
+    fci::arm::StartMotionRequestPacket s_req{};
+    s_req.payload.control_mode = static_cast<std::uint8_t>(fci::arm::MotorControlMode::MIT);
+    s_req.payload.motion_gen_mode = 0;
+    s_req.payload.controller_mode = 0;
+    s_req.payload.computation_mode = 0; // kHost — SDK sends already-computed commands
+    m_session.request(s_req, 50);
 }
 
 void ArmImpl::s_endMotion() {
-    // nothing to do — session stays open for next control call
+    fci::arm::StopMotionRequestPacket s_req{};
+    s_req.payload.dummy = 0;
+    m_session.request(s_req, 50);
 }
 
 // ────────────────────────────────────────────────────────
@@ -169,6 +192,12 @@ void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
 // ────────────────────────────────────────────────────────
 //  Configuration commands
 // ────────────────────────────────────────────────────────
+
+void ArmImpl::home() {
+    fci::arm::HomeAllRequestPacket s_req{};
+    s_req.payload.dummy = 0;
+    m_session.request(s_req, 10000); // home can take seconds
+}
 
 void ArmImpl::setJointImpedance(const float (&s_K)[6]) {
     fci::arm::SetJointImpedanceRequestPacket s_req{};
