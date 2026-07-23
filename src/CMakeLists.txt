@@ -6,6 +6,8 @@ add_library(florid
     ArmImpl.cpp
     ArmCore.cpp
     Arm.cpp
+    GripperCore.cpp
+    Gripper.cpp
     LatencyEstimator.cpp
 )
 

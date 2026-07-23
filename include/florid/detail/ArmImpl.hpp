@@ -82,6 +82,32 @@ public:
         m_running = false;
     }
 
+    // ── Gripper control loop (no arm mode switch, packs externally) ──
+    template <typename Callback, typename Packer>
+    void s_gripperLoop(Callback s_cb, Packer s_packer) {
+        using ReturnType = std::decay_t<decltype(s_cb(std::declval<const ArmState&>(),
+                                                      std::declval<ArmControl&>()))>;
+
+        m_running = true;
+        m_stop_flag = false;
+
+        while (m_running && !m_stop_flag) {
+            m_data_ready.acquire();
+
+            fci::arm::ArmStatus s_raw;
+            if (!m_rx_queue.try_dequeue(s_raw)) continue;
+
+            ArmState s_state = s_convertStatus(s_raw);
+
+            auto s_cmd = s_cb(s_state, m_arm_control);
+            s_packer(s_cmd);
+
+            if (s_cmd.m_motion_finished) break;
+        }
+
+        m_running = false;
+    }
+
     // ── Configuration ──
     void home();
     void setJointImpedance(const float (&s_K)[6]);
@@ -106,6 +132,12 @@ public:
 
     void s_sendCommand(const CartesianPose& s_cmd);
     void s_sendCommand(const CartesianVelocities& s_cmd);
+
+    // ── Generic notify (used by Gripper to send through shared session) ──
+    template <typename ProtoPacket>
+    void s_notify(const ProtoPacket& s_pkt) {
+        m_session.notify(s_pkt);
+    }
 
 protected:
     virtual bool s_supportsCartesian() const { return true; }

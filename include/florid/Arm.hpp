@@ -7,6 +7,7 @@
 #include "florid/Duration.hpp"
 #include "florid/Errors.hpp"
 #include "florid/core/ActiveControl.hpp"
+#include "florid/Gripper.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -57,6 +58,8 @@ public:
         }
     }
 
+    Gripper& gripper();
+
     // ── Active control (manual read/write loop, pybind-friendly) ──
 
     std::unique_ptr<ActiveControl<JointMIT>> startJointMITControl();
@@ -84,6 +87,7 @@ public:
 private:
     Arm() = default;
     std::shared_ptr<ArmImpl> m_impl;
+    friend class Gripper;
 };
 
 } // namespace florid

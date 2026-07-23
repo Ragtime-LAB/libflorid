@@ -36,6 +36,11 @@ Arm& Arm::operator=(Arm&& s_other) noexcept {
 
 Arm::~Arm() = default;
 
+Gripper& Arm::gripper() {
+    static Gripper s_gripper(*this);
+    return s_gripper;
+}
+
 // ── Control loops ──
 
 void Arm::control(std::function<JointMIT(const ArmState&, ArmControl&)> s_cb) {
