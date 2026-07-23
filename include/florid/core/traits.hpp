@@ -24,7 +24,6 @@ using decay_simple = std::decay_t<T>;
 
 namespace florid {
 
-struct Torques;
 struct JointMIT;
 struct JointPosVel;
 struct JointVel;
@@ -35,7 +34,6 @@ struct CartesianVelocities;
 template <typename T>
 struct is_control_command : detail::false_type {};
 
-template <> struct is_control_command<Torques> : detail::true_type {};
 template <> struct is_control_command<JointMIT> : detail::true_type {};
 template <> struct is_control_command<JointPosVel> : detail::true_type {};
 template <> struct is_control_command<JointVel> : detail::true_type {};

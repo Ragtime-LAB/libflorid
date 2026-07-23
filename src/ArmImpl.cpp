@@ -213,30 +213,20 @@ void ArmImpl::home() {
     }
 }
 
-void ArmImpl::setJointImpedance(const float (&s_K)[6]) {
-    fci::arm::SetJointImpedanceRequestPacket s_req{};
-    for (int s_i = 0; s_i < 6; ++s_i) s_req.payload.K[s_i] = s_K[s_i];
-    m_session.request(s_req, 100);
+void ArmImpl::setJointImpedance(const float (&)[6]) {
+    // Stub — SetJointImpedance not yet implemented in firmware protocol
 }
 
-void ArmImpl::setCartesianImpedance(const float (&s_K)[6]) {
-    fci::arm::SetCartesianImpedanceRequestPacket s_req{};
-    for (int s_i = 0; s_i < 6; ++s_i) s_req.payload.K[s_i] = s_K[s_i];
-    m_session.request(s_req, 100);
+void ArmImpl::setCartesianImpedance(const float (&)[6]) {
+    // Stub
 }
 
-void ArmImpl::setEEFrame(const float (&s_T)[16]) {
-    fci::arm::SetEEFrameRequestPacket s_req{};
-    for (int s_i = 0; s_i < 16; ++s_i) s_req.payload.T[s_i] = s_T[s_i];
-    m_session.request(s_req, 100);
+void ArmImpl::setEEFrame(const float (&)[16]) {
+    // Stub
 }
 
-void ArmImpl::setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]) {
-    fci::arm::SetLoadRequestPacket s_req{};
-    s_req.payload.mass_kg = s_mass;
-    for (int s_i = 0; s_i < 3; ++s_i)  s_req.payload.F_x_Cload[s_i] = s_com[s_i];
-    for (int s_i = 0; s_i < 9; ++s_i)  s_req.payload.load_inertia[s_i] = s_inertia[s_i];
-    m_session.request(s_req, 100);
+void ArmImpl::setLoad(float, const float (&)[3], const float (&)[9]) {
+    // Stub
 }
 
 void ArmImpl::automaticErrorRecovery() {

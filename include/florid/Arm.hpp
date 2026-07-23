@@ -6,6 +6,7 @@
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
 #include "florid/Errors.hpp"
+#include "florid/core/ActiveControl.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -31,8 +32,6 @@ public:
 
     // ── Control loop (blocking, runs callback in internal thread) ──
 
-    void control(std::function<Torques(const ArmState&, ArmControl&)> s_cb);
-
     void control(std::function<JointMIT(const ArmState&, ArmControl&)> s_cb);
 
     void control(std::function<JointPosVel(const ArmState&, ArmControl&)> s_cb);
@@ -44,12 +43,6 @@ public:
     void control(std::function<CartesianPose(const ArmState&, ArmControl&)> s_cb);
 
     void control(std::function<CartesianVelocities(const ArmState&, ArmControl&)> s_cb);
-
-    // ── Hybrid: torque control + motion generator ──
-
-    void control(
-        std::function<Torques(const ArmState&, ArmControl&)> s_torque_cb,
-        std::function<JointPosVel(const ArmState&, ArmControl&)> s_motion_cb);
 
     // ── State reading ──
 
@@ -63,6 +56,15 @@ public:
             if (!s_cb(s_state)) break;
         }
     }
+
+    // ── Active control (manual read/write loop, pybind-friendly) ──
+
+    std::unique_ptr<ActiveControl<JointMIT>> startJointMITControl();
+    std::unique_ptr<ActiveControl<JointPosVel>> startJointPosVelControl();
+    std::unique_ptr<ActiveControl<JointVel>> startJointVelControl();
+    std::unique_ptr<ActiveControl<JointPVT>> startJointPVTControl();
+    std::unique_ptr<ActiveControl<CartesianPose>> startCartesianPoseControl();
+    std::unique_ptr<ActiveControl<CartesianVelocities>> startCartesianVelocityControl();
 
     // ── Configuration ──
 

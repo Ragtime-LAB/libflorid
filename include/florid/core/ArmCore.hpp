@@ -20,7 +20,6 @@ public:
 
     // ── SDK type → protocol packet converters ──
 
-    fci::arm::JointMITCommandPacket s_pack(const Torques& s_cmd);
     fci::arm::JointMITCommandPacket s_pack(const JointMIT& s_cmd);
     fci::arm::JointPosVelCommandPacket s_pack(const JointPosVel& s_cmd);
     fci::arm::JointVelCommandPacket s_pack(const JointVel& s_cmd);

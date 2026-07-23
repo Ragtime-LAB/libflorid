@@ -53,7 +53,7 @@ int main(int s_argc, char** s_argv) {
     float s_q_des[6]{};
 
     s_arm->control([&](const florid::ArmState& s_state,
-                        florid::ArmControl&) -> florid::Torques
+                        florid::ArmControl&) -> florid::JointMIT
     {
         constexpr float g_kp = 0.0f;
         constexpr float g_kd = 0.0f;
@@ -69,21 +69,22 @@ int main(int s_argc, char** s_argv) {
         float s_g[6];
         s_model.gravity(s_state.m_q, s_state.m_base_gravity, s_g);
 
-        florid::Torques s_cmd;
+        florid::JointMIT s_cmd;
         for (int s_i = 0; s_i < 6; ++s_i) {
             float s_err_q  = s_q_des[s_i] - s_state.m_q[s_i];
             float s_err_dq = 0.0f - s_state.m_dq[s_i];
 
             float s_pd = g_kp * s_err_q + g_kd * s_err_dq;
-            s_cmd.m_tau[s_i] = s_pd + s_g[s_i];  // PD + gravity
-
-            // kp/kd=0: firmware applies tau directly (torque mode, no extra PD)
+            s_cmd.m_tau[s_i] = s_pd + s_g[s_i];
             s_cmd.m_kp[s_i] = 0.0f;
             s_cmd.m_kd[s_i] = 0.0f;
+            s_cmd.m_q[s_i] = 0.0f;
+            s_cmd.m_dq[s_i] = 0.0f;
         }
+        s_cmd.m_firmware_gravity = false;
 
         if (!g_running) {
-            return florid::Torques::MotionFinished(s_cmd);
+            return florid::JointMIT::MotionFinished(s_cmd);
         }
         return s_cmd;
     });

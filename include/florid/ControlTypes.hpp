@@ -24,18 +24,6 @@ struct Finishable {
     bool m_motion_finished{false};
 };
 
-struct Torques : Finishable {
-    float m_tau[6]{};
-    float m_kp[6]{};
-    float m_kd[6]{};
-
-    static Torques MotionFinished(const Torques& s_cmd) {
-        Torques s_r = s_cmd;
-        s_r.m_motion_finished = true;
-        return s_r;
-    }
-};
-
 struct JointMIT : Finishable {
     float m_q[6]{};
     float m_dq[6]{};

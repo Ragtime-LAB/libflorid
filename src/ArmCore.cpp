@@ -6,20 +6,6 @@ static void s_copyFloats(const float* s_src, float* s_dst, std::uint8_t s_n) {
     for (std::uint8_t s_i = 0; s_i < s_n; ++s_i) s_dst[s_i] = s_src[s_i];
 }
 
-fci::arm::JointMITCommandPacket ArmCore::s_pack(const Torques& s_cmd) {
-    fci::arm::JointMITCommandPacket s_pkt{};
-    for (int s_i = 0; s_i < 6; ++s_i) {
-        s_pkt.tau[s_i] = s_cmd.m_tau[s_i];
-        s_pkt.kp[s_i] = s_cmd.m_kp[s_i];
-        s_pkt.kd[s_i] = s_cmd.m_kd[s_i];
-        s_pkt.q[s_i] = 0.0f;
-        s_pkt.dq[s_i] = 0.0f;
-    }
-    s_pkt.control_mode = 3; // torque mode
-    s_pkt.seq = nextSeq();
-    return s_pkt;
-}
-
 fci::arm::JointMITCommandPacket ArmCore::s_pack(const JointMIT& s_cmd) {
     fci::arm::JointMITCommandPacket s_pkt{};
     s_copyFloats(s_cmd.m_q, s_pkt.q, 6);

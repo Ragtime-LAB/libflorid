@@ -96,6 +96,17 @@ public:
     ReconnectPolicy reconnectPolicy() const { return m_reconnect_policy; }
     void setReconnectPolicy(ReconnectPolicy s_p) { m_reconnect_policy = s_p; }
 
+    // ── Send (public, used by ActiveControl lambdas) ──
+    template <typename CommandType>
+    void s_sendCommand(const CommandType& s_cmd) {
+        auto s_pkt = m_arm_core.s_pack(s_cmd);
+        s_pkt.sdk_timestamp_us = detail::s_nowUs();
+        m_session.notify(s_pkt);
+    }
+
+    void s_sendCommand(const CartesianPose& s_cmd);
+    void s_sendCommand(const CartesianVelocities& s_cmd);
+
 protected:
     virtual bool s_supportsCartesian() const { return true; }
     virtual JointPosVel s_convertCartesian(const CartesianPose& s_cmd, const ArmState& s_state);
@@ -110,20 +121,9 @@ private:
 
     ArmState s_convertStatus(const fci::arm::ArmStatus& s_raw);
 
-    template <typename CommandType>
-    void s_sendCommand(const CommandType& s_cmd) {
-        auto s_pkt = m_arm_core.s_pack(s_cmd);
-        s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_session.notify(s_pkt);
-    }
-
-    void s_sendCommand(const CartesianPose& s_cmd);
-    void s_sendCommand(const CartesianVelocities& s_cmd);
-
     // ── Control mode helpers ──
     template <typename CmdType>
     static constexpr fci::arm::MotorControlMode s_controlModeFor() {
-        if constexpr (std::is_same_v<CmdType, Torques>)               return fci::arm::MotorControlMode::MIT;
         if constexpr (std::is_same_v<CmdType, JointMIT>)               return fci::arm::MotorControlMode::MIT;
         if constexpr (std::is_same_v<CmdType, JointPosVel>)            return fci::arm::MotorControlMode::PosVel;
         if constexpr (std::is_same_v<CmdType, JointVel>)               return fci::arm::MotorControlMode::Vel;

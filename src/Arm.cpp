@@ -38,10 +38,6 @@ Arm::~Arm() = default;
 
 // ── Control loops ──
 
-void Arm::control(std::function<Torques(const ArmState&, ArmControl&)> s_cb) {
-    m_impl->s_controlLoop(std::move(s_cb));
-}
-
 void Arm::control(std::function<JointMIT(const ArmState&, ArmControl&)> s_cb) {
     m_impl->s_controlLoop(std::move(s_cb));
 }
@@ -66,23 +62,54 @@ void Arm::control(std::function<CartesianVelocities(const ArmState&, ArmControl&
     m_impl->s_controlLoop(std::move(s_cb));
 }
 
-void Arm::control(
-    std::function<Torques(const ArmState&, ArmControl&)> s_torque_cb,
-    std::function<JointPosVel(const ArmState&, ArmControl&)> s_motion_cb) {
-    m_impl->s_controlLoop([&](const ArmState& s_state, ArmControl& s_ctrl) {
-        auto s_torque = s_torque_cb(s_state, s_ctrl);
-        auto s_motion = s_motion_cb(s_state, s_ctrl);
-        // Send motion command with torque feedforward
-        // (torque is embedded via JointMIT, but for now just send torque)
-        (void)s_motion;
-        return s_torque;
-    });
-}
-
 // ── State reading ──
 
 ArmState Arm::readOnce() {
     return m_impl->readOnce();
+}
+
+// ── Active control ──
+
+std::unique_ptr<ActiveControl<JointMIT>> Arm::startJointMITControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<JointMIT>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const JointMIT& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+}
+
+std::unique_ptr<ActiveControl<JointPosVel>> Arm::startJointPosVelControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<JointPosVel>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const JointPosVel& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+}
+
+std::unique_ptr<ActiveControl<JointVel>> Arm::startJointVelControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<JointVel>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const JointVel& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+}
+
+std::unique_ptr<ActiveControl<JointPVT>> Arm::startJointPVTControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<JointPVT>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const JointPVT& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+}
+
+std::unique_ptr<ActiveControl<CartesianPose>> Arm::startCartesianPoseControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<CartesianPose>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const CartesianPose& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+}
+
+std::unique_ptr<ActiveControl<CartesianVelocities>> Arm::startCartesianVelocityControl() {
+    auto s_impl = m_impl;
+    return std::make_unique<ActiveControl<CartesianVelocities>>(
+        [s_impl] { return s_impl->readOnce(); },
+        [s_impl](const CartesianVelocities& s_cmd) { s_impl->s_sendCommand(s_cmd); });
 }
 
 // ── Configuration ──

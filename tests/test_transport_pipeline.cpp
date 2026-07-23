@@ -215,9 +215,9 @@ void test_control_loop() {
 
     // Run control loop with a simple torque callback
     int s_call_count = 0;
-    s_impl.s_controlLoop([&](const ArmState& s_state, ArmControl&) -> Torques {
+    s_impl.s_controlLoop([&](const ArmState& s_state, ArmControl&) -> JointMIT {
         s_call_count++;
-        Torques s_cmd;
+        JointMIT s_cmd;
         s_cmd.m_tau[0] = s_state.m_q[0] * 10.0f;
         if (s_call_count >= 1) s_cmd.m_motion_finished = true;
         return s_cmd;
