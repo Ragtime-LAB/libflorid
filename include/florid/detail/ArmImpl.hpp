@@ -170,7 +170,7 @@ private:
 
     // ── SPSC queue ──
     moodycamel::ReaderWriterQueue<fci::arm::ArmStatus> m_rx_queue{64};
-    std::counting_semaphore<64> m_data_ready{0};
+    std::counting_semaphore<65536> m_data_ready{0};
     std::uint32_t m_last_status_seq{0};
 
     // ── Cached DeviceInfo ──

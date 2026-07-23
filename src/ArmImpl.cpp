@@ -164,7 +164,7 @@ void ArmImpl::s_ensureMode(fci::arm::MotorControlMode s_mode) {
 
     fci::arm::ArmControlModeRequestPacket s_req{};
     s_req.payload.mode = s_mode;
-    m_session.request(s_req, 200);
+    m_session.notify(s_req);  // fire-and-forget, no blocking
 
     m_current_mode = s_mode;
 }
