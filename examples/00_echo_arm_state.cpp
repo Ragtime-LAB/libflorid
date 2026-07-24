@@ -64,10 +64,7 @@ int main(int s_argc, char** s_argv) {
                s_state.m_q[0], s_state.m_q[1], s_state.m_q[2],
                s_state.m_q[3], s_state.m_q[4], s_state.m_q[5]);
 
-        const char* s_mode_names[] = {"Init", "Idle", "Running", "Fault", "EStop"};
-        auto s_mi = static_cast<int>(s_state.m_mode);
-        const char* s_mn = (s_mi < 5) ? s_mode_names[s_mi] : "?";
-        printf(" %-6s | 0x%02X\n", s_mn, s_state.m_errors);
+        printf(" %-6s | 0x%02X\n", "---", s_state.m_errors);
 
         s_count++;
         if (s_count >= 200 || !g_running) return false;

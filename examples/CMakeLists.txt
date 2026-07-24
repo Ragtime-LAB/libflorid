@@ -7,6 +7,7 @@ function(add_florid_example s_name s_src)
 endfunction()
 
 add_florid_example(00_echo_arm_state       00_echo_arm_state.cpp)
+add_florid_example(01_drag_mode            01_drag_mode.cpp)
 add_florid_example(01_joint_sine_motion    01_joint_sine_motion.cpp)
 add_florid_example(02_gravity_compensation 02_gravity_compensation.cpp)
 add_florid_example(03_active_joint_control 03_active_joint_control.cpp)

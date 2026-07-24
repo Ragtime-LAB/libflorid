@@ -62,7 +62,7 @@ public:
         m_running = true;
         m_stop_flag = false;
 
-        // Auto-switch motor control mode if needed
+        s_requestPcMode();
         s_ensureMode(s_controlModeFor<ReturnType>());
 
         while (m_running && !m_stop_flag) {
@@ -91,6 +91,8 @@ public:
         m_running = true;
         m_stop_flag = false;
 
+        s_requestPcMode();
+
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
 
@@ -110,6 +112,8 @@ public:
 
     // ── Configuration ──
     void home();
+    void enable();
+    void disable();
     void setJointImpedance(const float (&s_K)[6]);
     void setCartesianImpedance(const float (&s_K)[6]);
     void setEEFrame(const float (&s_T)[16]);
@@ -150,6 +154,7 @@ private:
     void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size);
     void s_fetchDeviceInfo();
     void s_ensureMode(fci::arm::MotorControlMode s_mode);
+    void s_requestPcMode();
 
     ArmState s_convertStatus(const fci::arm::ArmStatus& s_raw);
 

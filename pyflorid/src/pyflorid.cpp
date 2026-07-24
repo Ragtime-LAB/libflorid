@@ -30,13 +30,6 @@ PYBIND11_MODULE(_pyflorid, m) {
     py::register_exception<florid::RealtimeException>(m, "RealtimeException", PyExc_RuntimeError);
 
     // ── Enums ───────────────────────────────────────
-    py::enum_<florid::ArmMode>(m, "ArmMode")
-        .value("Init",    florid::ArmMode::Init)
-        .value("Idle",    florid::ArmMode::Idle)
-        .value("Running", florid::ArmMode::Running)
-        .value("Fault",   florid::ArmMode::Fault)
-        .value("EStop",   florid::ArmMode::EStop);
-
     py::enum_<florid::ReconnectPolicy>(m, "ReconnectPolicy")
         .value("Throw", florid::ReconnectPolicy::kThrow)
         .value("Wait",  florid::ReconnectPolicy::kWait);
@@ -60,8 +53,8 @@ PYBIND11_MODULE(_pyflorid, m) {
         .def(py::init<>())
         .def_readwrite("time",               &florid::ArmState::m_time)
         .def_readwrite("seq",                &florid::ArmState::m_seq)
-        .def_readwrite("source_timestamp_us", &florid::ArmState::m_source_timestamp_us)
         .def_readwrite("mode",               &florid::ArmState::m_mode)
+        .def_readwrite("source_timestamp_us", &florid::ArmState::m_source_timestamp_us)
         .def_readwrite("errors",             &florid::ArmState::m_errors)
         .def_property_readonly("q", [](const florid::ArmState& s) -> py::array_t<float> {
             return py::array_t<float>(6, s.m_q);
@@ -101,6 +94,8 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def_static("create", &florid::Arm::create,
                 py::arg("uri"), "Create arm from URI (e.g. 'usb:///dev/ttyACM1')");
     arm.def("home",              &florid::Arm::home);
+    arm.def("enable",            &florid::Arm::enable);
+    arm.def("disable",           &florid::Arm::disable);
     arm.def("read_once",         &florid::Arm::readOnce);
     arm.def("firmware_period_us", &florid::Arm::firmwarePeriodUs);
     arm.def("reconnect_policy",  &florid::Arm::reconnectPolicy);

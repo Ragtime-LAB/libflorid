@@ -126,8 +126,8 @@ ArmState ArmImpl::s_convertStatus(const fci::arm::ArmStatus& s_raw) {
     ArmState s_state;
     s_state.m_time = detail::get_tick_ms();
     s_state.m_seq = s_raw.seq;
+    s_state.m_mode = static_cast<std::uint32_t>(static_cast<std::uint8_t>(s_raw.mode));
     s_state.m_source_timestamp_us = s_raw.timestamp_us;
-    s_state.m_mode = static_cast<ArmMode>(static_cast<std::uint8_t>(s_raw.mode));
     s_state.m_errors = s_raw.errors;
 
     for (int s_i = 0; s_i < 6; ++s_i) {
@@ -211,6 +211,26 @@ void ArmImpl::home() {
     if (!s_result) {
         throw CommandException("HomeAll request failed: ack timeout or transport error");
     }
+}
+
+void ArmImpl::enable() {
+    fci::arm::SetArmModeRequestPacket s_req{};
+    s_req.payload.mode = fci::arm::ArmMode::Drag;
+    auto s_r = m_session.request(s_req, 200);
+    if (!s_r) throw CommandException("enable failed: ack timeout");
+}
+
+void ArmImpl::disable() {
+    fci::arm::SetArmModeRequestPacket s_req{};
+    s_req.payload.mode = fci::arm::ArmMode::Damp;
+    auto s_r = m_session.request(s_req, 200);
+    if (!s_r) throw CommandException("disable failed: ack timeout");
+}
+
+void ArmImpl::s_requestPcMode() {
+    fci::arm::SetArmModeRequestPacket s_req{};
+    s_req.payload.mode = fci::arm::ArmMode::Pc;
+    m_session.request(s_req, 200);
 }
 
 void ArmImpl::setJointImpedance(const float (&)[6]) {

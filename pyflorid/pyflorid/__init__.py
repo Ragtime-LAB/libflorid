@@ -4,7 +4,7 @@ except ImportError:
     from ._pyflorid import *
 
 __all__ = [
-    "Arm", "ArmState", "ArmMode", "ArmControl",
+    "Arm", "ArmState", "ArmControl",
     "Duration", "ReconnectPolicy", "ControllerMode",
     "JointMIT", "JointPosVel", "JointVel", "JointPVT",
     "CartesianPose", "CartesianVelocities",

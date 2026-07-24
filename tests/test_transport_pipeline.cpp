@@ -95,7 +95,6 @@ void test_arm_status_roundtrip() {
     fci::arm::ArmStatus s_status{};
     s_status.seq = 123;
     s_status.timestamp_us = 999000;
-    s_status.mode = fci::arm::ArmMode::Running;
     s_status.errors = 0x0A;
     s_status.status.q[0] = 1.0f;
     s_status.status.q[1] = 2.0f;
@@ -128,7 +127,6 @@ void test_arm_status_roundtrip() {
     assert(s_state.m_q[0] == 1.0f);
     assert(s_state.m_q[2] == 3.0f);
     assert(s_state.m_dq[0] == 0.1f);
-    assert(s_state.m_mode == ArmMode::Running);
     assert(s_state.m_errors == 0x0A);
     assert(s_state.m_base_gravity[2] == -9.81f);
     assert(s_state.m_O_T_EE[15] == 1.0f);

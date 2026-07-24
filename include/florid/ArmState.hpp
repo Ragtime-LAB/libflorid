@@ -5,19 +5,11 @@
 
 namespace florid {
 
-enum class ArmMode : std::uint8_t {
-    Init = 0,
-    Idle = 1,
-    Running = 2,
-    Fault = 3,
-    EStop = 4,
-};
-
 struct ArmState {
     double m_time{};
     std::uint32_t m_seq{};
+    std::uint32_t m_mode{};
     std::uint64_t m_source_timestamp_us{};
-    ArmMode m_mode{};
     std::uint32_t m_errors{};
     float m_q[6]{};
     float m_dq[6]{};
