@@ -97,7 +97,7 @@ PYBIND11_MODULE(_pyflorid, m) {
         .def("stop_control",    &florid::ArmControl::stopControl);
 
     // ── Arm ─────────────────────────────────────────
-    py::class_<florid::Arm, std::shared_ptr<florid::Arm>> arm(m, "Arm");
+    py::class_<florid::Arm, std::unique_ptr<florid::Arm>> arm(m, "Arm");
     arm.def_static("create", &florid::Arm::create,
                 py::arg("uri"), "Create arm from URI (e.g. 'usb:///dev/ttyACM1')");
     arm.def("home",              &florid::Arm::home);

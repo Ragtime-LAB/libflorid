@@ -5,10 +5,7 @@ import sys
 import signal
 import numpy as np
 
-# Dev path: .so is in build/pyflorid/
-import sys
 sys.path.insert(0, "build/pyflorid")
-
 from pyflorid import Arm, JointMIT
 
 g_running = True
@@ -35,19 +32,14 @@ def main():
         sys.exit(1)
     print(f"Connected. fw_dt={arm.firmware_period_us()} us\n")
 
-    print("Homing ...")
-    arm.home()
-    print("Home done.\n")
-
-    # Active control polling
     ctrl = arm.start_joint_mit_control()
 
-    # Read initial position
-    q_des = None
-    while q_des is None:
+    # Read initial position from first valid frame — no home, no jump
+    q_des = np.zeros(6, dtype=np.float32)
+    while True:
         state = ctrl.read_once()
         if state.seq != 0:
-            q_des = state.q.copy()
+            q_des[:] = state.q
             break
 
     print(f"Initial position: {q_des}")
