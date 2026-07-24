@@ -3,6 +3,7 @@
 #include "florid/detail/tick.hpp"
 
 #include <cstring>
+#include <chrono>
 
 namespace florid {
 
@@ -279,14 +280,26 @@ std::optional<float> ArmImpl::readMotorRegister(std::uint8_t s_joint_id,
     s_req.payload.joint_id = s_joint_id;
     s_req.payload.rid = static_cast<std::uint8_t>(s_rid);
 
-    auto s_result = m_session.request(s_req, 200);
-    if (!s_result) return std::nullopt;
+    // notify() + poll: firmware sends MotorRegisterReadResponse (0x621E)
+    // without a separate USBAck, so request() would time out on wait_ack.
+    s_req.req_id = m_session.ack_manager().allocate();
+    (void)m_session.notify(s_req);
 
-    auto s_response = m_session.deserializer().get<fci::arm::MotorRegisterReadResponsePacket>();
-    if (s_response.payload.status != fci::arm::MotorRegisterStatus::Ok)
-        return std::nullopt;
+    using namespace std::chrono;
+    auto s_deadline = steady_clock::now() + milliseconds(200);
 
-    return s_response.payload.value;
+    while (steady_clock::now() < s_deadline) {
+        auto s_resp =
+            m_session.deserializer().get<fci::arm::MotorRegisterReadResponsePacket>();
+        if (s_resp.req_id == s_req.req_id) {
+            if (s_resp.payload.status == fci::arm::MotorRegisterStatus::Ok)
+                return s_resp.payload.value;
+            return std::nullopt;
+        }
+        std::this_thread::yield();
+    }
+
+    return std::nullopt;
 }
 
 bool ArmImpl::writeMotorRegister(std::uint8_t s_joint_id,
