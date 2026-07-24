@@ -10,6 +10,8 @@
 #include "florid/Duration.hpp"
 #include "florid/Exceptions.hpp"
 
+#include "fci_protocol/arm/constants.hpp"
+
 namespace py = pybind11;
 
 // ── Sub-module bindings (declared in separate files) ──
@@ -37,6 +39,41 @@ PYBIND11_MODULE(_pyflorid, m) {
     py::enum_<florid::ControllerMode>(m, "ControllerMode")
         .value("JointImpedance",    florid::ControllerMode::JointImpedance)
         .value("CartesianImpedance", florid::ControllerMode::CartesianImpedance);
+
+    py::enum_<fci::arm::MotorRegister>(m, "MotorRegister")
+        .value("TorqueConstant",        fci::arm::MotorRegister::TorqueConstant)
+        .value("GearEfficiency",        fci::arm::MotorRegister::GearEfficiency)
+        .value("CurrentLoopBandwidth",  fci::arm::MotorRegister::CurrentLoopBandwidth)
+        .value("SpeedLoopKp",           fci::arm::MotorRegister::SpeedLoopKp)
+        .value("SpeedLoopKi",           fci::arm::MotorRegister::SpeedLoopKi)
+        .value("PositionLoopKp",        fci::arm::MotorRegister::PositionLoopKp)
+        .value("PositionLoopKi",        fci::arm::MotorRegister::PositionLoopKi)
+        .value("SpeedLoopDamping",      fci::arm::MotorRegister::SpeedLoopDamping)
+        .value("SpeedLoopFilterBW",     fci::arm::MotorRegister::SpeedLoopFilterBW)
+        .value("CurrentEnhanceFactor",  fci::arm::MotorRegister::CurrentEnhanceFactor)
+        .value("VelocityEnhanceFactor", fci::arm::MotorRegister::VelocityEnhanceFactor)
+        .value("VoltageUnder",          fci::arm::MotorRegister::VoltageUnder)
+        .value("VoltageOver",           fci::arm::MotorRegister::VoltageOver)
+        .value("TemperatureLimit",      fci::arm::MotorRegister::TemperatureLimit)
+        .value("OvercurrentLimit",      fci::arm::MotorRegister::OvercurrentLimit)
+        .value("Acceleration",          fci::arm::MotorRegister::Acceleration)
+        .value("Deceleration",          fci::arm::MotorRegister::Deceleration)
+        .value("MaxSpeed",              fci::arm::MotorRegister::MaxSpeed)
+        .value("PositionMax",           fci::arm::MotorRegister::PositionMax)
+        .value("VelocityMax",           fci::arm::MotorRegister::VelocityMax)
+        .value("TorqueMax",             fci::arm::MotorRegister::TorqueMax)
+        .value("DampingCoefficient",    fci::arm::MotorRegister::DampingCoefficient)
+        .value("Inertia",               fci::arm::MotorRegister::Inertia)
+        .value("HardwareVersion",       fci::arm::MotorRegister::HardwareVersion)
+        .value("SoftwareVersion",       fci::arm::MotorRegister::SoftwareVersion)
+        .value("PolePairs",             fci::arm::MotorRegister::PolePairs)
+        .value("PhaseResistance",       fci::arm::MotorRegister::PhaseResistance)
+        .value("PhaseInductance",       fci::arm::MotorRegister::PhaseInductance)
+        .value("FluxLinkage",           fci::arm::MotorRegister::FluxLinkage)
+        .value("GearRatio",             fci::arm::MotorRegister::GearRatio)
+        .value("SubVersion",            fci::arm::MotorRegister::SubVersion)
+        .value("MotorPosition",         fci::arm::MotorRegister::MotorPosition)
+        .value("OutputPosition",        fci::arm::MotorRegister::OutputPosition);
 
     // ── Duration ────────────────────────────────────
     py::class_<florid::Duration>(m, "Duration")
@@ -110,6 +147,10 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def("start_joint_pvt_control",               &florid::Arm::startJointPVTControl);
     arm.def("start_cartesian_pose_control",          &florid::Arm::startCartesianPoseControl);
     arm.def("start_cartesian_velocity_control",      &florid::Arm::startCartesianVelocityControl);
+    arm.def("read_motor_register",   &florid::Arm::readMotorRegister);
+    arm.def("write_motor_register",  &florid::Arm::writeMotorRegister);
+    arm.def("store_parameters",       &florid::Arm::storeParameters);
+    arm.def("set_zero_point",         &florid::Arm::setZeroPoint);
 
     // ── Sub-modules ─────────────────────────────────
     bind_control_types(m);

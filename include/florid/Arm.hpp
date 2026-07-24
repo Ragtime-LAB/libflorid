@@ -9,9 +9,12 @@
 #include "florid/core/ActiveControl.hpp"
 #include "florid/Gripper.hpp"
 
+#include "fci_protocol/arm/constants.hpp"
+
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace florid {
@@ -80,6 +83,13 @@ public:
     void setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]);
     void automaticErrorRecovery();
     void stop();
+
+    // ── Motor register access (joint_id: 1–7, 1–6 = arm joints, 7 = gripper) ──
+
+    std::optional<float> readMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid);
+    bool writeMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid, float s_value);
+    bool storeParameters(std::uint8_t s_joint_id);
+    bool setZeroPoint(std::uint8_t s_joint_id);
 
     std::uint32_t firmwarePeriodUs() const;
     ReconnectPolicy reconnectPolicy() const;

@@ -2,6 +2,8 @@
 #include "florid/Exceptions.hpp"
 #include "florid/detail/tick.hpp"
 
+#include <cstring>
+
 namespace florid {
 
 // ────────────────────────────────────────────────────────
@@ -265,6 +267,60 @@ void ArmImpl::stop() {
     m_stop_flag = true;
     m_running = false;
     m_data_ready.release();
+}
+
+// ────────────────────────────────────────────────────────
+//  Motor register access
+// ────────────────────────────────────────────────────────
+
+std::optional<float> ArmImpl::readMotorRegister(std::uint8_t s_joint_id,
+                                                 fci::arm::MotorRegister s_rid) {
+    fci::arm::MotorRegisterReadRequestPacket s_req{};
+    s_req.payload.joint_id = s_joint_id;
+    s_req.payload.rid = static_cast<std::uint8_t>(s_rid);
+
+    auto s_result = m_session.request(s_req, 200);
+    if (!s_result) return std::nullopt;
+
+    auto s_response = m_session.deserializer().get<fci::arm::MotorRegisterReadResponsePacket>();
+    if (s_response.payload.status != fci::arm::MotorRegisterStatus::Ok)
+        return std::nullopt;
+
+    return s_response.payload.value;
+}
+
+bool ArmImpl::writeMotorRegister(std::uint8_t s_joint_id,
+                                  fci::arm::MotorRegister s_rid,
+                                  float s_value) {
+    fci::arm::MotorRegisterWriteRequestPacket s_req{};
+    s_req.payload.joint_id = s_joint_id;
+    s_req.payload.rid = static_cast<std::uint8_t>(s_rid);
+    s_req.payload.value = s_value;
+
+    auto s_result = m_session.request(s_req, 200);
+    if (!s_result) return false;
+
+    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
+}
+
+bool ArmImpl::storeParameters(std::uint8_t s_joint_id) {
+    fci::arm::MotorStoreParamsRequestPacket s_req{};
+    s_req.payload.joint_id = s_joint_id;
+
+    auto s_result = m_session.request(s_req, 200);
+    if (!s_result) return false;
+
+    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
+}
+
+bool ArmImpl::setZeroPoint(std::uint8_t s_joint_id) {
+    fci::arm::MotorSetZeroRequestPacket s_req{};
+    s_req.payload.joint_id = s_joint_id;
+
+    auto s_result = m_session.request(s_req, 200);
+    if (!s_result) return false;
+
+    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
 }
 
 } // namespace florid

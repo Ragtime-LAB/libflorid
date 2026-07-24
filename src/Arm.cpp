@@ -131,6 +131,21 @@ void Arm::setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia
 void Arm::automaticErrorRecovery() { m_impl->automaticErrorRecovery(); }
 void Arm::stop() { m_impl->stop(); }
 
+// ── Motor register access ──
+
+std::optional<float> Arm::readMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid) {
+    return m_impl->readMotorRegister(s_joint_id, s_rid);
+}
+bool Arm::writeMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid, float s_value) {
+    return m_impl->writeMotorRegister(s_joint_id, s_rid, s_value);
+}
+bool Arm::storeParameters(std::uint8_t s_joint_id) {
+    return m_impl->storeParameters(s_joint_id);
+}
+bool Arm::setZeroPoint(std::uint8_t s_joint_id) {
+    return m_impl->setZeroPoint(s_joint_id);
+}
+
 std::uint32_t Arm::firmwarePeriodUs() const { return m_impl->firmwarePeriodUs(); }
 ReconnectPolicy Arm::reconnectPolicy() const { return m_impl->reconnectPolicy(); }
 void Arm::setReconnectPolicy(ReconnectPolicy s_p) { m_impl->setReconnectPolicy(s_p); }
