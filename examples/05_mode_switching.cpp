@@ -62,8 +62,11 @@ int main(int s_argc, char **s_argv) {
         florid::JointMIT s_cmd{};
         s_cmd.m_firmware_gravity = true;
         float s_v = 0.3f * static_cast<float>(0.5 - 0.5 * std::cos(s_t * 1.5));
-        if (s_v < 0.0f) s_v = 0.0f;
-        s_cmd.m_q[1] = s_v; s_cmd.m_kp[1] = g_kp; s_cmd.m_kd[1] = g_kd;
+        if (s_v < 0.0f)
+          s_v = 0.0f;
+        s_cmd.m_q[1] = s_v;
+        s_cmd.m_kp[1] = g_kp;
+        s_cmd.m_kd[1] = g_kd;
         return s_cmd;
       });
       break;
@@ -78,8 +81,11 @@ int main(int s_argc, char **s_argv) {
           return florid::JointPVT::MotionFinished({});
         florid::JointPVT s_cmd{};
         float s_v = 0.3f * static_cast<float>(0.5 - 0.5 * std::cos(s_t * 1.5));
-        if (s_v < 0.0f) s_v = 0.0f;
-        s_cmd.m_q[1] = s_v; s_cmd.m_dq_limit[1] = 1.0f;
+        if (s_v < 0.0f)
+          s_v = 0.0f;
+        s_cmd.m_q[1] = s_v;
+        s_cmd.m_dq_limit[1] = 1.0f;
+        s_cmd.m_current_limit_norm[1] = 2.0f;
         return s_cmd;
       });
       break;
@@ -94,8 +100,10 @@ int main(int s_argc, char **s_argv) {
           return florid::JointPosVel::MotionFinished({});
         florid::JointPosVel s_cmd{};
         float s_v = 0.3f * static_cast<float>(0.5 - 0.5 * std::cos(s_t * 1.5));
-        if (s_v < 0.0f) s_v = 0.0f;
+        if (s_v < 0.0f)
+          s_v = 0.0f;
         s_cmd.m_q[1] = s_v;
+        s_cmd.m_dq[1] = 0.5f;
         return s_cmd;
       });
       break;
