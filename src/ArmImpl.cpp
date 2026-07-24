@@ -216,14 +216,14 @@ void ArmImpl::home() {
 void ArmImpl::enable() {
     fci::arm::SetArmModeRequestPacket s_req{};
     s_req.payload.mode = fci::arm::ArmMode::Drag;
-    auto s_r = m_session.request(s_req, 200);
+    auto s_r = m_session.request(s_req, 500);
     if (!s_r) throw CommandException("enable failed: ack timeout");
 }
 
 void ArmImpl::disable() {
     fci::arm::SetArmModeRequestPacket s_req{};
     s_req.payload.mode = fci::arm::ArmMode::Damp;
-    auto s_r = m_session.request(s_req, 200);
+    auto s_r = m_session.request(s_req, 500);
     if (!s_r) throw CommandException("disable failed: ack timeout");
 }
 

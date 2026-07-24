@@ -8,7 +8,7 @@ namespace florid {
 
 AstrialUSBTransport::AstrialUSBTransport(const std::string& s_port_path, std::uint32_t s_baud_rate) {
     auto s_result = Serial::builder()
-                        .buad_rate(s_baud_rate)  // Astrial typo: buad_rate
+                        .buad_rate(s_baud_rate)
                         .parity(Parity::None)
                         .stop_bits(StopBits::One)
                         .open(s_port_path);
@@ -48,6 +48,7 @@ AstrialUSBTransport& AstrialUSBTransport::operator=(AstrialUSBTransport&& s_othe
 
 bool AstrialUSBTransport::send(const std::uint8_t* s_data, std::size_t s_size) {
     if (!m_serial) return false;
+    std::lock_guard<std::mutex> s_lock(m_write_mutex);
     auto s_r = m_serial->write(std::span<const std::uint8_t>(s_data, s_size));
     return s_r.has_value();
 }

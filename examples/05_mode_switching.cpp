@@ -17,8 +17,8 @@ void s_printUsage(const char *s_prog) {
   exit(1);
 }
 
-constexpr float g_kp = 10.0f;
-constexpr float g_kd = 0.2f;
+constexpr float g_kp = 50.0f;
+constexpr float g_kd = 0.5f;
 constexpr double g_duration = 4.0; // seconds per mode
 
 int main(int s_argc, char **s_argv) {
