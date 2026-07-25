@@ -50,6 +50,18 @@ int main(int s_argc, char** s_argv) {
            s_arm->firmwarePeriodUs(),
            1e6 / s_arm->firmwarePeriodUs());
 
+    // ── Device info ──
+    const auto& s_info = s_arm->deviceInfo();
+    printf("Device info:\n");
+    printf("  Board:        %s\n", s_info.board_name.data());
+    printf("  Custom name:  %s\n", s_info.custom_name.data());
+    printf("  FW version:   %u.%u.%u\n",
+           s_info.fw_version.major, s_info.fw_version.minor, s_info.fw_version.patch);
+    printf("  Protocol ver: %u.%u.%u\n",
+           s_info.protocol_version.major, s_info.protocol_version.minor, s_info.protocol_version.patch);
+    printf("  FW type:      %d\n", s_info.fw_type);
+    printf("\n");
+
     // ── Echo state ──
     printf("\n=== Arm State Stream ===\n");
     printf(" seq  |      q0      q1      q2      q3      q4      q5  |  mode  | errs\n");

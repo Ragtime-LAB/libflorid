@@ -115,11 +115,10 @@ void ArmImpl::s_fetchDeviceInfo() {
     fci::arm::GetDeviceInfoRequestPacket s_req{};
     s_req.payload.dummy = 0;
 
-    auto s_result = m_session.request(s_req, 100);
-    if (!s_result) {
-        throw ProtocolException(
-            "GetDeviceInfo request failed: ack timeout or transport error");
-    }
+    // Firmware sends GetDeviceInfoResponse directly without USBAck,
+    // so use notify() + manual req_id + poll (same as readMotorRegister).
+    s_req.req_id = m_session.ack_manager().allocate();
+    (void)m_session.notify(s_req);
 
     using namespace std::chrono;
     auto s_deadline = steady_clock::now() + milliseconds(100);
