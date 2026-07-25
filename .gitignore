@@ -2,5 +2,7 @@ build
 cmake-build*
 .cache
 backup
+libfranka
+acados
 __pycache__
 *.cpython*
