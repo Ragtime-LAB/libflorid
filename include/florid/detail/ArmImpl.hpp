@@ -19,6 +19,11 @@
 
 #include "readerwriterqueue.h"
 
+#ifdef FLORID_HAS_MPC
+#include "florid/mpc/CartesianMPC.hpp"
+#include "WillowMPCTraits.hpp"
+#endif
+
 #include <atomic>
 #include <cstdint>
 #include <functional>
@@ -152,7 +157,7 @@ public:
 
 protected:
     virtual bool s_supportsCartesian() const { return true; }
-    virtual JointPosVel s_convertCartesian(const CartesianPose& s_cmd, const ArmState& s_state);
+    virtual JointPVT s_convertCartesian(const CartesianPose& s_cmd, const ArmState& s_state);
 
     ArmCore m_arm_core;
     Session m_session;
@@ -172,7 +177,13 @@ private:
         if constexpr (std::is_same_v<CmdType, JointPosVel>)            return fci::arm::MotorControlMode::PosVel;
         if constexpr (std::is_same_v<CmdType, JointVel>)               return fci::arm::MotorControlMode::Vel;
         if constexpr (std::is_same_v<CmdType, JointPVT>)               return fci::arm::MotorControlMode::PVT;
-        if constexpr (std::is_same_v<CmdType, CartesianPose>)          return fci::arm::MotorControlMode::MIT;
+        if constexpr (std::is_same_v<CmdType, CartesianPose>) {
+#ifdef FLORID_HAS_MPC
+            return fci::arm::MotorControlMode::PVT;
+#else
+            return fci::arm::MotorControlMode::MIT;
+#endif
+        }
         if constexpr (std::is_same_v<CmdType, CartesianVelocities>)     return fci::arm::MotorControlMode::MIT;
         return fci::arm::MotorControlMode::MIT;
     }
@@ -197,6 +208,9 @@ private:
 
     // ── Control ──
     ArmControl m_arm_control;
+#ifdef FLORID_HAS_MPC
+    std::unique_ptr<CartesianMPCSolver<WillowMPCTraits>> m_mpc;
+#endif
     std::mutex m_control_mutex;
     std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};

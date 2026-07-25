@@ -60,6 +60,10 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
 {
     m_arm_control.m_impl = this;
 
+#ifdef FLORID_HAS_MPC
+    m_mpc = std::make_unique<CartesianMPCSolver<WillowMPCTraits>>();
+#endif
+
     m_session.on_send([this](const std::uint8_t* s_data, std::size_t s_size) {
         m_transport->send(s_data, s_size);
     });
@@ -173,27 +177,37 @@ void ArmImpl::s_ensureMode(fci::arm::MotorControlMode s_mode) {
 }
 
 // ────────────────────────────────────────────────────────
-//  Cartesian override (called when firmware doesn't support Cartesian)
+//  Cartesian → Joint conversion (MPC or fallback)
 // ────────────────────────────────────────────────────────
 
-JointPosVel ArmImpl::s_convertCartesian(const CartesianPose& /*s_cmd*/,
-                                         const ArmState& /*s_state*/) {
-    JointPosVel s_out{};
-    // Stub — real implementation would do IK using Model<Traits>
+JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_cmd,
+                                      const ArmState& s_state) {
+#ifdef FLORID_HAS_MPC
+    if (m_mpc) {
+        return m_mpc->solve(s_state.m_q, s_state.m_dq, s_cmd.m_T);
+    }
+#endif
+    JointPVT s_out{};
     return s_out;
 }
 
 void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
+#ifdef FLORID_HAS_MPC
+    ArmState s_state = s_convertStatus(
+        m_session.deserializer().get<fci::arm::ArmStatus>());
+    auto s_joint = s_convertCartesian(s_cmd, s_state);
+    s_sendCommand(s_joint);
+#else
     if (s_supportsCartesian()) {
         auto s_pkt = m_arm_core.s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
         m_session.notify(s_pkt);
     } else {
-        // Convert Cartesian → Joint space (for low-power firmware)
         auto s_joint = s_convertCartesian(s_cmd, s_convertStatus(
             m_session.deserializer().get<fci::arm::ArmStatus>()));
         s_sendCommand(s_joint);
     }
+#endif
 }
 
 void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
