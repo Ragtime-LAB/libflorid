@@ -25,6 +25,17 @@ class MockTransport : public Transport {
 public:
     bool send(const std::uint8_t* s_data, std::size_t s_size) override {
         m_sent.insert(m_sent.end(), s_data, s_data + s_size);
+
+        // Auto-respond to GetDeviceInfoRequest so ArmImpl construction succeeds
+        if (s_size >= 7 && s_data[0] == 0xA5) {
+            std::uint16_t s_cmd = static_cast<std::uint16_t>(s_data[3])
+                               | (static_cast<std::uint16_t>(s_data[4]) << 8);
+            if (s_cmd == 0x6215) {
+                std::uint8_t s_req_id = s_data[5];
+                inject(s_makeAckFrame(s_req_id));
+                inject(s_makeDeviceInfoFrame(s_req_id));
+            }
+        }
         return true;
     }
 
@@ -45,6 +56,32 @@ public:
     std::vector<uint8_t> m_sent;
     ReceiveFunctor m_recv_cb{nullptr};
     void* m_recv_ctx{nullptr};
+
+private:
+    static std::vector<uint8_t> s_makeAckFrame(std::uint8_t s_req_id) {
+        return {
+            0xA5, 0x02, 0x00,             // start + length=2
+            0x00, 0x00,                   // cmd = USBAck (0x0000)
+            s_req_id, 0x00                // status = Ok
+        };
+    }
+
+    static std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id) {
+        // Frame: 5-byte header + 76-byte payload = 81 bytes
+        // Payload: req_id(1) + protocol_version(3) + fw_version(3)
+        //          + board_name(32) + custom_name(32) + fw_type(1) + firmware_dt_us(4)
+        std::vector<uint8_t> s_frame(81, 0);
+        s_frame[0] = 0xA5;
+        s_frame[1] = 0x4C;  s_frame[2] = 0x00;     // length = 76
+        s_frame[3] = 0x16;  s_frame[4] = 0x62;     // cmd = 0x6216 (GetDeviceInfoResponse)
+        s_frame[5] = s_req_id;
+        s_frame[6] = 1;                             // protocol_version.major
+        s_frame[9] = 2;                             // fw_version.major
+        s_frame[10] = 3;                            // fw_version.minor
+        s_frame[11] = 1;                            // fw_version.patch
+        s_frame[77] = 0xD0; s_frame[78] = 0x07;    // firmware_dt_us = 2000 (LE)
+        return s_frame;
+    }
 };
 
 // ────────────────────────────────────────────────────────────
@@ -84,12 +121,16 @@ void test_arm_status_roundtrip() {
     auto s_transport = std::make_unique<MockTransport>();
     auto* s_mock = static_cast<MockTransport*>(s_transport.get());
 
-    // Create ArmImpl — this will try to fetch DeviceInfo but
-    // there's no firmware to respond. DeviceInfo defaults will be used.
+    // Create ArmImpl — MockTransport auto-responds to GetDeviceInfoRequest
     ArmImpl s_impl(std::move(s_transport));
 
-    // Verify defaults
+    // Verify device info was fetched from mock response
     assert(s_impl.firmwarePeriodUs() == 2000);
+    assert(s_impl.getDeviceInfo().protocol_version.major == 1);
+    assert(s_impl.getDeviceInfo().fw_version.major == 2);
+    assert(s_impl.getDeviceInfo().fw_version.minor == 3);
+    assert(s_impl.getDeviceInfo().fw_version.patch == 1);
+    assert(s_impl.getDeviceInfo().firmware_dt_us == 2000);
 
     // Build a fake ArmStatus
     fci::arm::ArmStatus s_status{};

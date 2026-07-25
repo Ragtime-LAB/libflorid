@@ -116,17 +116,28 @@ void ArmImpl::s_fetchDeviceInfo() {
     s_req.payload.dummy = 0;
 
     auto s_result = m_session.request(s_req, 100);
-
     if (!s_result) {
-        m_device_info = {};
-        m_fw_dt_us = 2000;
-        return;
+        throw ProtocolException(
+            "GetDeviceInfo request failed: ack timeout or transport error");
     }
 
-    auto s_response = m_session.deserializer().get<fci::arm::GetDeviceInfoResponsePacket>();
-    m_device_info = s_response.payload.info;
-    m_fw_dt_us = m_device_info.firmware_dt_us;
-    if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
+    using namespace std::chrono;
+    auto s_deadline = steady_clock::now() + milliseconds(100);
+
+    while (steady_clock::now() < s_deadline) {
+        auto s_response =
+            m_session.deserializer().get<fci::arm::GetDeviceInfoResponsePacket>();
+        if (s_response.req_id == s_req.req_id) {
+            m_device_info = s_response.payload.info;
+            m_fw_dt_us = m_device_info.firmware_dt_us;
+            if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
+            return;
+        }
+        std::this_thread::yield();
+    }
+
+    throw ProtocolException(
+        "GetDeviceInfo response not received within timeout");
 }
 
 ArmState ArmImpl::s_convertStatus(const fci::arm::ArmStatus& s_raw) {

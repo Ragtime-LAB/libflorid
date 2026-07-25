@@ -10,6 +10,7 @@
 #include "florid/Gripper.hpp"
 
 #include "fci_protocol/arm/constants.hpp"
+#include "fci_protocol/arm/device_info.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -95,6 +96,7 @@ public:
     ReconnectPolicy reconnectPolicy() const;
     void setReconnectPolicy(ReconnectPolicy s_p);
     bool isConnected() const;
+    const fci::arm::DeviceInfo& deviceInfo() const;
 
 private:
     Arm() = default;
