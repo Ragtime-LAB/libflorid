@@ -157,11 +157,13 @@ PYBIND11_MODULE(_pyflorid, m) {
     // ── Diagnostics structs ─────────────────────────
     py::class_<fci::arm::JointDiag>(m, "JointDiag")
         .def(py::init<>())
-        .def_readonly("healthy",  &fci::arm::JointDiag::healthy);
+        .def_readonly("healthy",  &fci::arm::JointDiag::healthy)
+        .def_readonly("temp_c",   &fci::arm::JointDiag::temp_c);
 
     py::class_<fci::arm::GripperDiag>(m, "GripperDiag")
         .def(py::init<>())
-        .def_readonly("healthy",  &fci::arm::GripperDiag::healthy);
+        .def_readonly("healthy",  &fci::arm::GripperDiag::healthy)
+        .def_readonly("temp_c",   &fci::arm::GripperDiag::temp_c);
 
     py::class_<fci::arm::ArmDiagnostics>(m, "ArmDiagnostics")
         .def(py::init<>())

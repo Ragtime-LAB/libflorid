@@ -74,10 +74,10 @@ int main(int s_argc, char** s_argv) {
             printf("\n  Joint diagnostics:\n");
             for (int i = 0; i < 6; ++i) {
                 auto& j = s_d.joints[i];
-                printf("    J%d: healthy=%u\n", i + 1, j.healthy);
+                printf("    J%d: healthy=%u  temp=%.1fC\n", i + 1, j.healthy, j.temp_c);
             }
             auto& g = s_d.gripper;
-            printf("  Gripper: healthy=%u\n", g.healthy);
+            printf("  Gripper: healthy=%u  temp=%.1fC\n", g.healthy, g.temp_c);
             break;
         }
 
