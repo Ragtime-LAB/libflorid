@@ -121,6 +121,7 @@ std::unique_ptr<ActiveControl<CartesianVelocities>> Arm::startCartesianVelocityC
 
 void Arm::home() { m_impl->home(); }
 void Arm::enable() { m_impl->enable(); }
+void Arm::drag() { m_impl->drag(); }
 void Arm::disable() { m_impl->disable(); }
 void Arm::setJointImpedance(const float (&s_K)[6]) { m_impl->setJointImpedance(s_K); }
 void Arm::setCartesianImpedance(const float (&s_K)[6]) { m_impl->setCartesianImpedance(s_K); }

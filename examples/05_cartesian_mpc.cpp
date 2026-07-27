@@ -4,7 +4,7 @@
 
 int main() {
     auto arm = florid::Arm::create("usb:///dev/ttyACM0");
-    arm->enable();
+    arm->drag();
 
     float T_target[16]{};
     T_target[0]  = 1.0f;  T_target[1]  = 0.0f; T_target[2]  = 0.0f; T_target[3]  = 0.5f;

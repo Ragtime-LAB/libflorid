@@ -10,6 +10,16 @@
 
 static std::atomic<bool> g_running{true};
 
+static const char* s_modeName(std::uint32_t s_mode) {
+    switch (static_cast<fci::arm::ArmMode>(s_mode)) {
+        case fci::arm::ArmMode::Pc:  return "PC";
+        case fci::arm::ArmMode::Drag: return "DRAG";
+        case fci::arm::ArmMode::Damp: return "DAMP";
+        case fci::arm::ArmMode::Retracting: return "RETR";
+        default: return "??";
+    }
+}
+
 void s_signalHandler(int) {
     g_running = false;
 }
@@ -64,19 +74,21 @@ int main(int s_argc, char** s_argv) {
 
     // ── Echo state ──
     printf("\n=== Arm State Stream ===\n");
-    printf(" seq  |      q0      q1      q2      q3      q4      q5  |  mode  | errs\n");
-    printf("------|----------------------------------------------------|--------|------\n");
+    printf(" seq  |      q0      q1      q2      q3      q4      q5  |       x       y       z  |  mode  | errs\n");
+    printf("------|----------------------------------------------------|---------------------------|--------|------\n");
 
     int s_count = 0;
     s_arm->read([&](const florid::ArmState& s_state) {
         if (s_state.m_seq == 0) return g_running.load();
 
-        printf("%5u | %+7.3f %+7.3f %+7.3f %+7.3f %+7.3f %+7.3f |",
+        printf("%5u | %+7.3f %+7.3f %+7.3f %+7.3f %+7.3f %+7.3f |"
+               " %+7.3f %+7.3f %+7.3f |"
+               " %-6s | 0x%02X\n",
                s_state.m_seq,
                s_state.m_q[0], s_state.m_q[1], s_state.m_q[2],
-               s_state.m_q[3], s_state.m_q[4], s_state.m_q[5]);
-
-        printf(" %-6s | 0x%02X\n", "---", s_state.m_errors);
+               s_state.m_q[3], s_state.m_q[4], s_state.m_q[5],
+               s_state.m_O_T_EE[12], s_state.m_O_T_EE[13], s_state.m_O_T_EE[14],
+               s_modeName(s_state.m_mode), s_state.m_errors);
 
         s_count++;
         if (s_count >= 200 || !g_running) return false;

@@ -45,8 +45,8 @@ int main(int s_argc, char **s_argv) {
   }
   printf("Connected. fw_dt=%u us\n\n", s_arm->firmwarePeriodUs());
 
-  printf("Enabling (Drag mode) ...\n");
-  s_arm->enable();
+  printf("Entering Drag mode ...\n");
+  s_arm->drag();
   s_delayMs(500);
 
   const auto s_rid = MotorRegister::SpeedLoopKp;

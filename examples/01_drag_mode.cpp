@@ -32,9 +32,9 @@ int main(int s_argc, char** s_argv) {
     }
     printf("Connected. fw_dt=%u us\n\n", s_arm->firmwarePeriodUs());
 
-    printf("Enabling Drag mode ...\n");
-    s_arm->enable();
-    printf("Drag mode enabled. Ctrl+C to stop.\n\n");
+    printf("Entering Drag mode ...\n");
+    s_arm->drag();
+    printf("Drag mode entered. Ctrl+C to stop.\n\n");
 
     printf(" seq  |      q0      q1      q2      q3      q4      q5  | mode | errs\n");
     printf("------|----------------------------------------------------|------|-----\n");

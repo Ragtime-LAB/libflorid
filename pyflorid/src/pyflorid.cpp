@@ -132,6 +132,7 @@ PYBIND11_MODULE(_pyflorid, m) {
                 py::arg("uri"), "Create arm from URI (e.g. 'usb:///dev/ttyACM1')");
     arm.def("home",              &florid::Arm::home);
     arm.def("enable",            &florid::Arm::enable);
+    arm.def("drag",              &florid::Arm::drag);
     arm.def("disable",           &florid::Arm::disable);
     arm.def("read_once",         &florid::Arm::readOnce);
     arm.def("firmware_period_us", &florid::Arm::firmwarePeriodUs);
