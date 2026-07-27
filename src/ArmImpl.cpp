@@ -109,6 +109,12 @@ void ArmImpl::s_feedBytes(const std::uint8_t* s_data, std::size_t s_size) {
         if (!m_rx_queue.enqueue(s_status)) return;
         m_data_ready.release();
     }
+
+    auto s_diag = m_session.deserializer().get<fci::arm::ArmDiagnostics>();
+    if (s_diag.tick_count != m_last_diag_tick) {
+        m_last_diag_tick = s_diag.tick_count;
+        m_last_diag = s_diag;
+    }
 }
 
 void ArmImpl::s_fetchDeviceInfo() {
@@ -170,6 +176,10 @@ ArmState ArmImpl::readOnce() {
     fci::arm::ArmStatus s_raw;
     if (!m_rx_queue.try_dequeue(s_raw)) return ArmState{};
     return s_convertStatus(s_raw);
+}
+
+fci::arm::ArmDiagnostics ArmImpl::readDiagnostics() {
+    return m_last_diag;
 }
 
 // ────────────────────────────────────────────────────────

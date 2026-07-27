@@ -57,6 +57,7 @@ public:
 
     // ── Arm state ──
     ArmState readOnce();
+    fci::arm::ArmDiagnostics readDiagnostics();
     ArmControl& controlHandle() { return m_arm_control; }
 
     // ── Control loop (template, called from Arm) ──
@@ -196,6 +197,10 @@ private:
     moodycamel::ReaderWriterQueue<fci::arm::ArmStatus> m_rx_queue{64};
     std::counting_semaphore<65536> m_data_ready{0};
     std::uint32_t m_last_status_seq{0};
+
+    // ── Diagnostics (latest snapshot) ──
+    fci::arm::ArmDiagnostics m_last_diag{};
+    std::uint32_t m_last_diag_tick{0};
 
     // ── Cached DeviceInfo ──
     fci::arm::DeviceInfo m_device_info{};

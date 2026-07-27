@@ -152,6 +152,32 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def("write_motor_register",  &florid::Arm::writeMotorRegister);
     arm.def("store_parameters",       &florid::Arm::storeParameters);
     arm.def("set_zero_point",         &florid::Arm::setZeroPoint);
+    arm.def("read_diagnostics",      &florid::Arm::readDiagnostics);
+
+    // ── Diagnostics structs ─────────────────────────
+    py::class_<fci::arm::JointDiag>(m, "JointDiag")
+        .def(py::init<>())
+        .def_readonly("healthy",  &fci::arm::JointDiag::healthy);
+
+    py::class_<fci::arm::GripperDiag>(m, "GripperDiag")
+        .def(py::init<>())
+        .def_readonly("healthy",  &fci::arm::GripperDiag::healthy);
+
+    py::class_<fci::arm::ArmDiagnostics>(m, "ArmDiagnostics")
+        .def(py::init<>())
+        .def_readonly("uptime_s",            &fci::arm::ArmDiagnostics::uptime_s)
+        .def_readonly("tick_count",          &fci::arm::ArmDiagnostics::tick_count)
+        .def_readonly("mode_entry_ms",       &fci::arm::ArmDiagnostics::mode_entry_ms)
+        .def_readonly("bus_healthy",         &fci::arm::ArmDiagnostics::bus_healthy)
+        .def_readonly("bus_state",     &fci::arm::ArmDiagnostics::bus_state)
+        .def_readonly("tx_err_count",  &fci::arm::ArmDiagnostics::tx_err_count)
+        .def_readonly("rx_err_count",  &fci::arm::ArmDiagnostics::rx_err_count)
+        .def_property_readonly("joints", [](const fci::arm::ArmDiagnostics& s_d) {
+            py::list l;
+            for (int i = 0; i < 6; ++i) l.append(s_d.joints[i]);
+            return l;
+        })
+        .def_readonly("gripper",            &fci::arm::ArmDiagnostics::gripper);
 
     // ── Sub-modules ─────────────────────────────────
     bind_control_types(m);

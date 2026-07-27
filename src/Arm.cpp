@@ -152,5 +152,6 @@ ReconnectPolicy Arm::reconnectPolicy() const { return m_impl->reconnectPolicy();
 void Arm::setReconnectPolicy(ReconnectPolicy s_p) { m_impl->setReconnectPolicy(s_p); }
 bool Arm::isConnected() const { return m_impl->isConnected(); }
 const fci::arm::DeviceInfo& Arm::deviceInfo() const { return m_impl->getDeviceInfo(); }
+fci::arm::ArmDiagnostics Arm::readDiagnostics() { return m_impl->readDiagnostics(); }
 
 } // namespace florid
