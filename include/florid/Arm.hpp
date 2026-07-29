@@ -11,6 +11,7 @@
 
 #include "fci_protocol/arm/constants.hpp"
 #include "fci_protocol/arm/device_info.hpp"
+#include "fci_protocol/arm/device_settings.hpp"
 #include "fci_protocol/arm/diagnostics.hpp"
 
 #include <cstdint>
@@ -99,6 +100,8 @@ public:
     void setReconnectPolicy(ReconnectPolicy s_p);
     bool isConnected() const;
     const fci::arm::DeviceInfo& deviceInfo() const;
+    const fci::arm::DeviceSettings& deviceSettings() const;
+    bool setDeviceSettings(const fci::arm::DeviceSettings& s_settings);
     fci::arm::ArmDiagnostics readDiagnostics();
 
 private:

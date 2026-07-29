@@ -15,6 +15,7 @@
 #include "fci_protocol/transport/byte_stream_transport.hpp"
 #include "fci_protocol/arm/packets.hpp"
 #include "fci_protocol/arm/device_info.hpp"
+#include "fci_protocol/arm/device_settings.hpp"
 #include "fci_protocol/arm/constants.hpp"
 
 #include "readerwriterqueue.h"
@@ -50,10 +51,12 @@ public:
     // ── Receive pipeline ──
     static void s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size);
 
-    // ── Device info ──
+    // ── Device info / settings ──
     const fci::arm::DeviceInfo& getDeviceInfo() const { return m_device_info; }
+    const fci::arm::DeviceSettings& getDeviceSettings() const { return m_device_settings; }
     std::uint32_t firmwarePeriodUs() const { return m_fw_dt_us; }
     fci::arm::FirmwareType firmwareType() const { return static_cast<fci::arm::FirmwareType>(m_device_info.fw_type); }
+    bool setDeviceSettings(const fci::arm::DeviceSettings& s_settings);
 
     // ── Arm state ──
     ArmState readOnce();
@@ -167,6 +170,7 @@ protected:
 private:
     void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size);
     void s_fetchDeviceInfo();
+    void s_fetchDeviceSettings();
     void s_ensureMode(fci::arm::MotorControlMode s_mode);
     void s_requestPcMode();
 
@@ -202,8 +206,9 @@ private:
     fci::arm::ArmDiagnostics m_last_diag{};
     std::uint32_t m_last_diag_tick{0};
 
-    // ── Cached DeviceInfo ──
+    // ── Cached DeviceInfo / DeviceSettings ──
     fci::arm::DeviceInfo m_device_info{};
+    fci::arm::DeviceSettings m_device_settings{};
     std::uint32_t m_fw_dt_us{2000};
 
     // ── Connection ──

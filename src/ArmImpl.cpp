@@ -71,6 +71,7 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
     m_transport->setReceiveCallback(s_onPhysData, this);
 
     s_fetchDeviceInfo();
+    s_fetchDeviceSettings();
 
     // ── Lifecycle: notify firmware SDK is connected ──
     {
@@ -134,7 +135,31 @@ void ArmImpl::s_fetchDeviceInfo() {
             m_session.deserializer().get<fci::arm::GetDeviceInfoResponsePacket>();
         if (s_response.req_id == s_req.req_id) {
             m_device_info = s_response.payload.info;
-            m_fw_dt_us = m_device_info.firmware_dt_us;
+            return;
+        }
+        std::this_thread::yield();
+    }
+
+    throw ProtocolException(
+        "GetDeviceInfo response not received within timeout");
+}
+
+void ArmImpl::s_fetchDeviceSettings() {
+    fci::arm::GetDeviceSettingsRequestPacket s_req{};
+    s_req.payload.dummy = 0;
+
+    s_req.req_id = m_session.ack_manager().allocate();
+    (void)m_session.notify(s_req);
+
+    using namespace std::chrono;
+    auto s_deadline = steady_clock::now() + milliseconds(100);
+
+    while (steady_clock::now() < s_deadline) {
+        auto s_response =
+            m_session.deserializer().get<fci::arm::GetDeviceSettingsResponsePacket>();
+        if (s_response.req_id == s_req.req_id) {
+            m_device_settings = s_response.payload.settings;
+            m_fw_dt_us = m_device_settings.firmware_dt_us;
             if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
             return;
         }
@@ -143,6 +168,22 @@ void ArmImpl::s_fetchDeviceInfo() {
 
     throw ProtocolException(
         "GetDeviceInfo response not received within timeout");
+}
+
+bool ArmImpl::setDeviceSettings(const fci::arm::DeviceSettings& s_settings) {
+    fci::arm::SetDeviceSettingsRequestPacket s_req{};
+    s_req.payload.settings = s_settings;
+
+    auto s_result = m_session.request(s_req, 200);
+    if (!s_result) return false;
+
+    if (*s_result == static_cast<std::uint8_t>(fci::arm::SetDeviceSettingsStatus::Ok)) {
+        m_device_settings = s_settings;
+        m_fw_dt_us = m_device_settings.firmware_dt_us;
+        if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
+        return true;
+    }
+    return false;
 }
 
 ArmState ArmImpl::s_convertStatus(const fci::arm::ArmStatus& s_raw) {
