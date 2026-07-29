@@ -4,7 +4,6 @@
 #include "florid/detail/Transport.hpp"
 
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -29,10 +28,11 @@ public:
 
   AstrialUSBTransport(const AstrialUSBTransport &) = delete;
   AstrialUSBTransport &operator=(const AstrialUSBTransport &) = delete;
-  AstrialUSBTransport(AstrialUSBTransport &&) noexcept;
-  AstrialUSBTransport &operator=(AstrialUSBTransport &&) noexcept;
+  AstrialUSBTransport(AstrialUSBTransport &&) = delete;
+  AstrialUSBTransport &operator=(AstrialUSBTransport &&) = delete;
 
-  bool send(const std::uint8_t *s_data, std::size_t s_size) override;
+  TxSubmitResult submit(TxClass s_class, std::span<const std::uint8_t> s_data,
+                        TxCompletion s_completion = {}) override;
 
   void setReceiveCallback(ReceiveFunctor s_callback, void *s_context) override;
 
@@ -43,11 +43,12 @@ public:
   static std::vector<UsbDeviceInfo> listDevices();
 
 private:
+  struct TxState;
+
   std::unique_ptr<Serial> m_serial;
+  std::unique_ptr<TxState> m_tx_state;
   ReceiveFunctor m_recv_callback{nullptr};
   void *m_recv_context{nullptr};
-  std::mutex m_write_mutex;
-  // TODO: remove this mutex for performance
 };
 
 } // namespace florid

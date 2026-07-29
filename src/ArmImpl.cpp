@@ -64,8 +64,13 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
     m_mpc = std::make_unique<CartesianMPCSolver<WillowMPCTraits>>();
 #endif
 
-    m_session.on_send([this](const std::uint8_t* s_data, std::size_t s_size) {
-        m_transport->send(s_data, s_size);
+    m_session.on_send([this](RPL::TxClass s_class, const std::uint8_t* s_data,
+                             std::size_t s_size) {
+        const auto s_tx_class = s_class == RPL::TxClass::ControlLatest
+                                    ? TxClass::ControlLatest
+                                    : TxClass::Reliable;
+        (void)m_transport->submit(s_tx_class,
+                                  std::span<const std::uint8_t>(s_data, s_size));
     });
 
     m_transport->setReceiveCallback(s_onPhysData, this);
@@ -262,7 +267,7 @@ void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
     if (s_supportsCartesian()) {
         auto s_pkt = m_arm_core.s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_session.notify(s_pkt);
+        m_session.notify(s_pkt, RPL::TxClass::ControlLatest);
     } else {
         auto s_joint = s_convertCartesian(s_cmd, s_convertStatus(
             m_session.deserializer().get<fci::arm::ArmStatus>()));
@@ -274,7 +279,7 @@ void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
 void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
     auto s_pkt = m_arm_core.s_pack(s_cmd);
     s_pkt.sdk_timestamp_us = detail::s_nowUs();
-    m_session.notify(s_pkt);
+    m_session.notify(s_pkt, RPL::TxClass::ControlLatest);
 }
 
 // ────────────────────────────────────────────────────────

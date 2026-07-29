@@ -19,7 +19,7 @@ void Gripper::control(std::function<JointMIT(const ArmState&, ArmControl&)> s_cb
     m_impl->s_gripperLoop(s_cb, [s_core, this](const JointMIT& s_cmd) {
         auto s_pkt = s_core->s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_impl->s_notify(s_pkt);
+        m_impl->s_notify(s_pkt, RPL::TxClass::ControlLatest);
     });
 }
 
@@ -28,7 +28,7 @@ void Gripper::control(std::function<JointPosVel(const ArmState&, ArmControl&)> s
     m_impl->s_gripperLoop(s_cb, [s_core, this](const JointPosVel& s_cmd) {
         auto s_pkt = s_core->s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_impl->s_notify(s_pkt);
+        m_impl->s_notify(s_pkt, RPL::TxClass::ControlLatest);
     });
 }
 
@@ -37,7 +37,7 @@ void Gripper::control(std::function<JointVel(const ArmState&, ArmControl&)> s_cb
     m_impl->s_gripperLoop(s_cb, [s_core, this](const JointVel& s_cmd) {
         auto s_pkt = s_core->s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_impl->s_notify(s_pkt);
+        m_impl->s_notify(s_pkt, RPL::TxClass::ControlLatest);
     });
 }
 
@@ -46,7 +46,7 @@ void Gripper::control(std::function<JointPVT(const ArmState&, ArmControl&)> s_cb
     m_impl->s_gripperLoop(s_cb, [s_core, this](const JointPVT& s_cmd) {
         auto s_pkt = s_core->s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_impl->s_notify(s_pkt);
+        m_impl->s_notify(s_pkt, RPL::TxClass::ControlLatest);
     });
 }
 
@@ -58,7 +58,7 @@ std::unique_ptr<ActiveControl<JointMIT>> Gripper::startJointMITControl() {
         [s_impl, s_core](const JointMIT& s_cmd) {
             auto s_pkt = s_core->s_pack(s_cmd);
             s_pkt.sdk_timestamp_us = detail::s_nowUs();
-            s_impl->s_notify(s_pkt);
+            s_impl->s_notify(s_pkt, RPL::TxClass::ControlLatest);
         });
 }
 

@@ -1,4 +1,5 @@
 #include "florid/detail/ArmImpl.hpp"
+#include "florid/detail/LatestMailbox.hpp"
 #include "florid/detail/Seqlock.hpp"
 
 #include "fci_protocol/arm/packets.hpp"
@@ -6,6 +7,8 @@
 #include "fci_protocol/transport/byte_stream_transport.hpp"
 
 #include <cassert>
+#include <array>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -23,11 +26,13 @@ using namespace florid;
 
 class MockTransport : public Transport {
 public:
-    bool send(const std::uint8_t* s_data, std::size_t s_size) override {
-        m_sent.insert(m_sent.end(), s_data, s_data + s_size);
+    TxSubmitResult submit(TxClass s_class, std::span<const std::uint8_t> s_data,
+                          TxCompletion s_completion = {}) override {
+        m_sent_classes.push_back(s_class);
+        m_sent.insert(m_sent.end(), s_data.begin(), s_data.end());
 
         // Auto-respond to GetDeviceInfoRequest so ArmImpl construction succeeds
-        if (s_size >= 7 && s_data[0] == 0xA5) {
+        if (s_data.size() >= 7 && s_data[0] == 0xA5) {
             std::uint16_t s_cmd = static_cast<std::uint16_t>(s_data[3])
                                | (static_cast<std::uint16_t>(s_data[4]) << 8);
             if (s_cmd == 0x6215) {
@@ -41,7 +46,8 @@ public:
                 inject(s_makeDeviceSettingsFrame(s_req_id));
             }
         }
-        return true;
+        if (s_completion) s_completion(TxCompletionStatus::Completed);
+        return TxSubmitResult::Accepted;
     }
 
     void setReceiveCallback(ReceiveFunctor s_callback, void* s_context) override {
@@ -59,6 +65,7 @@ public:
     }
 
     std::vector<uint8_t> m_sent;
+    std::vector<TxClass> m_sent_classes;
     ReceiveFunctor m_recv_cb{nullptr};
     void* m_recv_ctx{nullptr};
 
@@ -113,13 +120,13 @@ struct DummyTick {
 std::vector<std::uint8_t> serializeArmStatus(fci::arm::ArmStatus& s_status) {
     using Session = RPL::USBTransport<
         RPL::AckManager<DummyTick>,
-        std::function<void(const std::uint8_t*, std::size_t)>,
+        std::function<void(RPL::TxClass, const std::uint8_t*, std::size_t)>,
         USBAck,
         fci::arm::ArmStatus>;
 
     std::vector<uint8_t> s_bytes;
     Session s_sess;
-    s_sess.on_send([&s_bytes](const uint8_t* d, size_t n) {
+    s_sess.on_send([&s_bytes](RPL::TxClass, const uint8_t* d, size_t n) {
         s_bytes.assign(d, d + n);
     });
 
@@ -150,6 +157,13 @@ void test_arm_status_roundtrip() {
 
     // Verify device settings were fetched
     assert(s_impl.getDeviceSettings().firmware_dt_us == 2000);
+
+    // RPL has no packet-priority argument yet, so stage one routes every
+    // outgoing frame through the reliable lane.
+    assert(!s_mock->m_sent_classes.empty());
+    for (auto s_class : s_mock->m_sent_classes) {
+        assert(s_class == TxClass::Reliable);
+    }
 
     // Build a fake ArmStatus
     fci::arm::ArmStatus s_status{};
@@ -262,6 +276,7 @@ void test_control_loop() {
         // The control loop runs on the caller's thread via s_controlLoop
         s_mock->inject(s_frame);
         s_mock->m_sent.clear(); // reset sent buffer between iterations
+        s_mock->m_sent_classes.clear();
     }
 
     // Inject one more frame for the control loop to consume
@@ -283,8 +298,75 @@ void test_control_loop() {
 
     assert(s_call_count == 1);
     assert(!s_mock->m_sent.empty());
+    assert(s_mock->m_sent_classes.back() == TxClass::ControlLatest);
 
     printf("  PASS (callbacks=%d, sent_bytes=%zu)\n", s_call_count, s_mock->m_sent.size());
+}
+
+void test_latest_mailbox() {
+    printf("Test 5: Latest mailbox preserves only the newest control frame\n");
+
+    florid::detail::LatestMailbox<16> s_mailbox;
+    florid::detail::LatestMailbox<16>::Frame s_frame;
+    const std::array<std::uint8_t, 4> s_first{1, 1, 1, 1};
+    const std::array<std::uint8_t, 4> s_latest{9, 9, 9, 9};
+
+    assert(s_mailbox.publish(s_first));
+    assert(s_mailbox.publish(s_latest));
+    assert(s_mailbox.try_take(s_frame));
+    assert(s_frame.m_size == s_latest.size());
+    assert(std::equal(s_frame.m_data.begin(), s_frame.m_data.begin() + s_frame.m_size,
+                      s_latest.begin()));
+    assert(!s_mailbox.try_take(s_frame));
+
+    printf("  PASS\n");
+}
+
+void test_latest_mailbox_concurrent() {
+    printf("Test 6: Latest mailbox concurrent producer/consumer\n");
+
+    florid::detail::LatestMailbox<16> s_mailbox;
+    std::atomic<bool> s_done{false};
+    std::atomic<bool> s_valid{true};
+
+    std::thread s_producer([&] {
+        for (std::uint32_t s_seq = 1; s_seq <= 100000; ++s_seq) {
+            std::array<std::uint8_t, 16> s_data{};
+            const auto s_inverse = ~s_seq;
+            std::memcpy(s_data.data(), &s_seq, sizeof(s_seq));
+            std::memcpy(s_data.data() + sizeof(s_seq), &s_inverse, sizeof(s_inverse));
+            std::fill(s_data.begin() + 8, s_data.end(),
+                      static_cast<std::uint8_t>(s_seq));
+            assert(s_mailbox.publish(s_data));
+        }
+        s_done.store(true, std::memory_order_release);
+    });
+
+    std::thread s_consumer([&] {
+        florid::detail::LatestMailbox<16>::Frame s_frame;
+        while (!s_done.load(std::memory_order_acquire) || s_mailbox.has_pending()) {
+            if (!s_mailbox.try_take(s_frame)) continue;
+
+            std::uint32_t s_seq{};
+            std::uint32_t s_inverse{};
+            std::memcpy(&s_seq, s_frame.m_data.data(), sizeof(s_seq));
+            std::memcpy(&s_inverse, s_frame.m_data.data() + sizeof(s_seq), sizeof(s_inverse));
+            if (s_frame.m_size != 16 || s_inverse != ~s_seq ||
+                !std::all_of(s_frame.m_data.begin() + 8, s_frame.m_data.end(),
+                             [s_seq](std::uint8_t s_value) {
+                               return s_value == static_cast<std::uint8_t>(s_seq);
+                             })) {
+                s_valid.store(false, std::memory_order_release);
+                return;
+            }
+        }
+    });
+
+    s_producer.join();
+    s_consumer.join();
+    assert(s_valid.load(std::memory_order_acquire));
+
+    printf("  PASS\n");
 }
 
 int main() {
@@ -292,6 +374,8 @@ int main() {
     test_multiple_frames();
     test_parse_garbage();
     test_control_loop();
+    test_latest_mailbox();
+    test_latest_mailbox_concurrent();
     printf("\nAll tests passed.\n");
     return 0;
 }

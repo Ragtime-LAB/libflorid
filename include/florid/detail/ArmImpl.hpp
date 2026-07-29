@@ -39,7 +39,8 @@ namespace florid {
 class ArmImpl {
 
 public:
-    using SendFunc = std::function<void(const std::uint8_t*, std::size_t)>;
+    using SendFunc =
+        std::function<void(RPL::TxClass, const std::uint8_t*, std::size_t)>;
     using Session = fci::session::ArmControlSession<detail::MonotonicTickProvider, SendFunc>;
 
     explicit ArmImpl(std::unique_ptr<Transport> s_transport);
@@ -148,7 +149,7 @@ public:
     void s_sendCommand(const CommandType& s_cmd) {
         auto s_pkt = m_arm_core.s_pack(s_cmd);
         s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_session.notify(s_pkt);
+        m_session.notify(s_pkt, RPL::TxClass::ControlLatest);
     }
 
     void s_sendCommand(const CartesianPose& s_cmd);
@@ -156,8 +157,9 @@ public:
 
     // ── Generic notify (used by Gripper to send through shared session) ──
     template <typename ProtoPacket>
-    void s_notify(const ProtoPacket& s_pkt) {
-        m_session.notify(s_pkt);
+    void s_notify(const ProtoPacket& s_pkt,
+                  RPL::TxClass s_class = RPL::TxClass::Reliable) {
+        m_session.notify(s_pkt, s_class);
     }
 
 protected:
