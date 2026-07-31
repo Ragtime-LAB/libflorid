@@ -76,6 +76,7 @@ ArmState Arm::readOnce() {
 // ── Active control ──
 
 std::unique_ptr<ActiveControl<JointMIT>> Arm::startJointMITControl() {
+    m_impl->s_prepareControl<JointMIT>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointMIT>>(
         [s_impl] { return s_impl->readOnce(); },
@@ -83,6 +84,7 @@ std::unique_ptr<ActiveControl<JointMIT>> Arm::startJointMITControl() {
 }
 
 std::unique_ptr<ActiveControl<JointPosVel>> Arm::startJointPosVelControl() {
+    m_impl->s_prepareControl<JointPosVel>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointPosVel>>(
         [s_impl] { return s_impl->readOnce(); },
@@ -90,6 +92,7 @@ std::unique_ptr<ActiveControl<JointPosVel>> Arm::startJointPosVelControl() {
 }
 
 std::unique_ptr<ActiveControl<JointVel>> Arm::startJointVelControl() {
+    m_impl->s_prepareControl<JointVel>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointVel>>(
         [s_impl] { return s_impl->readOnce(); },
@@ -97,6 +100,7 @@ std::unique_ptr<ActiveControl<JointVel>> Arm::startJointVelControl() {
 }
 
 std::unique_ptr<ActiveControl<JointPVT>> Arm::startJointPVTControl() {
+    m_impl->s_prepareControl<JointPVT>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointPVT>>(
         [s_impl] { return s_impl->readOnce(); },
@@ -104,6 +108,7 @@ std::unique_ptr<ActiveControl<JointPVT>> Arm::startJointPVTControl() {
 }
 
 std::unique_ptr<ActiveControl<CartesianPose>> Arm::startCartesianPoseControl() {
+    m_impl->s_prepareControl<CartesianPose>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<CartesianPose>>(
         [s_impl] { return s_impl->readOnce(); },
@@ -111,6 +116,7 @@ std::unique_ptr<ActiveControl<CartesianPose>> Arm::startCartesianPoseControl() {
 }
 
 std::unique_ptr<ActiveControl<CartesianVelocities>> Arm::startCartesianVelocityControl() {
+    m_impl->s_prepareControl<CartesianVelocities>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<CartesianVelocities>>(
         [s_impl] { return s_impl->readOnce(); },

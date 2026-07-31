@@ -143,6 +143,13 @@ public:
     ReconnectPolicy reconnectPolicy() const { return m_reconnect_policy; }
     void setReconnectPolicy(ReconnectPolicy s_p) { m_reconnect_policy = s_p; }
 
+    // ── Prepare control mode (used by Arm::start*Control) ──
+    template <typename CommandType>
+    void s_prepareControl() {
+        s_requestPcMode();
+        s_ensureMode(s_controlModeFor<CommandType>());
+    }
+
     // ── Send (public, used by ActiveControl lambdas) ──
     template <typename CommandType>
     void s_sendCommand(const CommandType& s_cmd) {
