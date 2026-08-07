@@ -15,6 +15,7 @@ add_florid_example(02_gravity_compensation 02_gravity_compensation.cpp)
 add_florid_example(03_active_joint_control 03_active_joint_control.cpp)
 add_florid_example(03_mode_switching       03_mode_switching.cpp)
 add_florid_example(04_motor_registers      04_motor_registers.cpp)
+add_florid_example(04_motor_zero_all       04_motor_zero_all.cpp)
 
 if(BUILD_MPC)
     add_florid_example(05_cartesian_mpc    05_cartesian_mpc.cpp)
