@@ -62,11 +62,12 @@ std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id) {
 }
 
 std::vector<uint8_t> s_makeDeviceSettingsFrame(std::uint8_t s_req_id) {
-    // Frame: 5-byte header + 113-byte payload = 118 bytes
-    // Payload: req_id(1) + firmware_dt_us(4) + gravity_scale(24) + torque_fold(84)
-    std::vector<uint8_t> s_frame(118, 0);
+    // Frame: 5-byte header + 189-byte payload = 194 bytes
+    // Payload: req_id(1) + firmware_dt_us(4) + gravity_scale(24)
+    //          + torque_fold(7x16=112) + joint_limits(48)
+    std::vector<uint8_t> s_frame(5 + 189, 0);
     s_frame[0] = 0xA5;
-    s_frame[1] = 0x71;  s_frame[2] = 0x00;     // length = 113
+    s_frame[1] = 0xBD;  s_frame[2] = 0x00;     // length = 189
     s_frame[3] = 0x29;  s_frame[4] = 0x62;     // cmd = 0x6229 (GetDeviceSettingsResponse)
     s_frame[5] = s_req_id;
     s_frame[6] = 0xD0; s_frame[7] = 0x07;      // firmware_dt_us = 2000 (LE)

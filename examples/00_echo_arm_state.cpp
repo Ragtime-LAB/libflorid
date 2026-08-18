@@ -25,28 +25,36 @@ void s_signalHandler(int) {
 }
 
 void s_printUsage(const char* s_prog) {
-    fprintf(stderr, "Usage: %s <usb_device>  (e.g. %s /dev/ttyACM0)\n", s_prog, s_prog);
+    fprintf(stderr,
+            "Usage: %s <uri>\n"
+            "  usb://<port>            e.g. usb:///dev/ttyACM0 or usb://COM3\n"
+            "  udp://<bind_ip>:<port>  e.g. udp://192.168.1.100:5080 (SDK binds, device streams to it)\n",
+            s_prog);
     exit(1);
 }
 
 int main(int s_argc, char** s_argv) {
     if (s_argc < 2) s_printUsage(s_argv[0]);
 
-    std::string s_uri = "usb://";
-    s_uri += s_argv[1];
+    std::string s_uri = s_argv[1];
+    if (s_uri.find("://") == std::string::npos) {
+        s_uri = "usb://" + s_uri; // bare device path -> usb scheme
+    }
 
     signal(SIGINT, s_signalHandler);
     signal(SIGTERM, s_signalHandler);
 
-    // ── List available USB devices ──
-    printf("=== USB Devices ===\n");
-    auto s_devices = florid::AstrialUSBTransport::listDevices();
-    for (const auto& s_d : s_devices) {
-        printf("  %-20s %04X:%04X  %s\n",
-               s_d.m_port_name.c_str(), s_d.m_vendor_id, s_d.m_product_id,
-               s_d.m_description.c_str());
+    // ── List available USB devices (only meaningful for usb scheme) ──
+    if (s_uri.starts_with("usb://")) {
+        printf("=== USB Devices ===\n");
+        auto s_devices = florid::AstrialUSBTransport::listDevices();
+        for (const auto& s_d : s_devices) {
+            printf("  %-20s %04X:%04X  %s\n",
+                   s_d.m_port_name.c_str(), s_d.m_vendor_id, s_d.m_product_id,
+                   s_d.m_description.c_str());
+        }
+        printf("\n");
     }
-    printf("\n");
 
     // ── Connect ──
     printf("Connecting to %s ...\n", s_uri.c_str());
