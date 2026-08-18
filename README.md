@@ -4,7 +4,7 @@
 
 ## Key Features
 
-- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. Only `usb://` is implemented; `tcp://` and `mock://` return `nullptr`.
+- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. UDP transport via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint (e.g. `udp://192.168.1.200:5080`), learns the device's source endpoint from the first received datagram, and streams the same RPL protocol over UDP (best-effort, no retransmission). `mock://` returns `nullptr`.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
 - **Two control styles**: blocking `Arm::control(cb)` runs your callback on an internal thread at the firmware rate, or `Arm::start*Control()` returns a polling `ActiveControl<T>` with `readOnce()`/`writeOnce()` (this is what the Python bindings use).
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.

@@ -3,6 +3,7 @@ add_library(florid
     timestamp_std.cpp
     TickProvider.cpp
     AstrialUSBTransport.cpp
+    UdpTransport.cpp
     ArmImpl.cpp
     ArmCore.cpp
     Arm.cpp
@@ -15,6 +16,8 @@ target_link_libraries(florid
     PUBLIC
         fci_protocol
         astrial
+    PRIVATE
+        asio_standalone
 )
 
 target_include_directories(florid

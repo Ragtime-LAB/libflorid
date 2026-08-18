@@ -44,6 +44,7 @@ cd build && ctest --output-on-failure   # single test, no hardware
 
 **URI** formats passed to `Arm::create()`:
 - `usb:///dev/ttyACM0` — `usb://` prefix mandatory
+- `udp://<ip>:<port>` — binds a fixed local UDP endpoint (e.g. `udp://192.168.1.200:5080`), learns the device source endpoint from the first received datagram, same RPL stream over UDP (best-effort)
 - `mock://` — test only (transparent to `ArmImpl`)
 
 **Control loops** (two APIs):

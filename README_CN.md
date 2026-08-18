@@ -4,7 +4,7 @@
 
 ## 核心特性
 
-- **USB 串口传输**：通过 `Arm::create("usb:///dev/ttyACM0")` 连接。仅实现 `usb://`；`tcp://` 和 `mock://` 返回 `nullptr`。
+- **USB 串口传输**：通过 `Arm::create("usb:///dev/ttyACM0")` 连接。UDP 传输使用 `Arm::create("udp://<ip>:<port>")`，SDK 将固定本地端点绑定（如 `udp://192.168.1.200:5080`），从收到的第一个数据报学习设备源端点，并以尽力而为（无重传）的方式用 UDP 承载相同的 RPL 协议流。`mock://` 返回 `nullptr`。
 - **六种控制模式**：`JointMIT`、`JointPosVel`、`JointVel`、`JointPVT`、`CartesianPose`、`CartesianVelocities`。每个控制帧自带 `kp/kd`、可选固件重力标志以及 `MotionFinished` 标记。
 - **两种控制方式**：阻塞式 `Arm::control(cb)` 在内部线程按固件周期运行回调；或 `Arm::start*Control()` 返回轮询式 `ActiveControl<T>`，提供 `readOnce()`/`writeOnce()`（Python 绑定使用这种方式）。
 - **夹爪控制**：`arm->gripper()` 支持各关节控制模式（电机 joint_id 为 7），状态见 `GripperState` / `ArmState`。
