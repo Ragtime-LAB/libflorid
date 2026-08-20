@@ -129,7 +129,7 @@ PYBIND11_MODULE(_pyflorid, m) {
     // ── Arm ─────────────────────────────────────────
     py::class_<florid::Arm, std::unique_ptr<florid::Arm>> arm(m, "Arm");
     arm.def_static("create", &florid::Arm::create,
-                py::arg("uri"), "Create arm from URI (e.g. 'usb:///dev/ttyACM1')");
+                py::arg("uri"), "Create arm from URI (e.g. 'usb:///dev/ttyACM1' or 'udp://192.168.1.200:5080')");
     arm.def("home",              &florid::Arm::home);
     arm.def("enable",            &florid::Arm::enable);
     arm.def("drag",              &florid::Arm::drag);
