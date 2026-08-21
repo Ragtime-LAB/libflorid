@@ -4,6 +4,8 @@
 #include "astrial/SerialBuilder.hpp"
 #include "astrial/Types.hpp"
 
+#include <thread>
+
 namespace florid {
 
 AstrialUSBTransport::AstrialUSBTransport(const std::string &s_port_path,
@@ -20,6 +22,10 @@ AstrialUSBTransport::AstrialUSBTransport(const std::string &s_port_path,
   }
 
   m_serial = std::make_unique<Serial>(std::move(s_result.value()));
+
+  // CDC ACM USB devices need a brief stabilization period after opening
+  // before they can reliably receive/transmit data.
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
 }
 
 AstrialUSBTransport::~AstrialUSBTransport() {
@@ -67,6 +73,11 @@ void AstrialUSBTransport::setReceiveCallback(ReceiveFunctor s_callback,
         m_recv_callback(m_recv_context, s_data.data(), s_data.size());
       }
     });
+
+    // on_data() uses asio::post to register the callback asynchronously.
+    // Wait briefly for the io_context thread to process the post so the
+    // read loop is started before any request is sent.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 }
 

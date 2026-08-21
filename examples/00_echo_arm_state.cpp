@@ -5,8 +5,11 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <string>
 #include <thread>
+
+#include "florid/Exceptions.hpp"
 
 static std::atomic<bool> g_running{true};
 
@@ -50,7 +53,13 @@ int main(int s_argc, char** s_argv) {
 
     // ── Connect ──
     printf("Connecting to %s ...\n", s_uri.c_str());
-    auto s_arm = florid::Arm::create(s_uri);
+    std::unique_ptr<florid::Arm> s_arm;
+    try {
+        s_arm = florid::Arm::create(s_uri);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "Connection failed: %s\n", e.what());
+        return 1;
+    }
     if (!s_arm) {
         fprintf(stderr, "Failed to create Arm (unknown URI scheme).\n");
         return 1;

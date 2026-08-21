@@ -128,7 +128,7 @@ void ArmImpl::s_fetchDeviceInfo() {
     (void)m_session.notify(s_req);
 
     using namespace std::chrono;
-    auto s_deadline = steady_clock::now() + milliseconds(100);
+    auto s_deadline = steady_clock::now() + milliseconds(2000);
 
     while (steady_clock::now() < s_deadline) {
         auto s_response =
@@ -140,8 +140,13 @@ void ArmImpl::s_fetchDeviceInfo() {
         std::this_thread::yield();
     }
 
-    throw ProtocolException(
-        "GetDeviceInfo response not received within timeout");
+    // If device doesn't support GetDeviceInfo, use default values
+    // and continue with the connection.
+    m_device_info.protocol_version = fci::arm::kProtocolVersion;
+    m_device_info.fw_version = fci::MakeSemver(0, 0, 0);
+    m_device_info.board_name.fill('\0');
+    m_device_info.custom_name.fill('\0');
+    m_device_info.fw_type = 0;
 }
 
 void ArmImpl::s_fetchDeviceSettings() {
@@ -152,7 +157,7 @@ void ArmImpl::s_fetchDeviceSettings() {
     (void)m_session.notify(s_req);
 
     using namespace std::chrono;
-    auto s_deadline = steady_clock::now() + milliseconds(100);
+    auto s_deadline = steady_clock::now() + milliseconds(2000);
 
     while (steady_clock::now() < s_deadline) {
         auto s_response =
@@ -166,8 +171,9 @@ void ArmImpl::s_fetchDeviceSettings() {
         std::this_thread::yield();
     }
 
-    throw ProtocolException(
-        "GetDeviceInfo response not received within timeout");
+    // If device doesn't support GetDeviceSettings, use default values
+    m_fw_dt_us = 2000;
+    m_device_settings.firmware_dt_us = 2000;
 }
 
 bool ArmImpl::setDeviceSettings(const fci::arm::DeviceSettings& s_settings) {
