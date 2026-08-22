@@ -8,12 +8,13 @@
 namespace florid {
 
 AstrialUSBTransport::AstrialUSBTransport(const std::string &s_port_path,
-                                         std::uint32_t s_baud_rate) {
-  auto s_result = Serial::builder()
-                      .baud_rate(s_baud_rate)
-                      .parity(Parity::None)
-                      .stop_bits(StopBits::One)
-                      .open(s_port_path);
+  std::uint32_t s_baud_rate) {
+  auto s_result = Serial::builder()//打开串口
+                      .baud_rate(s_baud_rate)//设置波特率
+                      .parity(Parity::None)//设置校验位
+                      .data_bits(DataBits::Eight)//设置数据位
+                      .stop_bits(StopBits::One)//设置停止位
+                      .open(s_port_path);//打开串口
 
   if (!s_result) {
     throw std::runtime_error("Failed to open USB device: " + s_port_path +

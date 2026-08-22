@@ -6,3 +6,5 @@ libfranka
 __pycache__
 *.cpython*
 build_*
+build-*
+launch.json

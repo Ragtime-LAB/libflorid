@@ -32,8 +32,8 @@ void s_printUsage(const char* s_prog) {
     exit(1);
 }
 
-int main(int s_argc, char** s_argv) {
-    if (s_argc < 2) s_printUsage(s_argv[0]);
+int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含命令行参数本身），第二个参数是参数字符串
+    if (s_argc < 2) s_printUsage(s_argv[0]);//如果参数不足，打印帮助信息
 
     std::string s_uri = "usb://";
     s_uri += s_argv[1];
