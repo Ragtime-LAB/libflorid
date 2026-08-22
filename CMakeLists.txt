@@ -40,6 +40,6 @@ endif()
 
 if(BUILD_PYFLORID)
     find_package(pybind11 REQUIRED)
-    find_package(Python COMPONENTS Interpreter Development NumPy REQUIRED)
+    find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
     add_subdirectory(pyflorid)
 endif()

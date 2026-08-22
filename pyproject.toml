@@ -1,0 +1,65 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.13", "numpy>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyflorid"
+version = "0.1.0"
+description = "Python bindings for libflorid — variable-frequency arm control SDK"
+authors = [{ name = "Ragtime" }]
+license = { text = "ISC" }
+readme = "pyflorid/README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=2.0"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: ISC License (ISCL)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: C++",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+]
+
+[tool.scikit-build]
+cmake.version = ">=3.20"
+cmake.build-type = "Release"
+wheel.packages = ["pyflorid"]
+sdist.inclusion-mode = "explicit"
+sdist.include = [
+  "pyproject.toml",
+  "CMakeLists.txt",
+  "cmake/**",
+  "include/**",
+  "src/**",
+  "protocol/**",
+  "3rdparty/astrial/**",
+  "3rdparty/readerwriterqueue/**",
+  "generated/**",
+  "pyflorid/**",
+]
+sdist.exclude = ["3rdparty/acados/**", "*.so", "*.o", "*.pyc", "__pycache__", "build*", "dist"]
+
+[tool.scikit-build.cmake.define]
+BUILD_PYFLORID = "ON"
+BUILD_TESTS = "OFF"
+BUILD_EXAMPLES = "OFF"
+BUILD_MPC = "OFF"
+
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
+skip = "*-manylinux_i686 *-musllinux_* pp*"
+test-command = "python -c \"import pyflorid; print(pyflorid.__doc__)\""
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+manylinux-x86_64-image = "manylinux_2_28"
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]

@@ -7,8 +7,4 @@ pybind11_add_module(_pyflorid
 
 target_link_libraries(_pyflorid PRIVATE florid)
 
-target_include_directories(_pyflorid PRIVATE
-    "${Python_NumPy_INCLUDE_DIRS}"
-)
-
 target_compile_features(_pyflorid PRIVATE cxx_std_20)
