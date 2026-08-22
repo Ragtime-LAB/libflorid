@@ -17,7 +17,10 @@ cd build && ctest --output-on-failure   # single test, no hardware
 | `BUILD_PYFLORID` | OFF | Needs pybind11 + NumPy |
 | `BUILD_MPC` | OFF | Enables acados solver (submodule with nested submodules) |
 
-`pip install ./pyflorid` sets `-DBUILD_PYFLORID=ON` automatically (scikit-build-core).
+`pip install .` builds the `pyflorid` wheel (scikit-build-core sets
+`-DBUILD_PYFLORID=ON` automatically via `pyproject.toml` at the repo root).
+Python CI/CD lives in `.github/workflows/` (`wheels.yml`, `publish-pypi.yml`),
+built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 
 ## Submodules
 

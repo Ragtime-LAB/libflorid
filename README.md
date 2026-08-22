@@ -95,7 +95,7 @@ int main() {
 ### Python
 
 ```bash
-pip install ./pyflorid        # or: pip install -e ./pyflorid
+pip install .                 # or: pip install -e .
 ```
 
 ```python
