@@ -30,7 +30,7 @@ classifiers = [
 [tool.scikit-build]
 cmake.version = ">=3.20"
 cmake.build-type = "Release"
-wheel.packages = ["pyflorid"]
+wheel.packages = []
 sdist.inclusion-mode = "explicit"
 sdist.include = [
   "pyproject.toml",
