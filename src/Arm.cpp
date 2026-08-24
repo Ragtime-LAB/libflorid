@@ -4,6 +4,7 @@
 #include "florid/detail/UdpTransport.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <thread>
 
@@ -12,36 +13,50 @@ namespace florid {
 std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
     // "usb:///dev/ttyACM0" or "usb://COM3" or "tcp://host:port"
     // "udp://192.168.1.200:5080" — bind fixed local endpoint, device streams datagrams to it
-    std::unique_ptr<Transport> s_transport;
+    //
+    // All connection failures are normalized to returning nullptr (with an
+    // error printed to stderr) so callers only need a single `if (!arm)` check
+    // regardless of which transport or URI path failed.
+    try {
+        std::unique_ptr<Transport> s_transport;
 
-    if (s_uri.starts_with("usb://")) {
-        std::string s_path = s_uri.substr(6); // strip "usb://"
-        s_transport = std::make_unique<AstrialUSBTransport>(s_path);
-    } else if (s_uri.starts_with("udp://")) {
-        std::string s_host = s_uri.substr(6); // strip "udp://"
-        std::uint16_t s_port = 5080;
-        auto s_colon = s_host.rfind(':');
-        if (s_colon != std::string::npos) {
-            try {
-                s_port = static_cast<std::uint16_t>(std::stoul(s_host.substr(s_colon + 1)));
-            } catch (...) {
+        if (s_uri.starts_with("usb://")) {
+            std::string s_path = s_uri.substr(6); // strip "usb://"
+            s_transport = std::make_unique<AstrialUSBTransport>(s_path);
+        } else if (s_uri.starts_with("udp://")) {
+            std::string s_host = s_uri.substr(6); // strip "udp://"
+            std::uint16_t s_port = 5080;
+            auto s_colon = s_host.rfind(':');
+            if (s_colon != std::string::npos) {
+                try {
+                    s_port = static_cast<std::uint16_t>(std::stoul(s_host.substr(s_colon + 1)));
+                } catch (...) {
+                    std::fprintf(stderr, "Arm::create: invalid port in '%s'\n", s_uri.c_str());
+                    return nullptr;
+                }
+                s_host = s_host.substr(0, s_colon);
+            }
+            if (s_host.empty()) {
+                std::fprintf(stderr, "Arm::create: empty host in '%s'\n", s_uri.c_str());
                 return nullptr;
             }
-            s_host = s_host.substr(0, s_colon);
+            s_transport = std::make_unique<UdpTransport>(s_host, s_port);
+        } else if (s_uri.starts_with("mock://")) {
+            // Mock transport for testing — created externally via Arm(std::shared_ptr<ArmImpl>)
+            return nullptr;
+        } else {
+            std::fprintf(stderr, "Arm::create: unknown URI scheme '%s'\n", s_uri.c_str());
+            return nullptr;
         }
-        if (s_host.empty()) return nullptr;
-        s_transport = std::make_unique<UdpTransport>(s_host, s_port);
-    } else if (s_uri.starts_with("mock://")) {
-        // Mock transport for testing — created externally via Arm(std::shared_ptr<ArmImpl>)
-        return nullptr;
-    } else {
+
+        auto s_impl = std::make_shared<ArmImpl>(std::move(s_transport));
+        auto s_arm = std::unique_ptr<Arm>(new Arm());
+        s_arm->m_impl = s_impl;
+        return s_arm;
+    } catch (const std::exception& s_e) {
+        std::fprintf(stderr, "Arm::create failed: %s\n", s_e.what());
         return nullptr;
     }
-
-    auto s_impl = std::make_shared<ArmImpl>(std::move(s_transport));
-    auto s_arm = std::unique_ptr<Arm>(new Arm());
-    s_arm->m_impl = s_impl;
-    return s_arm;
 }
 
 Arm::Arm(Arm&& s_other) noexcept : m_impl(std::move(s_other.m_impl)) {}

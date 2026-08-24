@@ -38,12 +38,12 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
     std::string s_uri = "usb://";
     s_uri += s_argv[1];
 
-    signal(SIGINT, s_signalHandler);
-    signal(SIGTERM, s_signalHandler);
+    signal(SIGINT, s_signalHandler);//注册信号处理函数，当收到SIGINT信号（Ctrl+C）时调用
+    signal(SIGTERM, s_signalHandler);//注册信号处理函数，当收到SIGTERM信号（kill -9）时调用
 
     // ── List available USB devices ──
     printf("=== USB Devices ===\n");
-    auto s_devices = florid::AstrialUSBTransport::listDevices();
+    auto s_devices = florid::AstrialUSBTransport::listDevices();//获取所有可用的USB设备
     for (const auto& s_d : s_devices) {
         printf("  %-20s %04X:%04X  %s\n",
                s_d.m_port_name.c_str(), s_d.m_vendor_id, s_d.m_product_id,
@@ -54,12 +54,7 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
     // ── Connect ──
     printf("Connecting to %s ...\n", s_uri.c_str());
     std::unique_ptr<florid::Arm> s_arm;
-    try {
-        s_arm = florid::Arm::create(s_uri);
-    } catch (const std::exception& e) {
-        fprintf(stderr, "Connection failed: %s\n", e.what());
-        return 1;
-    }
+
     if (!s_arm) {
         fprintf(stderr, "Failed to create Arm (unknown URI scheme).\n");
         return 1;
