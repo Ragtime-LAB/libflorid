@@ -1,0 +1,187 @@
+{
+  "status": "fit_complete",
+  "warning": "static data identifies gravity combinations; mass/COM use CAD priors, rotational inertia tensors preserved",
+  "mapping_validated": true,
+  "source_urdf_sha256": "276062732e001dec2aba9f407d94c0a0aca7d07bbd6f0894e9bde7e874728afa",
+  "output_urdf": "/home/kelvinlm/projects/libflorid-main/tools/static_gravity_calibration/model/identified/willow-v0.2.static-mass-com-calibrated.urdf",
+  "output_urdf_sha256": "c8b99309f39956ac83c7af1a5ee8b1aa72f47407ac73808c9ac3a5851a4e455d",
+  "sample_count": 200,
+  "train_count": 140,
+  "validation_count": 60,
+  "links": [
+    {
+      "joint": "joint_1",
+      "link": "link_1",
+      "nominal_mass_kg": 0.56819,
+      "fitted_mass_kg": 0.56819,
+      "mass_delta_kg": 0.0,
+      "mass_delta_percent": 0.0,
+      "nominal_com_m": [
+        -2.274799999999999e-06,
+        0.0007338899999999997,
+        0.07889299999999998
+      ],
+      "fitted_com_m": [
+        -2.274799999999999e-06,
+        0.0007338899999999997,
+        0.07889299999999998
+      ],
+      "com_delta_mm": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "com_shift_norm_mm": 0.0
+    },
+    {
+      "joint": "joint_2",
+      "link": "link_2",
+      "nominal_mass_kg": 0.658057861288159,
+      "fitted_mass_kg": 0.16451446532203978,
+      "mass_delta_kg": -0.49354339596611924,
+      "mass_delta_percent": -75.0,
+      "nominal_com_m": [
+        -0.146429197367629,
+        7.06141895730483e-05,
+        -0.00214503390408955
+      ],
+      "fitted_com_m": [
+        -0.14067868827270816,
+        -0.005029978659026905,
+        -0.00214503390408955
+      ],
+      "com_delta_mm": [
+        5.750509094920836,
+        -5.100592848599954,
+        0.0
+      ],
+      "com_shift_norm_mm": 7.686637903398093
+    },
+    {
+      "joint": "joint_3",
+      "link": "link_3",
+      "nominal_mass_kg": 1.0906,
+      "fitted_mass_kg": 0.27265000000000006,
+      "mass_delta_kg": -0.81795,
+      "mass_delta_percent": -75.0,
+      "nominal_com_m": [
+        0.086654,
+        -0.034195,
+        -0.0039093
+      ],
+      "fitted_com_m": [
+        0.08850825882555192,
+        -0.033604862780894196,
+        -0.0039093
+      ],
+      "com_delta_mm": [
+        1.85425882555193,
+        0.5901372191058074,
+        0.0
+      ],
+      "com_shift_norm_mm": 1.945902805771953
+    },
+    {
+      "joint": "joint_4",
+      "link": "link_4",
+      "nominal_mass_kg": 0.29251,
+      "fitted_mass_kg": 0.07312750000000001,
+      "mass_delta_kg": -0.21938249999999998,
+      "mass_delta_percent": -75.0,
+      "nominal_com_m": [
+        0.039901,
+        -0.040358,
+        -0.003401
+      ],
+      "fitted_com_m": [
+        0.040990671443205846,
+        -0.040182889575743314,
+        -0.003401
+      ],
+      "com_delta_mm": [
+        1.0896714432058474,
+        0.1751104242566845,
+        0.0
+      ],
+      "com_shift_norm_mm": 1.103651899296907
+    },
+    {
+      "joint": "joint_5",
+      "link": "link_5",
+      "nominal_mass_kg": 0.28445,
+      "fitted_mass_kg": 0.07111250000000001,
+      "mass_delta_kg": -0.21333749999999996,
+      "mass_delta_percent": -75.0,
+      "nominal_com_m": [
+        -0.00010374,
+        -7.4797e-05,
+        0.036478
+      ],
+      "fitted_com_m": [
+        0.0013308820027757044,
+        5.9570485576106356e-05,
+        0.03664828394962454
+      ],
+      "com_delta_mm": [
+        1.4346220027757044,
+        0.13436748557610634,
+        0.1702839496245459
+      ],
+      "com_shift_norm_mm": 1.4509278188552155
+    },
+    {
+      "joint": "joint_6",
+      "link": "link_6",
+      "nominal_mass_kg": 0.34815,
+      "fitted_mass_kg": 0.08703750000000002,
+      "mass_delta_kg": -0.26111249999999997,
+      "mass_delta_percent": -75.0,
+      "nominal_com_m": [
+        -1.4905e-05,
+        6.8701e-06,
+        0.077614
+      ],
+      "fitted_com_m": [
+        -0.00041745125262283297,
+        2.7105009978993664e-05,
+        0.07937896130864784
+      ],
+      "com_delta_mm": [
+        -0.40254625262283295,
+        0.020234909978993663,
+        1.7649613086478388
+      ],
+      "com_shift_norm_mm": 1.8103981214380542
+    }
+  ],
+  "nominal_total_moving_mass_kg": 3.241957861288159,
+  "fitted_total_moving_mass_kg": 1.23663196532204,
+  "total_moving_mass_delta_kg": -2.005325895966119,
+  "torque_offsets_nm": [
+    -0.025023835593012637,
+    2.6166401994615627,
+    6.049604601093552,
+    -0.9245112341639146,
+    -0.004703799482098075,
+    0.06873398383139853
+  ],
+  "train_rmse_nm_by_joint": [
+    0.0334090047653141,
+    5.57667569663215,
+    3.098940761327042,
+    0.7624896607629069,
+    0.3098848805873495,
+    0.1097539167436741
+  ],
+  "validation_rmse_nm_by_joint": [
+    0.036271342287470594,
+    5.376435693131836,
+    2.8751082168714053,
+    0.7171152025232677,
+    0.31672624505630176,
+    0.11925348597180566
+  ],
+  "pinocchio_reload_nq": 6,
+  "optimizer_success": true,
+  "optimizer_message": "`ftol` termination condition is satisfied."
+}

@@ -1,0 +1,4 @@
+{"host_time_s": 1787977595.2031088, "trial_id": 5, "attempt": 1, "error": "RuntimeError('firmware errors=0x40065868')", "status": "started"}
+{"host_time_s": 1787977597.7373865, "trial_id": 5, "attempt": 1, "error": "RuntimeError('firmware errors=0x40065868')", "status": "same-session-recovered"}
+{"host_time_s": 1787979325.528749, "trial_id": 98, "attempt": 1, "error": "RuntimeError('firmware errors=0x40A29228')", "status": "started"}
+{"host_time_s": 1787979328.0632696, "trial_id": 98, "attempt": 1, "error": "RuntimeError('firmware errors=0x40A29228')", "status": "same-session-recovered"}
