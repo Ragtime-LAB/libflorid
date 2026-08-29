@@ -18,7 +18,7 @@ import run_friction_collection as base
 ROOT = Path(__file__).resolve().parent
 COLLECTOR_SCRIPT = Path(__file__).resolve()
 OUTPUT_DIR = ROOT / "runs_breakaway"
-ENABLE_HARDWARE = False
+ENABLE_HARDWARE = True
 CONFIRMATION_PHRASE = "ENABLE WILLOW BREAKAWAY CALIBRATION"
 REPEATS = 3
 HELD_OUT_REPEAT = 2
@@ -34,6 +34,15 @@ LOWER_DEG = np.array([-170., 5., 5., -70., -85., -85.])
 UPPER_DEG = np.array([170., 175., 175., 70., 85., 85.])
 J2_PLATEAU_NM = 11.9
 J2_PLATEAU_FRAMES = 10
+MAX_RECOVERY_ATTEMPTS = 3
+COMPATIBLE_PRE_RECOVERY_PROVENANCE = {
+    (
+        "3599b0e81a66eb6e88550ccedf955dc43ce1d51ae7f2c7beb1c7ae82677502f8",
+        "7a483b919076412e2ce095a2a9991d2cb39b845894c75f630ad68e33946ca5c7",
+        "87f63c0590d05baea263cdc42c6e1df2d063fa2def309ecb0283f3036bf33d46",
+        "7a483b919076412e2ce095a2a9991d2cb39b845894c75f630ad68e33946ca5c7",
+    ),
+}
 
 
 def breakaway_protocol_sha256():
@@ -158,14 +167,17 @@ def main():
     completed = set()
     for path in OUTPUT_DIR.glob("breakaway_*.json"):
         item = json.loads(path.read_text(encoding="utf-8"))
-        if (item.get("protocol_sha256") != breakaway_protocol_sha256() or
+        provenance = (item.get("protocol_sha256"), item.get("collector_script_sha256"),
+            item.get("base_collector_script_sha256"), item.get("breakaway_implementation_script_sha256"))
+        current_provenance = (breakaway_protocol_sha256(), base.file_sha256(COLLECTOR_SCRIPT),
+            base.file_sha256(Path(base.__file__).resolve()), base.file_sha256(Path(__file__).resolve()))
+        if ((provenance != current_provenance and provenance not in COMPATIBLE_PRE_RECOVERY_PROVENANCE) or
                 item.get("urdf_sha256") != base.file_sha256(base.URDF) or
-                item.get("collector_script_sha256") != base.file_sha256(COLLECTOR_SCRIPT) or
-                item.get("base_collector_script_sha256") != base.file_sha256(Path(base.__file__).resolve()) or
-                item.get("breakaway_implementation_script_sha256") != base.file_sha256(Path(__file__).resolve()) or
                 str(item.get("schema_version")) != str(base.LOG_SCHEMA_VERSION) or
                 item.get("device_time_unit") != base.DEVICE_TIME_UNIT):
             raise RuntimeError(f"stale/incompatible existing breakaway blocks resume; archive and recollect: {path}")
+        if provenance != current_provenance:
+            print(f"compatible pre-recovery breakaway accepted: {path.name}")
         completed.add((int(item["joint"]) - 1, int(item["direction"]), int(item["repeat"])))
     pending = [(j, d, r) for j, d, r in trials() if (j, d, r) not in completed]
     print(f"breakaway trials total={len(trials())}, complete={len(trials())-len(pending)}, pending={len(pending)}")
@@ -176,16 +188,30 @@ def main():
     base.COLLISION_CONTEXT = base.build_collision_context(model)
     arm = pyflorid.Arm.create(base.DEVICE_URI)
     if arm is None: raise RuntimeError(f"Arm.create failed for {base.DEVICE_URI}")
-    initial = base.read_valid(arm, 2.0); j1 = float(np.asarray(initial.q)[0])
+    arm, initial = base.acquire_startup_state(arm); j1 = float(np.asarray(initial.q)[0])
     if input(f'Type exactly "{CONFIRMATION_PHRASE}": ') != CONFIRMATION_PHRASE: raise RuntimeError("confirmation mismatch")
     try:
-        arm.enable(); control = arm.start_joint_mit_control()
-        if control is None: raise RuntimeError("start_joint_mit_control returned None")
+        control = base.restart_mit_session(arm, model, data)
         for index, (joint, direction, repeat) in enumerate(pending, 1):
             print(f"[{index}/{len(pending)}] J{joint+1} direction={direction:+d} repeat={repeat+1}/{REPEATS}")
-            run_trial(control, model, data, joint, direction, repeat, j1)
+            recovery_attempt = 0
+            while True:
+                try:
+                    run_trial(control, model, data, joint, direction, repeat, j1)
+                    break
+                except Exception as error:
+                    if not base.recoverable_error(error):
+                        raise
+                    recovery_attempt += 1
+                    if recovery_attempt > MAX_RECOVERY_ATTEMPTS:
+                        raise RuntimeError(
+                            f"breakaway J{joint+1} direction={direction:+d} recovery exhausted") from error
+                    recovery_id = (joint + 1) * 100 + (direction + 1) * 10 + repeat
+                    arm, control = base.recover_arm_session(
+                        arm, model, data, recovery_id, recovery_attempt, error)
+                    print("  retrying the same breakaway trial")
     finally:
-        arm.disable(); print("All axes disabled.")
+        base.best_effort_disable(arm); print("All axes disabled.")
 
 
 if __name__ == "__main__": main()
