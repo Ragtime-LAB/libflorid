@@ -1,0 +1,199 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="Ragtime_Willow_description">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.00019854 0.00005220 0.04102450" rpy="0 0 0" />
+      <mass value="0.98336125" />
+      <inertia ixx="0.00123880" ixy="-0.00003723" ixz="-0.00000443" iyy="0.00162520" iyz="0.00000192" izz="0.00134113" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link1">
+    <inertial>
+      <origin xyz="-5.63699999937e-05 0.00145355000002 0.0392134200001" rpy="0 0 0" />
+      <mass value="0.53445674" />
+      <inertia ixx="0.000391642979096" ixy="-3.90028666651e-08" ixz="-1.50110937938e-07" iyy="0.000381936967237" iyz="-6.55947569684e-07" izz="3.00900212534e-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint1" type="revolute">
+    <origin xyz="0 0 0.09675" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="link1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.14" upper="3.14" effort="0" velocity="0" />
+  </joint>
+  <link name="link2">
+    <inertial>
+      <origin xyz="-0.141814084847 -0.00482298 0.000164555018522" rpy="0 0 0" />
+      <mass value="0.787649671082" />
+      <inertia ixx="0.000101854280138" ixy="-1.68594860135e-06" ixz="-8.08711751607e-08" iyy="0.000734159093473" iyz="1.61655558745e-11" izz="0.000810230823484" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint2" type="revolute">
+    <origin xyz="0 0 0.0465" rpy="0 0 0" />
+    <parent link="link1" />
+    <child link="link2" />
+    <axis xyz="0 1 0" />
+    <limit lower="0.0" upper="3.14" effort="0" velocity="0" />
+  </joint>
+  <link name="link3">
+    <inertial>
+      <origin xyz="0.109464311836 0.00401387 0.0760887136663" rpy="0 0 0" />
+      <mass value="1.549452329" />
+      <inertia ixx="0.000146806599731" ixy="-3.82000626969e-07" ixz="-0.000263438962138" iyy="0.00149485859754" iyz="1.45900734295e-06" izz="0.00144427900575" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint3" type="revolute">
+    <origin xyz="-0.285 -0.002625 0" rpy="0 0 0" />
+    <parent link="link2" />
+    <child link="link3" />
+    <axis xyz="0 -1 0" />
+    <limit lower="0" upper="3.14" effort="0" velocity="0" />
+  </joint>
+  <link name="link4">
+    <inertial>
+      <origin xyz="0.0378925302603 0.00104537160421 0.0407610260772" rpy="0 0 0" />
+      <mass value="0.504466415638" />
+      <inertia ixx="0.00150792664106" ixy="1.26646992921e-05" ixz="-8.04578377735e-05" iyy="0.00144232030183" iyz="0.000332595058252" izz="0.000144528495558" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint4" type="revolute">
+    <origin xyz="0.24818 0 0.0528" rpy="0 0 0" />
+    <parent link="link3" />
+    <child link="link4" />
+    <axis xyz="0 1 0" />
+    <limit lower="-1.3" upper="1.3" effort="0" velocity="0" />
+  </joint>
+  <link name="link5">
+    <inertial>
+      <origin xyz="0.00335535560051 0.0018077909177 -0.0287132448667" rpy="0 0 0" />
+      <mass value="0.390280675291" />
+      <inertia ixx="0.000768197221506" ixy="-0.000290415222318" ixz="0.000147799948147" iyy="0.00109481978108" iyz="-0.000109789423196" izz="0.000792129694656" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link5.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint5" type="revolute">
+    <origin xyz="0.062759 0.002625 0.041" rpy="0 0 0" />
+    <parent link="link4" />
+    <child link="link5" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-1.57" upper="1.57" effort="0" velocity="0" />
+  </joint>
+  <link name="link6">
+    <inertial>
+      <origin xyz="-0.0951839820491 0.000659159796915 0.00453273430735" rpy="0 0 0" />
+      <mass value="0.892774611458" />
+      <inertia ixx="0.00154276197124" ixy="0.00109552918888" ixz="0.00101106015697" iyy="0.00459623942793" iyz="-0.000635547450089" izz="0.00410075470682" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link6.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="meshes/willow/link6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="joint6" type="revolute">
+    <origin xyz="0.18848 -7.8693E-05 -0.034078" rpy="0 0 0" />
+    <parent link="link5" />
+    <child link="link6" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-1.57" upper="1.57" effort="0" velocity="0" />
+  </joint>
+</robot>

@@ -1,0 +1,96 @@
+{
+  "preview_only": true,
+  "endpoint_a_deg": [
+    85.76,
+    124.84,
+    104.42,
+    -37.06,
+    -15.22,
+    128.46
+  ],
+  "endpoint_b_deg": [
+    17.89,
+    6.02,
+    0.36,
+    19.92,
+    24.25,
+    154.58
+  ],
+  "center_deg": [
+    51.825,
+    65.43,
+    67.21000000000001,
+    -8.57,
+    4.515,
+    141.52
+  ],
+  "allowed_min_deg": [
+    17.89,
+    6.02,
+    30.0,
+    -37.06,
+    -15.22,
+    128.46
+  ],
+  "allowed_max_deg": [
+    85.76,
+    124.84,
+    104.42,
+    19.92,
+    24.25,
+    154.58
+  ],
+  "actual_min_deg": [
+    18.216057858159573,
+    13.399600638249614,
+    30.297479158409097,
+    -35.96948311880307,
+    -14.60158100181165,
+    129.0648650187083
+  ],
+  "actual_max_deg": [
+    83.93488157213673,
+    114.9768104252614,
+    100.55474113970047,
+    17.187873103384423,
+    22.86247479721289,
+    153.47655230747483
+  ],
+  "peak_dq_deg_s": [
+    49.51957763740675,
+    68.05857812122485,
+    49.59897547078467,
+    58.930543709810706,
+    45.41169924416292,
+    33.733313137819835
+  ],
+  "peak_ddq_deg_s2": [
+    107.06033379158936,
+    110.89174375442855,
+    91.93708693493264,
+    172.24599255688415,
+    133.87606246039803,
+    104.10189401801573
+  ],
+  "duration_s": 30.0,
+  "rate_hz": 500.0,
+  "samples": 15000,
+  "candidates": 96,
+  "feasible_candidates": 96,
+  "selected_candidate": 70,
+  "normalized_regressor_condition": 53.57376193540979,
+  "effective_rank": 58,
+  "collision_samples_checked": 1500,
+  "minimum_nonadjacent_distance_m": 0.0023465737345738044,
+  "minimum_requested_clearance_m": 0.005,
+  "collision_preview_passed": false,
+  "collision_preview_enforced": false,
+  "operator_physical_workspace_override": true,
+  "closest_pair": {
+    "sample": 8210,
+    "first": "link3_0",
+    "second": "link5_0"
+  },
+  "dynamics_urdf_sha256": "af3726fcacd0ac1320a56ea850b0a2c0f5430cf4eb20a45c078706980f08407e",
+  "collision_urdf_sha256": "5874775f4004af9bff443121c17933a5a1ddf957ae6414a27145bca1ca72f604"
+}

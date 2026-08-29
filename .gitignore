@@ -8,3 +8,11 @@ __pycache__
 build_*
 build-*
 launch.json
+
+# Real-arm calibration telemetry and runtime checkpoints.
+# Keep scripts, excitation designs, fitted parameters, and exported URDFs in Git;
+# raw CSV recordings stay local because they are large and machine-specific.
+tools/dynamic_identification/runs/
+tools/dynamic_identification/runs_dynamic_batch/
+tools/dynamic_identification/runs_mit_position_diagnostic/
+tools/dynamic_identification/*.csv
