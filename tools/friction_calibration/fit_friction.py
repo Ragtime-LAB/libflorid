@@ -10,7 +10,7 @@ from scipy.signal import savgol_filter
 ROOT = Path(__file__).resolve().parent
 RUNS = ROOT / "runs"
 LOW_SPEED_RUNS = ROOT / "runs_low_speed"
-BREAKAWAY_RUNS = ROOT / "runs_breakaway"
+BREAKAWAY_RUNS = ROOT / "runs_breakaway_2deg"
 J1_RUNS = ROOT / "runs_j1"
 J1_LOW_SPEED_RUNS = ROOT / "runs_j1_low_speed"
 J1_BREAKAWAY_RUNS = ROOT / "runs_j1_breakaway"
@@ -38,6 +38,7 @@ COLLECTOR_BY_DIRECTORY = {
 }
 BREAKAWAY_COLLECTOR_BY_DIRECTORY = {
     "runs_breakaway": ROOT / "run_breakaway_collection.py",
+    "runs_breakaway_2deg": ROOT / "run_breakaway_collection.py",
     "runs_j1_breakaway": ROOT / "run_j1_breakaway_collection.py",
 }
 BASE_COLLECTOR = ROOT / "run_friction_collection.py"
@@ -270,7 +271,8 @@ def load_breakaway():
             candidate = item.get("breakaway_candidate") or {}
             command_probe = float(candidate.get("command_probe_tau_nm", np.nan))
             measured_residual = float(candidate.get("measured_residual_tau_nm", np.nan))
-            if not np.isfinite([command_probe, measured_residual]).all() or int(np.sign(measured_residual)) != int(item["direction"]):
+            gravity_load = float(candidate.get("gravity_load_nm", np.nan))
+            if not np.isfinite([command_probe, measured_residual, gravity_load]).all() or int(np.sign(measured_residual)) != int(item["direction"]):
                 raise RuntimeError(f"{path}: invalid measured breakaway residual/sign")
             if abs(measured_residual - command_probe) > max(0.5, 0.5 * abs(command_probe)):
                 raise RuntimeError(f"{path}: commanded and measured breakaway residual disagree excessively")
@@ -281,6 +283,8 @@ def load_breakaway():
                 "support_posture": item.get("support_posture", "legacy_unspecified"),
                 "urdf_sha256": item["urdf_sha256"], "protocol_sha256": item["protocol_sha256"],
                 "breakaway_tau_nm": float(item["breakaway_tau_nm"]),
+                "gravity_load_nm": gravity_load,
+                "absolute_gravity_load_nm": abs(gravity_load),
                 "estimated_dropped_frames": dropped_frames})
     return result
 

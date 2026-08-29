@@ -17,7 +17,7 @@ import run_friction_collection as base
 
 ROOT = Path(__file__).resolve().parent
 COLLECTOR_SCRIPT = Path(__file__).resolve()
-OUTPUT_DIR = ROOT / "runs_breakaway"
+OUTPUT_DIR = ROOT / "runs_breakaway_2deg"
 ENABLE_HARDWARE = True
 CONFIRMATION_PHRASE = "ENABLE WILLOW BREAKAWAY CALIBRATION"
 REPEATS = 3
@@ -25,7 +25,7 @@ HELD_OUT_REPEAT = 2
 RAMP_RATE_NM_S = np.array([0.0, 0.15, 0.15, 0.08, 0.05, 0.04])
 MAX_RAMP_NM = np.array([0.0, 6.0, 6.0, 3.0, 2.0, 1.5])
 BREAKAWAY_DQ_DEG_S = 0.5
-BREAKAWAY_DISPLACEMENT_DEG = 0.5
+BREAKAWAY_DISPLACEMENT_DEG = 2.0
 CONSECUTIVE_FRAMES = 5
 MAX_TRIAL_DURATION_S = 45.0
 MAX_EXCURSION_DEG = 8.0
@@ -75,11 +75,17 @@ def command(q, tau, active_joint):
     return cmd
 
 
-def directed_motion_detected(displacement_deg, velocity_deg_s, direction):
-    """Either independently directed displacement or velocity can start confirmation."""
+def directed_onset_detected(displacement_deg, velocity_deg_s, direction):
+    """Latch the candidate torque at the first repeatable directed motion."""
     direction = 1 if direction > 0 else -1
     return (direction * velocity_deg_s >= BREAKAWAY_DQ_DEG_S or
-        direction * displacement_deg >= BREAKAWAY_DISPLACEMENT_DEG)
+        direction * displacement_deg >= 0.1)
+
+
+def directed_displacement_confirmed(displacement_deg, direction):
+    """Do not finish until the hardware has visibly travelled at least 2 deg."""
+    direction = 1 if direction > 0 else -1
+    return direction * displacement_deg >= BREAKAWAY_DISPLACEMENT_DEG
 
 
 def run_trial(control, model, data, joint, direction, repeat, j1):
@@ -120,17 +126,21 @@ def run_trial(control, model, data, joint, direction, repeat, j1):
             "tau_measured_nm": np.asarray(state.tau, dtype=float).tolist(),
             "gravity_nm": g.tolist(),
         })
-        moving = directed_motion_detected(displacement, velocity, direction)
-        if moving:
-            if moving_frames == 0:
-                candidate = {
-                    "sample_index": len(samples) - 1,
-                    "command_probe_tau_nm": float(applied_probe),
-                    "measured_residual_tau_nm": float(np.asarray(state.tau, dtype=float)[joint] - g[joint]),
-                }
+        onset = directed_onset_detected(displacement, velocity, direction)
+        if candidate is None and onset:
+            candidate = {
+                "sample_index": len(samples) - 1,
+                "command_probe_tau_nm": float(applied_probe),
+                "measured_residual_tau_nm": float(np.asarray(state.tau, dtype=float)[joint] - g[joint]),
+                "gravity_load_nm": float(g[joint]),
+                "absolute_gravity_load_nm": abs(float(g[joint])),
+                "onset_displacement_deg": displacement,
+                "onset_velocity_deg_s": velocity,
+            }
+        if candidate is not None and directed_displacement_confirmed(displacement, direction):
             moving_frames += 1
         else:
-            moving_frames = 0; candidate = None
+            moving_frames = 0
         if moving_frames >= CONSECUTIVE_FRAMES:
             detected = True; break
         if abs(ramp) >= MAX_RAMP_NM[joint]: break
