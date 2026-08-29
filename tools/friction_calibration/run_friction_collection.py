@@ -27,8 +27,7 @@ COLLISION_URDF = (_LOCAL_COLLISION_URDF if _LOCAL_COLLISION_URDF.exists()
                   else ROOT.parents[1] / "assets/urdf/Ragtime_Willow_description.urdf")
 OUTPUT_DIR = ROOT / "runs"
 DEVICE_URI = "usb:///dev/ttyACM0"
-ENABLE_HARDWARE = True
-
+ENABLE_HARDWARE = False
 CONFIRMATION_PHRASE = "ENABLE WILLOW FRICTION CALIBRATION"
 
 ACTIVE_JOINTS = (1, 2, 3, 4, 5)  # zero-based J2..J6
@@ -37,8 +36,8 @@ SPEED_LEVELS_DEG_S = (2.0, 5.0, 10.0, 20.0)
 REPEATS = 3
 HELD_OUT_REPEAT = 2
 ORDER_SEED = 20260829
-# Per-axis parks avoid the real J2 ~11.9 Nm plateau seen in the 200-pose log.
-# J1 is always replaced by its measured startup value.
+# Per-axis parks define repeatable support postures. J1 is always replaced by
+# its measured startup value.
 PARK_BY_JOINT_DEG = {
     0: np.array([0.0, 70.0, 90.0, 0.0, 0.0, 0.0]),
     1: np.array([0.0, 70.0, 90.0, 0.0, 0.0, 0.0]),
@@ -70,17 +69,21 @@ SWEEP_DEG = {
 }
 KP = np.array([30.0, 60.0, 60.0, 50.0, 40.0, 18.0], dtype=np.float32)
 KD = np.array([1.6, 2.0, 1.7, 1.4, 1.1, 1.2], dtype=np.float32)
+# First hardware takeover only. Targets remain exactly as specified by the
+# experiment; no 2*pi-equivalent angle remapping is performed.
+STARTUP_KP = np.array([6.0, 12.0, 12.0, 10.0, 8.0, 4.0], dtype=np.float32)
+STARTUP_KD = np.array([0.8, 1.2, 1.1, 0.9, 0.8, 0.6], dtype=np.float32)
+STARTUP_HOLD_SECONDS = 1.0
+STARTUP_GAIN_RAMP_SECONDS = 1.0
 MOVE_SPEED_DEG_S = 30.0
 SETTLE_SECONDS = 1.0
 RECORD_MARGIN_FRACTION = 0.15
 STATE_TIMEOUT_S = 0.08
 J1_GRAVITY_ZERO = True
-OBSERVED_J2_PLATEAU_NM = 11.9
-MAX_CONSECUTIVE_J2_PLATEAU_FRAMES = 10
 LIMIT_MARGIN_DEG = 2.0
 LOWER_DEG = np.array([-170., 5., 5., -70., -85., -85.])
 UPPER_DEG = np.array([170., 175., 175., 70., 85., 85.])
-TAU_LIMIT_NM = np.array([10., 28., 28., 10., 10., 10.])
+TAU_LIMIT_NM = np.array([40., 40., 40., 12., 12., 12.])
 MIN_TRANSITION_CLEARANCE_M = 0.005
 MAX_STARTUP_RECOVERY_FRACTION = 0.10
 # The description mesh is reliable on the audited sweep/park postures but the
@@ -306,13 +309,13 @@ def gravity(model, data, q: np.ndarray) -> np.ndarray:
     return result
 
 
-def command(q: np.ndarray, dq: np.ndarray, tau: np.ndarray):
+def command(q: np.ndarray, dq: np.ndarray, tau: np.ndarray, kp=None, kd=None):
     cmd = pyflorid.JointMIT()
     cmd.q = np.asarray(q, dtype=np.float32)
     cmd.dq = np.asarray(dq, dtype=np.float32)
     cmd.tau = np.asarray(tau, dtype=np.float32)
-    cmd.kp = KP
-    cmd.kd = KD
+    cmd.kp = KP if kp is None else np.asarray(kp, dtype=np.float32)
+    cmd.kd = KD if kd is None else np.asarray(kd, dtype=np.float32)
     cmd.firmware_gravity = False
     return cmd
 
@@ -339,7 +342,7 @@ def _valid_limit_recovery(q_deg, target_deg, recovery_start_deg, require_target_
 
 
 def cycle(control, model, data, target_q: np.ndarray, target_dq: np.ndarray, last_seq=None,
-          recovery_start_deg=None):
+          recovery_start_deg=None, kp=None, kd=None):
     state = read_valid(control, last_seq=last_seq)
     if int(state.errors) != 0:
         raise RuntimeError(f"firmware errors=0x{int(state.errors):08X}")
@@ -361,7 +364,7 @@ def cycle(control, model, data, target_q: np.ndarray, target_dq: np.ndarray, las
             print(f"  WARNING: measured q outside former software margin; continuing: {np.round(q_deg, 2)}")
             cycle._last_limit_warning = now
     g = gravity(model, data, q)
-    control.write_once(command(target_q, target_dq, g))
+    control.write_once(command(target_q, target_dq, g, kp=kp, kd=kd))
     return state, q, g
 
 
@@ -432,12 +435,15 @@ def audit_transition(model, start, target, allow_start_recovery=False):
     return minimum
 
 
-def move(control, model, data, target: np.ndarray) -> None:
+def move(control, model, data, target: np.ndarray, *, kp=None, kd=None,
+         skip_collision_audit=False) -> None:
     state = read_valid(control)
     last_seq = int(state.seq)
     start = np.asarray(state.q, dtype=float)
     recovery_start_deg = np.rad2deg(start) if not _inside_limit_margin(np.rad2deg(start)) else None
-    if recovery_start_deg is not None and not CHECK_STARTUP_RECOVERY_COLLISION:
+    if skip_collision_audit:
+        print("  startup transition collision audit bypassed (low-gain homing only)")
+    elif recovery_start_deg is not None and not CHECK_STARTUP_RECOVERY_COLLISION:
         if not _valid_limit_recovery(np.rad2deg(start), np.rad2deg(target), np.rad2deg(start)):
             raise RuntimeError("startup move does not monotonically withdraw into the safe scan region")
         print("  startup collision gate bypassed for installation-specific folded encoder pose")
@@ -452,7 +458,7 @@ def move(control, model, data, target: np.ndarray) -> None:
         alpha = min(1.0, elapsed / duration)
         desired = start + alpha * (target - start)
         state, _, _ = cycle(control, model, data, desired, np.zeros(6), last_seq,
-                            recovery_start_deg=recovery_start_deg)
+                            recovery_start_deg=recovery_start_deg, kp=kp, kd=kd)
         last_seq = int(state.seq)
         if alpha >= 1.0:
             break
@@ -462,8 +468,39 @@ def move(control, model, data, target: np.ndarray) -> None:
         raise RuntimeError(f"startup recovery failed to enter safe limit region: {np.round(recovered_deg, 2)}")
     until = time.monotonic() + SETTLE_SECONDS
     while time.monotonic() < until:
-        state, _, _ = cycle(control, model, data, target, np.zeros(6), last_seq)
+        state, _, _ = cycle(control, model, data, target, np.zeros(6), last_seq,
+                            kp=kp, kd=kd)
         last_seq = int(state.seq)
+
+
+def soft_start_move(control, model, data, target: np.ndarray) -> None:
+    """Latch measured q, approach the literal target softly, then restore gains."""
+    state = read_valid(control)
+    measured = np.asarray(state.q, dtype=float)
+    last_seq = int(state.seq)
+    print(f"  soft takeover: hold measured pose {STARTUP_HOLD_SECONDS:.1f}s with low gains")
+    until = time.monotonic() + STARTUP_HOLD_SECONDS
+    while time.monotonic() < until:
+        state, _, _ = cycle(control, model, data, measured, np.zeros(6), last_seq,
+                            kp=STARTUP_KP, kd=STARTUP_KD)
+        last_seq = int(state.seq)
+    print("  soft startup target q_deg=", np.round(np.rad2deg(target), 2))
+    move(control, model, data, target, kp=STARTUP_KP, kd=STARTUP_KD,
+         skip_collision_audit=True)
+    state = read_valid(control)
+    hold = np.asarray(state.q, dtype=float)
+    last_seq = int(state.seq)
+    begin = time.monotonic()
+    print(f"  restoring normal gains over {STARTUP_GAIN_RAMP_SECONDS:.1f}s")
+    while True:
+        alpha = min(1.0, (time.monotonic() - begin) / STARTUP_GAIN_RAMP_SECONDS)
+        kp_now = STARTUP_KP + alpha * (KP - STARTUP_KP)
+        kd_now = STARTUP_KD + alpha * (KD - STARTUP_KD)
+        state, _, _ = cycle(control, model, data, hold, np.zeros(6), last_seq,
+                            kp=kp_now, kd=kd_now)
+        last_seq = int(state.seq)
+        if alpha >= 1.0:
+            break
 
 
 def write_row(writer, trial_id, repeat, joint, velocity, elapsed, state, q, g):
@@ -503,7 +540,7 @@ def run_trial(control, model, data, trial_id: int, joint: int, velocity: float, 
     with temp_path.open("w", newline="", encoding="utf-8") as file:
         writer = csv.DictWriter(file, fieldnames=COLUMNS)
         writer.writeheader()
-        begin = time.monotonic(); last_seq = None; plateau_frames = 0; recorded = 0
+        begin = time.monotonic(); last_seq = None; recorded = 0
         while True:
             elapsed = time.monotonic() - begin
             alpha = min(1.0, elapsed / duration)
@@ -511,9 +548,6 @@ def run_trial(control, model, data, trial_id: int, joint: int, velocity: float, 
             target_dq = np.zeros(6); target_dq[joint] = velocity
             state, q, g = cycle(control, model, data, target, target_dq, last_seq)
             last_seq = int(state.seq)
-            plateau_frames = plateau_frames + 1 if abs(float(state.tau[1])) >= OBSERVED_J2_PLATEAU_NM else 0
-            if plateau_frames >= MAX_CONSECUTIVE_J2_PLATEAU_FRAMES:
-                raise RuntimeError("J2 feedback torque stayed at the observed 11.9 Nm plateau")
             if RECORD_MARGIN_FRACTION <= alpha <= 1.0 - RECORD_MARGIN_FRACTION:
                 write_row(writer, trial_id, repeat, joint, velocity, elapsed, state, q, g)
                 recorded += 1

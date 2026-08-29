@@ -43,7 +43,9 @@ BREAKAWAY_COLLECTOR_BY_DIRECTORY = {
 }
 BASE_COLLECTOR = ROOT / "run_friction_collection.py"
 BREAKAWAY_IMPLEMENTATION = ROOT / "run_breakaway_collection.py"
+PRE_PLATEAU_WARNING_BREAKAWAY_SHA256 = "045bbabd64d7d058408fc5c1314246bf1a40cee01e239aa943b19af86333496e"
 PRE_RECOVERY_FRICTION_COLLECTOR_SHA256 = "a264f9f6df4fae96803cb1057b5fedc2d14ddccb52b4eb699c12be7c2ccc333e"
+PRE_REMOVE_PLATEAU_COLLECTOR_SHA256 = "87f63c0590d05baea263cdc42c6e1df2d063fa2def309ecb0283f3036bf33d46"
 
 def sha256(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -125,6 +127,8 @@ def load_trials():
             # fault and USB-session recovery was added to the collector.
             allowed_script_hashes.add(PRE_RECOVERY_FRICTION_COLLECTOR_SHA256)
             allowed_base_hashes.add(PRE_RECOVERY_FRICTION_COLLECTOR_SHA256)
+            allowed_script_hashes.add(PRE_REMOVE_PLATEAU_COLLECTOR_SHA256)
+            allowed_base_hashes.add(PRE_REMOVE_PLATEAU_COLLECTOR_SHA256)
         if len(script_hashes) != 1 or not script_hashes.issubset(allowed_script_hashes):
             raise RuntimeError(f"{path}: collector script provenance is missing, mixed or stale")
         if len(base_script_hashes) != 1 or not base_script_hashes.issubset(allowed_base_hashes):
@@ -239,11 +243,19 @@ def load_breakaway():
         if item.get("detected"):
             expected_breakaway_collector = (ROOT / "run_j1_breakaway_collection.py"
                 if path.parent.name == "runs_j1_breakaway" else BREAKAWAY_COLLECTOR)
+            allowed_breakaway_scripts = {sha256(expected_breakaway_collector)}
+            allowed_breakaway_implementations = {sha256(BREAKAWAY_IMPLEMENTATION)}
+            if path.parent.name == "runs_breakaway_2deg":
+                allowed_breakaway_scripts.add(PRE_PLATEAU_WARNING_BREAKAWAY_SHA256)
+                allowed_breakaway_implementations.add(PRE_PLATEAU_WARNING_BREAKAWAY_SHA256)
+            allowed_base_collectors = {sha256(BASE_COLLECTOR)}
+            if path.parent.name == "runs_breakaway_2deg":
+                allowed_base_collectors.add(PRE_REMOVE_PLATEAU_COLLECTOR_SHA256)
             if (item.get("urdf_sha256") != sha256(URDF) or
                     item.get("protocol_sha256") != expected_protocol_sha256(expected_breakaway_collector) or
-                    item.get("collector_script_sha256") != sha256(expected_breakaway_collector) or
-                    item.get("base_collector_script_sha256") != sha256(BASE_COLLECTOR) or
-                    item.get("breakaway_implementation_script_sha256") != sha256(BREAKAWAY_IMPLEMENTATION) or
+                    item.get("collector_script_sha256") not in allowed_breakaway_scripts or
+                    item.get("base_collector_script_sha256") not in allowed_base_collectors or
+                    item.get("breakaway_implementation_script_sha256") not in allowed_breakaway_implementations or
                     str(item.get("schema_version")) != LOG_SCHEMA_VERSION or item.get("device_time_unit") != DEVICE_TIME_UNIT):
                 raise RuntimeError(f"{path}: breakaway protocol/collector/schema provenance is stale; recollect it")
             samples = item.get("samples", [])

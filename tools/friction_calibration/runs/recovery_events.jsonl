@@ -2,3 +2,27 @@
 {"host_time_s": 1787977597.7373865, "trial_id": 5, "attempt": 1, "error": "RuntimeError('firmware errors=0x40065868')", "status": "same-session-recovered"}
 {"host_time_s": 1787979325.528749, "trial_id": 98, "attempt": 1, "error": "RuntimeError('firmware errors=0x40A29228')", "status": "started"}
 {"host_time_s": 1787979328.0632696, "trial_id": 98, "attempt": 1, "error": "RuntimeError('firmware errors=0x40A29228')", "status": "same-session-recovered"}
+{"host_time_s": 1787984765.5754664, "trial_id": 520, "attempt": 1, "error": "RuntimeError('firmware errors=0x40EF96F8')", "status": "started"}
+{"host_time_s": 1787984768.1186686, "trial_id": 520, "attempt": 1, "error": "RuntimeError('firmware errors=0x40EF96F8')", "status": "same-session-recovered"}
+{"host_time_s": 1787986558.52888, "trial_id": 2002, "attempt": 1, "error": "TimeoutError('no valid ArmState')", "status": "started"}
+{"host_time_s": 1787986597.9802892, "trial_id": 2002, "attempt": 1, "error": "RuntimeError('Arm.create failed for usb:///dev/ttyACM0')", "status": "reconnect-exhausted"}
+{"host_time_s": 1787986736.1360173, "trial_id": 2004, "attempt": 1, "error": "RuntimeError('firmware errors=0x40217A18')", "status": "started"}
+{"host_time_s": 1787986738.7240343, "trial_id": 2004, "attempt": 1, "error": "RuntimeError('firmware errors=0x40217A18')", "status": "same-session-recovered"}
+{"host_time_s": 1787987096.3613546, "trial_id": 2203, "attempt": 1, "error": "RuntimeError('firmware errors=0x3F922920')", "status": "started"}
+{"host_time_s": 1787987098.9019337, "trial_id": 2203, "attempt": 1, "error": "RuntimeError('firmware errors=0x3F922920')", "status": "same-session-recovered"}
+{"host_time_s": 1787987216.9877942, "trial_id": 2001, "attempt": 1, "error": "RuntimeError('firmware errors=0xC0AC32C4')", "status": "started"}
+{"host_time_s": 1787987219.5337927, "trial_id": 2001, "attempt": 1, "error": "RuntimeError('firmware errors=0xC0AC32C4')", "status": "same-session-recovered"}
+{"host_time_s": 1787987449.4189382, "trial_id": 3002, "attempt": 1, "error": "RuntimeError('firmware errors=0x40FA17A0')", "status": "started"}
+{"host_time_s": 1787987451.9533665, "trial_id": 3002, "attempt": 1, "error": "RuntimeError('firmware errors=0x40FA17A0')", "status": "same-session-recovered"}
+{"host_time_s": 1787987584.8594406, "trial_id": 3203, "attempt": 1, "error": "RuntimeError('firmware errors=0x410B0CB0')", "status": "started"}
+{"host_time_s": 1787987587.4089408, "trial_id": 3203, "attempt": 1, "error": "RuntimeError('firmware errors=0x410B0CB0')", "status": "same-session-recovered"}
+{"host_time_s": 1787987610.0023618, "trial_id": 3002, "attempt": 1, "error": "RuntimeError('firmware errors=0xC192A72A')", "status": "started"}
+{"host_time_s": 1787987612.5328417, "trial_id": 3002, "attempt": 1, "error": "RuntimeError('firmware errors=0xC192A72A')", "status": "same-session-recovered"}
+{"host_time_s": 1787987692.4810016, "trial_id": 3001, "attempt": 1, "error": "RuntimeError('firmware errors=0x40B6B368')", "status": "started"}
+{"host_time_s": 1787987695.0087276, "trial_id": 3001, "attempt": 1, "error": "RuntimeError('firmware errors=0x40B6B368')", "status": "same-session-recovered"}
+{"host_time_s": 1787987784.0849018, "trial_id": 3202, "attempt": 1, "error": "RuntimeError('firmware errors=0x409F11F0')", "status": "started"}
+{"host_time_s": 1787987786.6208155, "trial_id": 3202, "attempt": 1, "error": "RuntimeError('firmware errors=0x409F11F0')", "status": "same-session-recovered"}
+{"host_time_s": 1787988011.4320965, "trial_id": 4000, "attempt": 1, "error": "RuntimeError('firmware errors=0x40B5D360')", "status": "started"}
+{"host_time_s": 1787988013.9642868, "trial_id": 4000, "attempt": 1, "error": "RuntimeError('firmware errors=0x40B5D360')", "status": "same-session-recovered"}
+{"host_time_s": 1787988175.9813855, "trial_id": 4200, "attempt": 1, "error": "RuntimeError('firmware errors=0x40F46748')", "status": "started"}
+{"host_time_s": 1787988178.5101616, "trial_id": 4200, "attempt": 1, "error": "RuntimeError('firmware errors=0x40F46748')", "status": "same-session-recovered"}

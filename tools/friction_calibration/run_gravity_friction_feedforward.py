@@ -14,12 +14,13 @@ import pyflorid
 ROOT = Path(__file__).resolve().parent
 URDF = ROOT.parent / "static_gravity_calibration" / "model" / "identified" / "Ragtime_Willow.static-mass-com-calibrated.urdf"
 FRICTION_FIT = ROOT / "friction_fit.json"
+BREAKAWAY_FIT = ROOT / "multiload_breakaway_fit.json"
 DEVICE_URI = "usb:///dev/ttyACM0"
 
 ENABLE_HARDWARE = True
 CONFIRMATION_PHRASE = "ENABLE GRAVITY AND FRICTION FEEDFORWARD"
 # Per-axis scale J1..J6. J1 has no fitted model and remains zero.
-FRICTION_SCALE = np.array([0.0, 0.6, 0.62, 0.55, 0.6, 0.6], dtype=float)
+FRICTION_SCALE = np.array([0.0, 0.51, 0.59, 0.55, 0.6, 0.6], dtype=float)
 # Optional hand-tuned viscous addition [Nm/(rad/s)] after scaling the fitted
 # model. Start with J3 only; increase gradually if fast motion still feels
 # heavier than slow motion. This is separate from the identified parameters.
@@ -27,6 +28,12 @@ EXTRA_VISCOUS_NM_PER_RAD_S = np.array(
     [0.0, 0.0245, 0.028, 0.0035, 0.0035, 0.0035], dtype=float
 )
 FRICTION_DIRECTION_VEL_RAD_S = 0.01 # smooth Coulomb sign around zero velocity
+# Additional low-speed breakaway compensation.  It uses only the identified
+# excess above the already-deployed dynamic Coulomb term. J4 remains zero
+# because the multi-load run did not identify a reliable onset for that joint.
+ENABLE_LOAD_CONDITIONED_BREAKAWAY = True
+BREAKAWAY_SCALE = np.array([0.0, 0.35, 0.45, 0.05, 0.03, 0.03], dtype=float)
+BREAKAWAY_DECAY_SPEED_RAD_S = 0.08
 J1_GRAVITY_ZERO = True
 KD = np.zeros(6, dtype=np.float32)
 TAU_LIMIT_NM = np.array([40., 40., 40., 12., 12., 12.], dtype=float)
@@ -52,6 +59,17 @@ def load_friction_models():
     return result
 
 
+def load_breakaway_models():
+    payload = json.loads(BREAKAWAY_FIT.read_text(encoding="utf-8"))
+    result = {}
+    for joint in (2, 3):
+        item = payload["joints"][f"J{joint}"]["directions"]
+        if item["positive"]["fit"] is None or item["negative"]["fit"] is None:
+            raise RuntimeError(f"J{joint} load-conditioned breakaway fit is missing")
+        result[joint] = {1: item["positive"]["fit"], -1: item["negative"]["fit"]}
+    return result
+
+
 def friction_torque(dq, models):
     result = np.zeros(6, dtype=float)
     for joint, (model, p) in models.items():
@@ -72,6 +90,34 @@ def friction_torque(dq, models):
         result[joint - 1] = FRICTION_SCALE[joint - 1] * value
     result[0] = 0.0
     result += EXTRA_VISCOUS_NM_PER_RAD_S * np.asarray(dq, dtype=float)
+    return result
+
+
+def breakaway_torque(dq, gravity, friction_models, breakaway_models):
+    result = np.zeros(6, dtype=float)
+    if not ENABLE_LOAD_CONDITIONED_BREAKAWAY:
+        return result
+    for joint, directional in breakaway_models.items():
+        index = joint - 1
+        velocity = float(dq[index])
+        direction = float(np.tanh(velocity / FRICTION_DIRECTION_VEL_RAD_S))
+        if abs(direction) < 1e-9:
+            continue
+        load = abs(float(gravity[index]))
+        positive = max(0.0, directional[1]["intercept_nm"] + directional[1]["slope_nm_per_nm"] * load)
+        negative = max(0.0, directional[-1]["intercept_nm"] + directional[-1]["slope_nm_per_nm"] * load)
+        static_magnitude = 0.5 * (1.0 + direction) * positive + 0.5 * (1.0 - direction) * negative
+        model_name, parameters = friction_models[joint]
+        if model_name == "symmetric":
+            deployed_coulomb = FRICTION_SCALE[index] * parameters["fc_nm"]
+        elif model_name == "asymmetric":
+            fc = parameters["fc_pos"] if direction >= 0 else parameters["fc_neg"]
+            deployed_coulomb = FRICTION_SCALE[index] * fc
+        else:
+            deployed_coulomb = FRICTION_SCALE[index] * parameters["fc_nm"]
+        excess = max(0.0, static_magnitude - deployed_coulomb)
+        low_speed_envelope = np.exp(-(abs(velocity) / BREAKAWAY_DECAY_SPEED_RAD_S) ** 2)
+        result[index] = (BREAKAWAY_SCALE[index] * direction * excess * low_speed_envelope)
     return result
 
 
@@ -151,17 +197,19 @@ def recoverable(error):
 
 
 def main():
-    if not URDF.is_file() or not FRICTION_FIT.is_file():
-        raise FileNotFoundError("identified URDF or friction_fit.json is missing")
+    if not URDF.is_file() or not FRICTION_FIT.is_file() or not BREAKAWAY_FIT.is_file():
+        raise FileNotFoundError("identified URDF, friction fit or breakaway fit is missing")
     model = pin.buildModelFromUrdf(str(URDF)); data = model.createData()
     models = load_friction_models()
+    breakaway_models = load_breakaway_models()
     print("URDF:", URDF)
     print("friction fit:", FRICTION_FIT)
     print("models:", {f"J{j}": name for j, (name, _) in models.items()})
     print("MIT: kp=0, kd=", KD.tolist(), "firmware_gravity=False")
     print("per-axis friction scale J1..J6:", FRICTION_SCALE.tolist())
     print("extra viscous Nm/(rad/s) J1..J6:", EXTRA_VISCOUS_NM_PER_RAD_S.tolist())
-    print("tau = Pinocchio gravity + per-axis scaled identified friction")
+    print("load-conditioned breakaway scale J1..J6:", BREAKAWAY_SCALE.tolist())
+    print("tau = Pinocchio gravity + scaled dynamic friction + low-speed breakaway increment")
     print("No commanded motion: this test only reacts to measured q and dq.")
     if not ENABLE_HARDWARE:
         print("DISABLED PREVIEW ONLY")
@@ -194,7 +242,8 @@ def main():
                 if J1_GRAVITY_ZERO:
                     gravity[0] = 0.0
                 friction = friction_torque(dq, models)
-                requested = gravity + friction
+                breakaway = breakaway_torque(dq, gravity, models, breakaway_models)
+                requested = gravity + friction + breakaway
                 if np.any(np.abs(requested) > TAU_LIMIT_NM):
                     raise RuntimeError(f"feedforward exceeds hardware torque limits: {requested}")
                 alpha = min(1.0, (now - ramp_start) / RAMP_SECONDS)
@@ -207,6 +256,7 @@ def main():
                           "dq=", np.round(dq, 3),
                           "g=", np.round(gravity, 3),
                           "fric=", np.round(friction, 3),
+                          "breakaway=", np.round(breakaway, 3),
                           "tau=", np.round(sent, 3),
                           f"rx={rx_count/elapsed:.1f}Hz tx={tx_count/elapsed:.1f}Hz")
                     last_print = now; rx_count = tx_count = 0

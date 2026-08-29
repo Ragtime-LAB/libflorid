@@ -1,0 +1,1161 @@
+{
+  "schema_version": 1,
+  "model": "Fs_direction(load) = intercept_nm + slope_nm_per_nm * abs(gravity_joint_nm)",
+  "quality_rule": {
+    "minimum_onset_elapsed_s": 0.5,
+    "maximum_support_posture_error_deg": 5.0,
+    "note": "Quality filtering is reported explicitly; rejected trials remain in raw_trials."
+  },
+  "raw_trial_count": 90,
+  "joints": {
+    "J2": {
+      "raw_count": 30,
+      "directions": {
+        "negative": {
+          "accepted_count": 6,
+          "load_levels": {
+            "low": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            },
+            "mid": {
+              "count": 2,
+              "median_breakaway_nm": 2.0842591787248237,
+              "median_absolute_gravity_load_nm": 7.148533291982879
+            },
+            "high": {
+              "count": 4,
+              "median_breakaway_nm": 3.5915921819254435,
+              "median_absolute_gravity_load_nm": 13.600690678589931
+            }
+          },
+          "fit": {
+            "intercept_nm": 0.46285941119287904,
+            "slope_nm_per_nm": 0.22588606622217797,
+            "r2": 0.8659794908189068
+          }
+        },
+        "positive": {
+          "accepted_count": 8,
+          "load_levels": {
+            "low": {
+              "count": 5,
+              "median_breakaway_nm": 1.5472046968494395,
+              "median_absolute_gravity_load_nm": 1.0774522859605016
+            },
+            "mid": {
+              "count": 1,
+              "median_breakaway_nm": 2.083702372200787,
+              "median_absolute_gravity_load_nm": 7.5168381916759754
+            },
+            "high": {
+              "count": 2,
+              "median_breakaway_nm": 4.732249098599823,
+              "median_absolute_gravity_load_nm": 13.995978678684411
+            }
+          },
+          "fit": {
+            "intercept_nm": 1.1501442498422436,
+            "slope_nm_per_nm": 0.2404759363507187,
+            "r2": 0.923771401264575
+          }
+        }
+      }
+    },
+    "J3": {
+      "raw_count": 30,
+      "directions": {
+        "negative": {
+          "accepted_count": 12,
+          "load_levels": {
+            "low": {
+              "count": 4,
+              "median_breakaway_nm": 0.8286705587999676,
+              "median_absolute_gravity_load_nm": 0.4488462059265759
+            },
+            "mid": {
+              "count": 5,
+              "median_breakaway_nm": 2.248690956450082,
+              "median_absolute_gravity_load_nm": 6.0480193540870815
+            },
+            "high": {
+              "count": 3,
+              "median_breakaway_nm": 2.747029417950034,
+              "median_absolute_gravity_load_nm": 8.190569017107563
+            }
+          },
+          "fit": {
+            "intercept_nm": 0.7079971661181221,
+            "slope_nm_per_nm": 0.24965423164282924,
+            "r2": 0.9875701754185625
+          }
+        },
+        "positive": {
+          "accepted_count": 6,
+          "load_levels": {
+            "low": {
+              "count": 2,
+              "median_breakaway_nm": 0.4337904843750948,
+              "median_absolute_gravity_load_nm": 0.46745659422641606
+            },
+            "mid": {
+              "count": 3,
+              "median_breakaway_nm": 1.122905204250128,
+              "median_absolute_gravity_load_nm": 6.04537524946856
+            },
+            "high": {
+              "count": 1,
+              "median_breakaway_nm": 1.6066324582498055,
+              "median_absolute_gravity_load_nm": 8.184768175214845
+            }
+          },
+          "fit": {
+            "intercept_nm": 0.34187611731435347,
+            "slope_nm_per_nm": 0.13583049161522398,
+            "r2": 0.8949052647246761
+          }
+        }
+      }
+    },
+    "J4": {
+      "raw_count": 30,
+      "directions": {
+        "negative": {
+          "accepted_count": 0,
+          "load_levels": {
+            "low": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            },
+            "mid": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            },
+            "high": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            }
+          },
+          "fit": null
+        },
+        "positive": {
+          "accepted_count": 1,
+          "load_levels": {
+            "low": {
+              "count": 1,
+              "median_breakaway_nm": 0.049111601519980466,
+              "median_absolute_gravity_load_nm": 0.10128240464591948
+            },
+            "mid": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            },
+            "high": {
+              "count": 0,
+              "median_breakaway_nm": null,
+              "median_absolute_gravity_load_nm": null
+            }
+          },
+          "fit": null
+        }
+      }
+    }
+  },
+  "raw_trials": [
+    {
+      "file": "breakaway_multiload_high_J2_+1_r0.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 4.765547716199944,
+      "absolute_gravity_load_nm": 14.19650163416009,
+      "onset_elapsed_s": 31.772263213999395,
+      "support_posture_error_deg": 0.3219764583242579,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J2_+1_r1.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009081172502192203,
+      "absolute_gravity_load_nm": 13.280157962257583,
+      "onset_elapsed_s": 0.007873456997913308,
+      "support_posture_error_deg": 0.596000966125473,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J2_+1_r2.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009053033994860016,
+      "absolute_gravity_load_nm": 13.515136956763468,
+      "onset_elapsed_s": 0.008431666996330023,
+      "support_posture_error_deg": 0.16898022091595521,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J2_+1_r3.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.00063340304986923,
+      "absolute_gravity_load_nm": 13.177777770252396,
+      "onset_elapsed_s": 0.006031292999978177,
+      "support_posture_error_deg": 0.7489972035337473,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J2_+1_r4.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 4.698950480999701,
+      "absolute_gravity_load_nm": 13.795455723208732,
+      "onset_elapsed_s": 31.328142236998247,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J2_-1_r0.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.9923323524999432,
+      "absolute_gravity_load_nm": 13.427897738135043,
+      "onset_elapsed_s": 19.95126198199432,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J2_-1_r1.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0002797459495923249,
+      "absolute_gravity_load_nm": 12.528254883298024,
+      "onset_elapsed_s": 0.004216725996229798,
+      "support_posture_error_deg": 2.0385369188321647,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J2_-1_r2.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 3.4992164259001584,
+      "absolute_gravity_load_nm": 13.690317831511177,
+      "onset_elapsed_s": 23.329906421997293,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J2_-1_r3.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 3.6839679379507286,
+      "absolute_gravity_load_nm": 13.577149226337687,
+      "onset_elapsed_s": 24.562135562002368,
+      "support_posture_error_deg": 0.2782632476361755,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J2_-1_r4.json",
+      "joint": 2,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 3.932669591100421,
+      "absolute_gravity_load_nm": 13.624232130842174,
+      "onset_elapsed_s": 26.219589492000523,
+      "support_posture_error_deg": 0.21269343160403764,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J3_+1_r0.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009076098001969512,
+      "absolute_gravity_load_nm": 8.191738394680755,
+      "onset_elapsed_s": 0.007829624002624769,
+      "support_posture_error_deg": 0.8136887584433623,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_+1_r1.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.6066324582498055,
+      "absolute_gravity_load_nm": 8.184768175214845,
+      "onset_elapsed_s": 10.712708708000719,
+      "support_posture_error_deg": 0.2732075668005223,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J3_+1_r2.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.09422722335038998,
+      "absolute_gravity_load_nm": 7.446378762619249,
+      "onset_elapsed_s": 0.6300020690032397,
+      "support_posture_error_deg": 76.79403449989854,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_+1_r3.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0,
+      "absolute_gravity_load_nm": 1.389127903123383,
+      "onset_elapsed_s": 2.4600012693554163e-07,
+      "support_posture_error_deg": 67.27072971851095,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_+1_r4.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009094636501686182,
+      "absolute_gravity_load_nm": 8.192148293010488,
+      "onset_elapsed_s": 0.007885942999564577,
+      "support_posture_error_deg": 0.8136887584433623,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_-1_r0.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": -0.0,
+      "absolute_gravity_load_nm": 1.6399775010418158,
+      "onset_elapsed_s": 3.0700175557285547e-07,
+      "support_posture_error_deg": 74.76198921999821,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_-1_r1.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.5822119757500333,
+      "absolute_gravity_load_nm": 8.182229979307966,
+      "onset_elapsed_s": 17.217145932998392,
+      "support_posture_error_deg": 0.23548293958396016,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J3_-1_r2.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.42544572675069503,
+      "absolute_gravity_load_nm": 0.6870422281191959,
+      "onset_elapsed_s": 2.8386934060035856,
+      "support_posture_error_deg": 68.38541659105701,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J3_-1_r3.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.747029417950034,
+      "absolute_gravity_load_nm": 8.190569017107563,
+      "onset_elapsed_s": 18.315325887000654,
+      "support_posture_error_deg": 0.17979256195280868,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J3_-1_r4.json",
+      "joint": 3,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.923776315450232,
+      "absolute_gravity_load_nm": 8.191438755583544,
+      "onset_elapsed_s": 19.49362922200089,
+      "support_posture_error_deg": 0.7918321530993353,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_high_J4_+1_r0.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0,
+      "absolute_gravity_load_nm": 0.061288393305138966,
+      "onset_elapsed_s": 3.120003384537995e-07,
+      "support_posture_error_deg": 69.2378241994746,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_+1_r1.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.007086644879891538,
+      "absolute_gravity_load_nm": 1.8134211871172978,
+      "onset_elapsed_s": 0.0904673469995032,
+      "support_posture_error_deg": 0.978607521281333,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_+1_r2.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009854715201072395,
+      "absolute_gravity_load_nm": 1.8120736661917654,
+      "onset_elapsed_s": 0.014115699006651994,
+      "support_posture_error_deg": 1.262743390753883,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_+1_r3.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.014551979919779115,
+      "absolute_gravity_load_nm": 1.825802251974817,
+      "onset_elapsed_s": 0.18378209999355022,
+      "support_posture_error_deg": 1.2636216518763774,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_+1_r4.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.46290113559982277,
+      "absolute_gravity_load_nm": 0.1990651163671308,
+      "onset_elapsed_s": 5.7887080579967005,
+      "support_posture_error_deg": 77.00696245955017,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_-1_r0.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0004917255201144144,
+      "absolute_gravity_load_nm": 1.825802251974817,
+      "onset_elapsed_s": 0.007960201000969391,
+      "support_posture_error_deg": 1.2636216518763774,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_-1_r1.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00048055991996079686,
+      "absolute_gravity_load_nm": 1.817499484489414,
+      "onset_elapsed_s": 0.008391251998546068,
+      "support_posture_error_deg": 0.21362633423990474,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_-1_r2.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00019899320031981915,
+      "absolute_gravity_load_nm": 1.8143667814799986,
+      "onset_elapsed_s": 0.004414677001477685,
+      "support_posture_error_deg": 0.7818980731849763,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_-1_r3.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0006294063199311495,
+      "absolute_gravity_load_nm": 1.813661812745406,
+      "onset_elapsed_s": 0.009717549997731112,
+      "support_posture_error_deg": 0.978607521281333,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_high_J4_-1_r4.json",
+      "joint": 4,
+      "load_level": "high",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.002248595840064809,
+      "absolute_gravity_load_nm": 1.8134159629349895,
+      "onset_elapsed_s": 0.030023790000996087,
+      "support_posture_error_deg": 0.978607521281333,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J2_+1_r0.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.5472046968494395,
+      "absolute_gravity_load_nm": 1.0774522859605016,
+      "onset_elapsed_s": 10.31660354899941,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J2_+1_r1.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.5613010379005572,
+      "absolute_gravity_load_nm": 1.0774522859605016,
+      "onset_elapsed_s": 10.411035743003595,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J2_+1_r2.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.882027946700691,
+      "absolute_gravity_load_nm": 1.0944338323695524,
+      "onset_elapsed_s": 12.548644729999069,
+      "support_posture_error_deg": 0.2732075668005223,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J2_+1_r3.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.1637721834496915,
+      "absolute_gravity_load_nm": 0.9672724031735569,
+      "onset_elapsed_s": 7.760869965997699,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J2_+1_r4.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.2840255802497267,
+      "absolute_gravity_load_nm": 0.9663076016862275,
+      "onset_elapsed_s": 8.562535872995795,
+      "support_posture_error_deg": 0.16898022091595521,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J2_-1_r0.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0008931290998589247,
+      "absolute_gravity_load_nm": 1.0284350107531035,
+      "onset_elapsed_s": 0.007812711999577004,
+      "support_posture_error_deg": 0.6061123277967795,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J2_-1_r1.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.000812124599906383,
+      "absolute_gravity_load_nm": 1.021373725201621,
+      "onset_elapsed_s": 0.010401366998848971,
+      "support_posture_error_deg": 0.6498255384848619,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J2_-1_r2.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0003574879498046357,
+      "absolute_gravity_load_nm": 0.9736232897109027,
+      "onset_elapsed_s": 0.004215765999106225,
+      "support_posture_error_deg": 0.2782632476361755,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J2_-1_r3.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0009223195502272574,
+      "absolute_gravity_load_nm": 1.1036847477619878,
+      "onset_elapsed_s": 0.007944637996843085,
+      "support_posture_error_deg": 0.2782632476361755,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J2_-1_r4.json",
+      "joint": 2,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00036611610084946733,
+      "absolute_gravity_load_nm": 0.4311964102917044,
+      "onset_elapsed_s": 0.004264496004907414,
+      "support_posture_error_deg": 0.1471236155719282,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J3_+1_r0.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0023845633506425655,
+      "absolute_gravity_load_nm": 0.6185693916585283,
+      "onset_elapsed_s": 0.01824497999768937,
+      "support_posture_error_deg": 0.47771676212676084,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J3_+1_r1.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0,
+      "absolute_gravity_load_nm": 0.656385272965126,
+      "onset_elapsed_s": 2.2499443730339408e-07,
+      "support_posture_error_deg": 0.6088563941910365,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J3_+1_r2.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.453034138500152,
+      "absolute_gravity_load_nm": 0.43246883809182435,
+      "onset_elapsed_s": 3.022025931997632,
+      "support_posture_error_deg": 0.615168146588644,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J3_+1_r3.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0,
+      "absolute_gravity_load_nm": 0.8072095614125653,
+      "onset_elapsed_s": 1.809967216104269e-07,
+      "support_posture_error_deg": 113.36316647797958,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J3_+1_r4.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.4145468302500376,
+      "absolute_gravity_load_nm": 0.5024443503610078,
+      "onset_elapsed_s": 2.7659890439972514,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J3_-1_r0.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.8010188800497416,
+      "absolute_gravity_load_nm": 0.41047764530970055,
+      "onset_elapsed_s": 5.342563715996221,
+      "support_posture_error_deg": 0.5933115412445886,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J3_-1_r1.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.864081111149062,
+      "absolute_gravity_load_nm": 0.520648897462383,
+      "onset_elapsed_s": 5.762321763999353,
+      "support_posture_error_deg": 0.2732075668005223,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J3_-1_r2.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0009973351498047123,
+      "absolute_gravity_load_nm": 0.6388178051278777,
+      "onset_elapsed_s": 0.008495529997162521,
+      "support_posture_error_deg": 0.5651431835029257,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J3_-1_r3.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.7680291274500632,
+      "absolute_gravity_load_nm": 0.4263450052649569,
+      "onset_elapsed_s": 5.122565487996326,
+      "support_posture_error_deg": 0.5933115412445886,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J3_-1_r4.json",
+      "joint": 3,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.8563222375501937,
+      "absolute_gravity_load_nm": 0.47134740658819496,
+      "onset_elapsed_s": 5.710791247001907,
+      "support_posture_error_deg": 0.7837092369433378,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J4_+1_r0.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.023216056959936397,
+      "absolute_gravity_load_nm": 0.09988348815646428,
+      "onset_elapsed_s": 0.29199818200140726,
+      "support_posture_error_deg": 0.959440340818162,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_+1_r1.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.049111601519980466,
+      "absolute_gravity_load_nm": 0.10128240464591948,
+      "onset_elapsed_s": 0.6163988629996311,
+      "support_posture_error_deg": 0.937583735474135,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_low_J4_+1_r2.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.008164921519928613,
+      "absolute_gravity_load_nm": 0.057087880648431094,
+      "onset_elapsed_s": 0.1038617560043349,
+      "support_posture_error_deg": 0.26721898332897354,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_+1_r3.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.011203861359972507,
+      "absolute_gravity_load_nm": 0.06340598776443535,
+      "onset_elapsed_s": 0.14186914599849842,
+      "support_posture_error_deg": 0.4857850367694141,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_+1_r4.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.012946219039731659,
+      "absolute_gravity_load_nm": 0.031116172813599297,
+      "onset_elapsed_s": 0.1642998349998379,
+      "support_posture_error_deg": 0.5633320197445641,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_-1_r0.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0009760216000722721,
+      "absolute_gravity_load_nm": 0.047261980797897896,
+      "onset_elapsed_s": 0.014020637005160097,
+      "support_posture_error_deg": 0.28907558867302896,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_-1_r1.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0002090899198083207,
+      "absolute_gravity_load_nm": 0.07954337343120566,
+      "onset_elapsed_s": 0.004706255000201054,
+      "support_posture_error_deg": 0.937583735474135,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_-1_r2.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00033619991969317196,
+      "absolute_gravity_load_nm": 0.05989440790693193,
+      "onset_elapsed_s": 0.005998237997118849,
+      "support_posture_error_deg": 0.4348818125612013,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_-1_r3.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0003355976799502969,
+      "absolute_gravity_load_nm": 0.06971927030945801,
+      "onset_elapsed_s": 0.005971404003503267,
+      "support_posture_error_deg": 0.9229717851635542,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_low_J4_-1_r4.json",
+      "joint": 4,
+      "load_level": "low",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00019324320019222795,
+      "absolute_gravity_load_nm": 0.05710212768843975,
+      "onset_elapsed_s": 0.004228789002809208,
+      "support_posture_error_deg": 0.4348818125612013,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_+1_r0.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0008973431999038439,
+      "absolute_gravity_load_nm": 6.901871804931275,
+      "onset_elapsed_s": 0.008333348996529821,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_+1_r1.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 2.083702372200787,
+      "absolute_gravity_load_nm": 7.5168381916759754,
+      "onset_elapsed_s": 13.893168855000113,
+      "support_posture_error_deg": 0.34564422742664647,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_+1_r2.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0012565534496388863,
+      "absolute_gravity_load_nm": 7.162212497024821,
+      "onset_elapsed_s": 0.010129274996870663,
+      "support_posture_error_deg": 0.30193101673859246,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_+1_r3.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.002407067250169348,
+      "absolute_gravity_load_nm": 6.942698504164909,
+      "onset_elapsed_s": 0.01786555199942086,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_+1_r4.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.001188415950309718,
+      "absolute_gravity_load_nm": 7.166621570313504,
+      "onset_elapsed_s": 0.0096787740039872,
+      "support_posture_error_deg": 0.30193101673859246,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_-1_r0.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0009553594507451634,
+      "absolute_gravity_load_nm": 7.487211580819711,
+      "onset_elapsed_s": 0.008300598005007487,
+      "support_posture_error_deg": 0.45492725414686674,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_-1_r1.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.0684006734500144,
+      "absolute_gravity_load_nm": 7.1864893723282135,
+      "onset_elapsed_s": 13.790704772996833,
+      "support_posture_error_deg": 0.2582178060504816,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_-1_r2.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.1001176839996334,
+      "absolute_gravity_load_nm": 7.110577211637546,
+      "onset_elapsed_s": 14.002573386002041,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_-1_r3.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0008939802002714713,
+      "absolute_gravity_load_nm": 7.4583122730787,
+      "onset_elapsed_s": 0.007760879001580179,
+      "support_posture_error_deg": 0.49864046483494917,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J2_-1_r4.json",
+      "joint": 2,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0006479474996012868,
+      "absolute_gravity_load_nm": 7.517713084066144,
+      "onset_elapsed_s": 0.006217845002538525,
+      "support_posture_error_deg": 0.607923491555141,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_+1_r0.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.2696546679500897,
+      "absolute_gravity_load_nm": 6.044885684186521,
+      "onset_elapsed_s": 8.466191188999801,
+      "support_posture_error_deg": 0.2732075668005223,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_+1_r1.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 1.122905204250128,
+      "absolute_gravity_load_nm": 6.04537524946856,
+      "onset_elapsed_s": 7.488394941996376,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_+1_r2.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0012911519999761368,
+      "absolute_gravity_load_nm": 6.052234077637452,
+      "onset_elapsed_s": 0.009876976000668947,
+      "support_posture_error_deg": 0.5633320197445641,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_+1_r3.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0009230842493707313,
+      "absolute_gravity_load_nm": 6.159032777776149,
+      "onset_elapsed_s": 0.007968786994752008,
+      "support_posture_error_deg": 0.3109321940170844,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_+1_r4.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.8908049302510335,
+      "absolute_gravity_load_nm": 6.076431192837827,
+      "onset_elapsed_s": 5.940490057000716,
+      "support_posture_error_deg": 0.3765020100491938,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_-1_r0.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.0725300651509313,
+      "absolute_gravity_load_nm": 6.032185334914011,
+      "onset_elapsed_s": 13.819217863005179,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_-1_r1.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.248690956450082,
+      "absolute_gravity_load_nm": 6.0480193540870815,
+      "onset_elapsed_s": 14.993099430001166,
+      "support_posture_error_deg": 0.5633320197445641,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_-1_r2.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.251091648100555,
+      "absolute_gravity_load_nm": 6.042768010203165,
+      "onset_elapsed_s": 15.009090302002733,
+      "support_posture_error_deg": 0.163924540080302,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_-1_r3.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.221107737850616,
+      "absolute_gravity_load_nm": 6.118675394883188,
+      "onset_elapsed_s": 14.809231425002508,
+      "support_posture_error_deg": 0.9448283905076096,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J3_-1_r4.json",
+      "joint": 3,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.327239819350143,
+      "absolute_gravity_load_nm": 6.11243385425262,
+      "onset_elapsed_s": 15.516746831999626,
+      "support_posture_error_deg": 0.8792585744755002,
+      "accepted": true
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_+1_r0.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.005782101919758134,
+      "absolute_gravity_load_nm": 1.5780793797740185,
+      "onset_elapsed_s": 0.07409805699717253,
+      "support_posture_error_deg": 0.49957336747081627,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_+1_r1.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.00062717896013055,
+      "absolute_gravity_load_nm": 1.5795180530051096,
+      "onset_elapsed_s": 0.01021053900331026,
+      "support_posture_error_deg": 0.2782632476361755,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_+1_r2.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.00289119167951867,
+      "absolute_gravity_load_nm": 1.5860060871858526,
+      "onset_elapsed_s": 0.03802759599784622,
+      "support_posture_error_deg": 0.4121469460946514,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_+1_r3.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.0006358199997339398,
+      "absolute_gravity_load_nm": 1.5762743814382674,
+      "onset_elapsed_s": 0.009752381993166637,
+      "support_posture_error_deg": 0.18578114542435742,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_+1_r4.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": 1,
+      "breakaway_magnitude_nm": 0.00703005216026213,
+      "absolute_gravity_load_nm": 1.5773612872062475,
+      "onset_elapsed_s": 0.09036763699987205,
+      "support_posture_error_deg": 0.5214299728148717,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_-1_r0.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": -0.0,
+      "absolute_gravity_load_nm": 1.5877613273066766,
+      "onset_elapsed_s": 2.71997123491019e-07,
+      "support_posture_error_deg": 0.24629528062081363,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_-1_r1.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.0014461541594937444,
+      "absolute_gravity_load_nm": 1.5791682053927687,
+      "onset_elapsed_s": 0.01988806699955603,
+      "support_posture_error_deg": 0.5432865781588987,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_-1_r2.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": -0.0,
+      "absolute_gravity_load_nm": 1.5920080264621765,
+      "onset_elapsed_s": 2.5999906938523054e-07,
+      "support_posture_error_deg": 0.45586015678273384,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_-1_r3.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 0.00018843608035240322,
+      "absolute_gravity_load_nm": 1.5816934953333381,
+      "onset_elapsed_s": 0.00416504500026349,
+      "support_posture_error_deg": 0.49957336747081627,
+      "accepted": false
+    },
+    {
+      "file": "breakaway_multiload_mid_J4_-1_r4.json",
+      "joint": 4,
+      "load_level": "mid",
+      "direction": -1,
+      "breakaway_magnitude_nm": 2.56003113463521e-08,
+      "absolute_gravity_load_nm": 1.5899092533962569,
+      "onset_elapsed_s": 0.0023749320025672205,
+      "support_posture_error_deg": 0.32472052471848656,
+      "accepted": false
+    }
+  ]
+}

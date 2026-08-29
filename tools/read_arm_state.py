@@ -22,7 +22,6 @@ PRINT_PERIOD_SECONDS = 0.5
 EMPTY_POLL_SLEEP_SECONDS = 0.0005
 MUJOCO_RENDER_HZ = 10.0
 ENABLE_MUJOCO_TWIN = True
-USE_OLD_WILLOW_MESH_MODEL = False  # latest kinematics + old Willow display meshes
 
 ROOT = Path(__file__).resolve().parent
 SOURCE_DESCRIPTION = (
@@ -31,6 +30,7 @@ SOURCE_DESCRIPTION = (
 SOURCE_URDF = SOURCE_DESCRIPTION / "urdf" / "willow-v0.2.urdf"
 TWIN_DIR = SOURCE_DESCRIPTION / "mujoco_twin"
 TWIN_URDF = TWIN_DIR / "willow-v0.2-new-geometry-old-mesh.mujoco.urdf"
+TWIN_MJCF = TWIN_DIR / "willow-v0.2-calibrated-inertia-old-geometry-mesh.xml"
 TWIN_MESH_DIR = TWIN_DIR / "old_willow_meshes"
 MAX_TWIN_MESH_FACES = 80_000
 OLD_TWIN_XML = ROOT / "willow_digital_twin" / "willow.xml"
@@ -107,20 +107,68 @@ def _build_mujoco_urdf() -> Path:
     return TWIN_URDF
 
 
+def _build_mujoco_mjcf() -> Path:
+    """Rebuild the viewer MJCF from the known-good old geometry hierarchy.
+
+    Willow v0.2 changed only inertial properties for this calibration.  The
+    old MJCF therefore remains the authoritative mesh/frame hierarchy; mass,
+    COM and the full inertia tensor are copied from the latest URDF.
+    """
+    if not SOURCE_URDF.is_file() or not OLD_TWIN_XML.is_file():
+        raise FileNotFoundError("latest URDF or known-good Willow MJCF is missing")
+    sources = [SOURCE_URDF, OLD_TWIN_XML, *OLD_WILLOW_MESH_DIR.glob("*.STL")]
+    newest_source = max(path.stat().st_mtime for path in sources)
+    if TWIN_MJCF.is_file() and TWIN_MJCF.stat().st_mtime >= newest_source:
+        return TWIN_MJCF
+
+    urdf_root = ET.parse(SOURCE_URDF).getroot()
+    mjcf_tree = ET.parse(OLD_TWIN_XML)
+    mjcf_root = mjcf_tree.getroot()
+
+    # The output MJCF lives in another directory, so make old display meshes
+    # explicit absolute paths rather than relying on XML-relative resolution.
+    for mesh in mjcf_root.findall("./asset/mesh"):
+        mesh.set("file", str(OLD_WILLOW_MESH_DIR / Path(mesh.get("file", "")).name))
+
+    for index in range(1, 7):
+        source = urdf_root.find(f"link[@name='link_{index}']/inertial")
+        body = mjcf_root.find(f".//body[@name='link{index}']")
+        if source is None or body is None:
+            raise RuntimeError(f"cannot map latest URDF link_{index} to MJCF link{index}")
+        target = body.find("inertial")
+        if target is None:
+            target = ET.SubElement(body, "inertial")
+        origin = source.find("origin")
+        mass = source.find("mass")
+        inertia = source.find("inertia")
+        if origin is None or mass is None or inertia is None:
+            raise RuntimeError(f"latest URDF link_{index} has incomplete inertial data")
+        target.attrib.clear()
+        target.set("pos", origin.get("xyz", "0 0 0"))
+        target.set("mass", mass.get("value"))
+        target.set("fullinertia", " ".join(inertia.get(name) for name in
+            ("ixx", "iyy", "izz", "ixy", "ixz", "iyz")))
+
+    TWIN_DIR.mkdir(parents=True, exist_ok=True)
+    mjcf_tree.write(TWIN_MJCF, encoding="utf-8", xml_declaration=True)
+    print(f"Rebuilt MuJoCo MJCF: {TWIN_MJCF}")
+    return TWIN_MJCF
+
+
 def _open_twin():
     if not ENABLE_MUJOCO_TWIN:
         return None, None, None, None
     import mujoco
     import mujoco.viewer
 
-    model_path = OLD_TWIN_XML if USE_OLD_WILLOW_MESH_MODEL else _build_mujoco_urdf()
+    model_path = _build_mujoco_mjcf()
     if not model_path.is_file():
         raise FileNotFoundError(f"MuJoCo twin model is missing: {model_path}")
     model = mujoco.MjModel.from_xml_path(str(model_path))
     data = mujoco.MjData(model)
     joint_qpos = []
     for index in range(1, 7):
-        joint_name = f"joint{index}" if USE_OLD_WILLOW_MESH_MODEL else f"joint_{index}"
+        joint_name = f"joint{index}"
         joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
         if joint_id < 0:
             raise RuntimeError(f"MuJoCo {joint_name} not found")
