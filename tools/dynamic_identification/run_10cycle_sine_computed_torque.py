@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Ten-cycle Willow joint-space sine demo with host computed torque.
+"""Ten-cycle Willow joint-space sine demo with identified dynamics feedforward.
 
-The actual tracking segment sends pure torque through MIT (kp=kd=0) and turns
-firmware gravity off.  Pinocchio always evaluates measured q/dq; MuJoCo or the
-reference state is never used as hidden plant state.
+The tau field is computed from measured q/dq by Pinocchio.  MIT joint PD at
+50% of the verified gains closes the tracking loop; the unstable host
+mass-matrix error feedback is disabled.  Firmware gravity is off, and
+MuJoCo/reference state is never used as hidden plant state.
 """
 from __future__ import annotations
 
 import hashlib
+import csv
 import os
 import sys
 import time
@@ -45,19 +47,33 @@ ENDPOINT_BLEND_S = 1.5
 # Acceleration-space tracking gains for tau=M(q)v+C(q,dq)dq+g(q).
 KP_ACC = np.array([20., 24., 24., 30., 30., 30.])
 KD_ACC = np.array([8., 9., 9., 10., 10., 10.])
+# The identified inverse dynamics is used as feedforward.  A 50%-strength MIT
+# joint PD closes the tracking loop while the poorly identified host
+# mass-matrix feedback is deliberately disabled.
+ENABLE_HOST_MASS_MATRIX_FEEDBACK = False
+TRACK_MIT_KP = np.array([15.0, 30.0, 30.0, 25.0, 20.0, 9.0], dtype=np.float32)
+TRACK_MIT_KD = np.array([0.80, 1.00, 0.85, 0.70, 0.55, 0.60], dtype=np.float32)
 TAU_LIMIT_NM = np.array([40., 40., 40., 12., 12., 12.])
+# Empirical scale of the non-gravity rigid-body torque, regressed from the
+# time-aligned MIT 90 deg/s run (20260829T185804). Gravity and identified
+# friction/breakaway are deliberately not scaled. J6's predicted dynamic term
+# is only about 0.013 Nm and was not observable, so it remains at unity.
+DYNAMIC_TORQUE_SCALE = np.array([0.15, 0.53, 0.93, 0.78, 0.30, 1.00])
 MAX_FOLLOWING_ERROR_DEG = np.array([20., 20., 20., 25., 25., 25.])
 STATE_TIMEOUT_S = 0.08
 MAX_INTERFRAME_S = 0.020
 MIN_CONTROL_RATE_HZ = 300.0
 RATE_WINDOW_S = 1.0
-MAX_RUN_ATTEMPTS = 3
+# A tracking failure is not retried automatically: after pure-torque control
+# has lost the trajectory, an immediate return move can be unsafe.  Restart is
+# an explicit operator decision after inspecting the stopped arm.
+MAX_RUN_ATTEMPTS = 1
 
-# Soft position-mode bridge used only to reach A and return to measured startup.
-MOVE_KP = np.array([30., 60., 60., 50., 40., 18.], dtype=np.float32)
-MOVE_KD = np.array([1.6, 2.0, 1.7, 1.4, 1.1, 1.2], dtype=np.float32)
+# Computed-torque transition used to reach A and return to measured startup.
 MOVE_SPEED_DEG_S = 60.0
 MOVE_MAX_ACCEL_DEG_S2 = 60.0
+MOVE_MIT_KP = np.array([30., 60., 60., 50., 40., 18.], dtype=np.float32)
+MOVE_MIT_KD = np.array([1.6, 2.0, 1.7, 1.4, 1.1, 1.2], dtype=np.float32)
 TAKEOVER_HOLD_S = 0.5
 TARGET_HOLD_S = 1.0
 CORRECTION_RAMP_S = 1.0
@@ -65,6 +81,7 @@ MAX_ENTRY_ERROR_DEG = 8.0
 MAX_ENTRY_SPEED_DEG_S = 5.0
 RETURN_TO_MEASURED_START = True
 LOG_DIR = ROOT / "runs_computed_torque_10cycle"
+LOG_FSYNC_PERIOD_S = 0.25
 
 
 def sha256(path: Path) -> str:
@@ -79,6 +96,20 @@ def read_valid(reader, timeout=STATE_TIMEOUT_S, last_seq=None):
             return state
         time.sleep(0.0002)
     raise TimeoutError("no valid ArmState")
+
+
+def drain_feedback_queue(reader):
+    """Discard pre-confirmation feedback backlog and return the newest frame."""
+    latest = read_valid(reader, 2.0)
+    drained = 1
+    while True:
+        state = reader.read_once()
+        if int(state.seq) == 0:
+            break
+        latest = state
+        drained += 1
+    checked_state(latest)
+    return latest, drained
 
 
 def mit_command(q, dq, tau, kp=None, kd=None):
@@ -176,6 +207,18 @@ def build_reference():
     )
 
 
+def shift_reference_near_encoder(reference, measured_q):
+    """Choose the 2*pi-equivalent reference branch nearest current encoders."""
+    t, q, dq, ddq, period = reference
+    offsets = 2.0 * np.pi * np.round((np.asarray(measured_q) - q[0]) / (2.0 * np.pi))
+    return (t, q + offsets[None, :], dq, ddq, period), offsets
+
+
+def principal_angle(q):
+    """Equivalent angle in [-pi, pi), for human-readable physical pose."""
+    return (np.asarray(q, dtype=float) + np.pi) % (2.0 * np.pi) - np.pi
+
+
 def load_models_and_actuator_inertia():
     import json
 
@@ -205,21 +248,31 @@ def friction_terms(q, dq, model, data, models, breakaway_models):
     return friction, breakaway
 
 
-def soft_move(control, model, data, target, models, breakaway_models):
-    state = read_valid(control, 2.0)
+def soft_move(control, model, data, target, models, breakaway_models,
+              actuator_inertia, telemetry=None, phase="mit_position_bridge"):
+    """Use verified MIT position interpolation to enter/leave the test pose.
+
+    Pure computed torque is enabled only after this bridge has reached the
+    reference start.  The bridge tau field contains gravity/friction only.
+    """
+    del actuator_inertia
+    state, drained = drain_feedback_queue(control)
     start, _, _ = checked_state(state)
     last_seq = int(state.seq)
+    if drained > 1:
+        print(f"MIT position bridge: discarded {drained-1} stale feedback frames")
     hold_until = time.monotonic() + TAKEOVER_HOLD_S
-    next_tick = time.monotonic()
     while time.monotonic() < hold_until:
-        wait_for_tick(next_tick)
-        next_tick += CONTROL_PERIOD_S
         state = read_valid(control, last_seq=last_seq)
         last_seq = int(state.seq)
-        q, dq, _ = checked_state(state)
+        q, dq, tau_measured = checked_state(state)
         friction, breakaway = friction_terms(q, dq, model, data, models, breakaway_models)
-        tau = checked_torque(pin.computeGeneralizedGravity(model, data, q) + friction + breakaway, "soft takeover")
-        control.write_once(mit_command(start, np.zeros(6), tau, MOVE_KP * 0.25, MOVE_KD))
+        gravity = np.asarray(pin.computeGeneralizedGravity(model, data, q), dtype=float)
+        tau = checked_torque(gravity + friction + breakaway, "MIT bridge feedforward")
+        control.write_once(mit_command(start, np.zeros(6), tau, MOVE_MIT_KP, MOVE_MIT_KD))
+        if telemetry is not None:
+            telemetry.write(state, q, dq, tau_measured, start, np.zeros(6), tau,
+                            phase + "_takeover")
 
     delta = np.asarray(target) - start
     distance = float(np.max(np.abs(delta)))
@@ -227,70 +280,95 @@ def soft_move(control, model, data, target, models, breakaway_models):
     acceleration_duration = np.sqrt(5.8 * distance / np.deg2rad(MOVE_MAX_ACCEL_DEG_S2))
     duration = max(1.0, velocity_duration, acceleration_duration)
     begin = time.monotonic()
-    next_tick = begin
     frames = 0
+    last_print = begin - 1.0
     while True:
-        wait_for_tick(next_tick)
-        next_tick += CONTROL_PERIOD_S
         u = min(1.0, (time.monotonic() - begin) / duration)
         alpha = 10*u**3 - 15*u**4 + 6*u**5
         alpha_d = (30*u**2 - 60*u**3 + 30*u**4) / duration
+        alpha_dd = (60*u - 180*u**2 + 120*u**3) / (duration * duration)
         desired = start + alpha * delta
         desired_dq = alpha_d * delta
         state = read_valid(control, last_seq=last_seq)
         last_seq = int(state.seq)
-        q, dq, _ = checked_state(state)
+        q, dq, tau_measured = checked_state(state)
         friction, breakaway = friction_terms(q, dq, model, data, models, breakaway_models)
-        tau = checked_torque(pin.computeGeneralizedGravity(model, data, q) + friction + breakaway, "soft move")
-        control.write_once(mit_command(desired, desired_dq, tau, MOVE_KP, MOVE_KD))
+        gravity = np.asarray(pin.computeGeneralizedGravity(model, data, q), dtype=float)
+        tau = checked_torque(gravity + friction + breakaway, "MIT bridge feedforward")
+        control.write_once(mit_command(desired, desired_dq, tau, MOVE_MIT_KP, MOVE_MIT_KD))
+        if telemetry is not None:
+            telemetry.write(state, q, dq, tau_measured, desired, desired_dq, tau, phase)
         frames += 1
+        now = time.monotonic()
+        if now - last_print >= 1.0:
+            print(
+                f"MIT position bridge t={now-begin:.2f}/{duration:.2f}s "
+                f"max_error={np.max(np.abs(np.rad2deg(desired-q))):.2f}deg "
+                f"mode=MIT-position-bridge"
+            )
+            last_print = now
         if u >= 1.0:
             break
     hold_begin = time.monotonic()
-    next_tick = hold_begin
     while time.monotonic() - hold_begin < TARGET_HOLD_S:
-        wait_for_tick(next_tick)
-        next_tick += CONTROL_PERIOD_S
         state = read_valid(control, last_seq=last_seq)
         last_seq = int(state.seq)
-        q, dq, _ = checked_state(state)
+        q, dq, tau_measured = checked_state(state)
         friction, breakaway = friction_terms(q, dq, model, data, models, breakaway_models)
-        tau = checked_torque(pin.computeGeneralizedGravity(model, data, q) + friction + breakaway, "target hold")
-        control.write_once(mit_command(target, np.zeros(6), tau, MOVE_KP, MOVE_KD))
+        gravity = np.asarray(pin.computeGeneralizedGravity(model, data, q), dtype=float)
+        tau = checked_torque(gravity + friction + breakaway, "MIT bridge feedforward")
+        control.write_once(mit_command(target, np.zeros(6), tau, MOVE_MIT_KP, MOVE_MIT_KD))
+        if telemetry is not None:
+            telemetry.write(state, q, dq, tau_measured, target, np.zeros(6), tau,
+                            phase + "_hold")
         frames += 1
     final_q, final_dq, _ = checked_state(state)
     final_error_deg = float(np.max(np.abs(np.rad2deg(target - final_q))))
     final_speed_deg_s = float(np.max(np.abs(np.rad2deg(final_dq))))
     print(
-        f"soft transition: {duration:.2f}s + {TARGET_HOLD_S:.1f}s hold, "
+        f"MIT position bridge: {duration:.2f}s + {TARGET_HOLD_S:.1f}s hold, "
         f"rate={frames/max(time.monotonic()-begin, 1e-9):.1f}Hz, "
         f"final_error={final_error_deg:.2f}deg, "
         f"final_speed={final_speed_deg_s:.2f}deg/s"
     )
     if final_error_deg > MAX_ENTRY_ERROR_DEG or final_speed_deg_s > MAX_ENTRY_SPEED_DEG_S:
         raise RuntimeError(
-            f"MIT bridge not ready for torque mode: error={final_error_deg:.2f}deg, "
+            f"MIT position bridge did not reach target: error={final_error_deg:.2f}deg, "
             f"speed={final_speed_deg_s:.2f}deg/s"
         )
 
 
 def bounded_computed_torque(model, data, q, dq, ddq_ref, correction,
                             friction, breakaway, actuator_inertia, ramp):
-    """Retain full model feedforward and scale only the feedback correction."""
+    """Computed torque with separately treated feedforward and feedback.
+
+    The empirical per-axis scale belongs only to the identified reference
+    feedforward.  Applying it row-wise to M(q) * feedback_acceleration destroys
+    the standard computed-torque closed loop and was the cause of the weak,
+    coupled correction seen in the first hardware attempt.
+    """
     base_acceleration = np.asarray(ddq_ref, dtype=float)
+    gravity = np.asarray(pin.computeGeneralizedGravity(model, data, q), dtype=float)
     base_rigid = np.asarray(pin.rnea(model, data, q, dq, base_acceleration), dtype=float)
     base_actuator = actuator_inertia * base_acceleration
+    base_dynamic = base_rigid - gravity + base_actuator
     base_tau = checked_torque(
-        base_rigid + base_actuator + friction + breakaway, "model feedforward"
+        gravity + friction + breakaway + DYNAMIC_TORQUE_SCALE * base_dynamic,
+        "model feedforward",
     )
+    mass = np.asarray(pin.crba(model, data, q), dtype=float)
+    mass = 0.5 * (mass + mass.T)
+    effective_mass = mass + np.diag(actuator_inertia)
+    feedback_tau = effective_mass @ np.asarray(correction, dtype=float)
 
     requested_scale = float(np.clip(ramp, 0.0, 1.0))
 
     def evaluate(scale):
         acceleration = base_acceleration + scale * correction
-        rigid = np.asarray(pin.rnea(model, data, q, dq, acceleration), dtype=float)
-        actuator = actuator_inertia * acceleration
-        return acceleration, rigid, actuator, rigid + actuator + friction + breakaway
+        rigid = base_rigid + mass @ (scale * correction)
+        actuator = base_actuator + actuator_inertia * (scale * correction)
+        tau = base_tau + scale * feedback_tau
+        return acceleration, rigid, actuator, tau
 
     acceleration, rigid, actuator, tau = evaluate(requested_scale)
     if np.any(np.abs(tau) > TAU_LIMIT_NM):
@@ -312,11 +390,15 @@ def bounded_computed_torque(model, data, q, dq, ddq_ref, correction,
     )
 
 
-def run_reference(control, model, data, reference, models, breakaway_models, actuator_inertia):
+def run_reference(control, model, data, reference, models, breakaway_models,
+                  actuator_inertia, telemetry=None):
     t, q_ref, dq_ref, ddq_ref, _ = reference
     sample_period = float(np.median(np.diff(t)))
+    state, drained = drain_feedback_queue(control)
+    if drained > 1:
+        print(f"computed-torque reference: discarded {drained-1} stale feedback frames")
     started = time.monotonic()
-    last_seq = None
+    last_seq = int(state.seq)
     last_frame = None
     index = 0
     rate_started = started
@@ -326,10 +408,7 @@ def run_reference(control, model, data, reference, models, breakaway_models, act
         "ddq_ref", "ddq_cmd", "tau_rigid", "tau_actuator", "tau_friction",
         "tau_breakaway", "tau_command", "feedback_correction_scale", "tau_model_feedforward",
     )}
-    next_tick = started
     while index < len(t):
-        wait_for_tick(next_tick)
-        next_tick += CONTROL_PERIOD_S
         elapsed = time.monotonic() - started
         desired_index = min(int(elapsed / sample_period), len(t) - 1)
         state = read_valid(control, last_seq=last_seq)
@@ -343,17 +422,39 @@ def run_reference(control, model, data, reference, models, breakaway_models, act
         dqr = dq_ref[desired_index]
         ddqr = ddq_ref[desired_index]
         error_deg = np.abs(np.rad2deg(qr - q))
-        if np.any(error_deg > MAX_FOLLOWING_ERROR_DEG):
-            raise RuntimeError(f"following error exceeded: {np.round(error_deg, 2)}deg")
-        correction = KP_ACC * (qr - q) + KD_ACC * (dqr - dq)
+        correction = (
+            KP_ACC * (qr - q) + KD_ACC * (dqr - dq)
+            if ENABLE_HOST_MASS_MATRIX_FEEDBACK else np.zeros(6)
+        )
         friction, breakaway = friction_terms(q, dq, model, data, models, breakaway_models)
-        ramp = min(1.0, elapsed / CORRECTION_RAMP_S)
+        ramp = (
+            min(1.0, elapsed / CORRECTION_RAMP_S)
+            if ENABLE_HOST_MASS_MATRIX_FEEDBACK else 0.0
+        )
         acceleration, rigid, actuator, tau, applied_scale, base_tau = bounded_computed_torque(
             model, data, q, dq, ddqr, correction, friction, breakaway,
             actuator_inertia, ramp,
         )
-        # Pure torque tracking segment: no hidden MIT position/velocity gains.
-        control.write_once(mit_command(np.zeros(6), np.zeros(6), tau))
+        if np.any(error_deg > MAX_FOLLOWING_ERROR_DEG):
+            if telemetry is not None:
+                telemetry.write(
+                    state, q, dq, measured_tau, qr, dqr, tau,
+                    "computed_reference_abort", command_written=False,
+                )
+            raise RuntimeError(
+                "following error exceeded before torque write: "
+                f"error={np.round(error_deg, 2)}deg, "
+                f"q={np.round(np.rad2deg(q), 2)}deg, "
+                f"tau_candidate={np.round(tau, 3)}Nm"
+            )
+        # Small, explicit MIT feedback is a first-run model-error stabilizer.
+        # The dominant command remains the host computed-torque tau field.
+        control.write_once(mit_command(qr, dqr, tau, TRACK_MIT_KP, TRACK_MIT_KD))
+        if telemetry is not None:
+            telemetry.write(
+                state, q, dq, measured_tau, qr, dqr, tau,
+                "computed_reference", command_written=True,
+            )
         for name, value in (
             ("time_s", elapsed), ("seq", int(state.seq)), ("errors", int(state.errors)),
             ("q", q.copy()), ("dq", dq.copy()), ("tau_measured", measured_tau.copy()),
@@ -371,7 +472,8 @@ def run_reference(control, model, data, reference, models, breakaway_models, act
             rate = rate_frames / (now - rate_started)
             print(
                 f"computed torque rate={rate:.1f}Hz, t={elapsed:.1f}/{t[-1]:.1f}s, "
-                f"max_error={np.max(error_deg):.2f}deg, correction_scale={applied_scale:.3f}"
+                f"max_error={np.max(error_deg):.2f}deg, host_mass_feedback={ENABLE_HOST_MASS_MATRIX_FEEDBACK}, "
+                f"tau={np.round(tau, 3)}Nm"
             )
             if rate < MIN_CONTROL_RATE_HZ:
                 raise RuntimeError(f"control rate {rate:.1f}Hz below {MIN_CONTROL_RATE_HZ:g}Hz")
@@ -390,10 +492,58 @@ def atomic_save(path, arrays, **metadata):
     temporary.replace(path)
 
 
+class CsvTelemetryLogger:
+    """One new streaming CSV per run; periodic fsync survives failed runs."""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream = self.path.open("w", encoding="utf-8", newline="", buffering=1024 * 1024)
+        self.writer = csv.writer(self.stream)
+        fields = [
+            "host_time_s", "monotonic_s", "phase", "command_written",
+            "seq", "source_timestamp_us", "errors",
+        ]
+        for prefix in ("q_deg", "dq_deg_s", "tau_measured_nm", "q_ref_deg", "dq_ref_deg_s", "tau_command_nm"):
+            fields.extend(f"{prefix}_j{joint}" for joint in range(1, 7))
+        self.writer.writerow(fields)
+        self.last_fsync = time.monotonic()
+        self.rows = 0
+        self.flush(force=True)
+
+    def write(self, state, q, dq, tau_measured, q_ref, dq_ref, tau_command,
+              phase, command_written=True):
+        vectors = (
+            np.rad2deg(q), np.rad2deg(dq), tau_measured,
+            np.rad2deg(q_ref), np.rad2deg(dq_ref), tau_command,
+        )
+        row = [
+            time.time(), time.monotonic(), phase, int(bool(command_written)),
+            int(state.seq), int(getattr(state, "source_timestamp_us", 0)), int(state.errors),
+        ]
+        for vector in vectors:
+            row.extend(np.asarray(vector, dtype=float).tolist())
+        self.writer.writerow(row)
+        self.rows += 1
+        self.flush()
+
+    def flush(self, force=False):
+        now = time.monotonic()
+        if force or now - self.last_fsync >= LOG_FSYNC_PERIOD_S:
+            self.stream.flush()
+            os.fsync(self.stream.fileno())
+            self.last_fsync = now
+
+    def close(self):
+        if not self.stream.closed:
+            self.flush(force=True)
+            self.stream.close()
+
+
 def recoverable(error):
     text = str(error).lower()
     return friction_ff.recoverable(error) or any(token in text for token in (
-        "following error", "feedback gap", "control rate",
+        "feedback gap", "control rate",
     ))
 
 
@@ -405,11 +555,18 @@ def main():
     models, breakaway_models, actuator_inertia = load_models_and_actuator_inertia()
     reference = build_reference()
     t, q_ref, dq_ref, ddq_ref, period = reference
-    nominal = np.asarray([
-        pin.rnea(model, data, q, dq, ddq) + actuator_inertia * ddq
-        + sum(friction_terms(q, dq, model, data, models, breakaway_models))
-        for q, dq, ddq in zip(q_ref, dq_ref, ddq_ref)
-    ])
+    nominal = []
+    for q, dq, ddq in zip(q_ref, dq_ref, ddq_ref):
+        gravity = np.asarray(pin.computeGeneralizedGravity(model, data, q), dtype=float)
+        rigid = np.asarray(pin.rnea(model, data, q, dq, ddq), dtype=float)
+        friction, breakaway = friction_terms(
+            q, dq, model, data, models, breakaway_models
+        )
+        dynamic = rigid - gravity + actuator_inertia * ddq
+        nominal.append(
+            gravity + friction + breakaway + DYNAMIC_TORQUE_SCALE * dynamic
+        )
+    nominal = np.asarray(nominal)
     peak_speed = np.max(np.abs(np.rad2deg(dq_ref)), axis=0)
     peak_acceleration = np.max(np.abs(np.rad2deg(ddq_ref)), axis=0)
     peak_torque = np.max(np.abs(nominal), axis=0)
@@ -423,7 +580,11 @@ def main():
     print("peak reference acceleration deg/s^2:", np.round(peak_acceleration, 3))
     print("nominal computed-torque peak Nm:", np.round(peak_torque, 3))
     print("identified actuator inertia:", np.round(actuator_inertia, 6))
-    print("tracking MIT kp=kd=0; firmware_gravity=False")
+    print("dynamic torque scale J1..J6:", DYNAMIC_TORQUE_SCALE.tolist())
+    print("entry/return uses MIT position bridge kp:", MOVE_MIT_KP.tolist(), "kd:", MOVE_MIT_KD.tolist())
+    print("sine tau field uses identified inverse-dynamics feedforward; firmware_gravity=False")
+    print("host mass-matrix error feedback enabled:", ENABLE_HOST_MASS_MATRIX_FEEDBACK)
+    print("sine MIT tracking kp:", TRACK_MIT_KP.tolist(), "kd:", TRACK_MIT_KD.tolist())
     print("DISABLED PREVIEW:", not ENABLE_HARDWARE)
     if np.max(peak_speed) > MAX_REFERENCE_SPEED_DEG_S + 1e-6:
         raise RuntimeError("generated reference exceeds requested 90 deg/s")
@@ -437,27 +598,61 @@ def main():
         raise RuntimeError(f"Arm.create failed for {DEVICE_URI}")
     arm.automatic_error_recovery()
     time.sleep(1.0)
-    initial = read_valid(arm, 2.0)
-    initial_q, _, _ = checked_state(initial)
-    print("measured startup q_deg:", np.round(np.rad2deg(initial_q), 3))
+    preview_state, preview_drained = drain_feedback_queue(arm)
+    preview_q, _, _ = checked_state(preview_state)
+    print(f"startup preview: discarded {preview_drained-1} stale feedback frames")
+    print("raw encoder branch q_deg:", np.round(np.rad2deg(preview_q), 3))
+    print("measured startup physical-equivalent q_deg:",
+          np.round(np.rad2deg(principal_angle(preview_q)), 3))
     if input(f'Type exactly "{CONFIRMATION_PHRASE}": ') != CONFIRMATION_PHRASE:
         raise RuntimeError("confirmation mismatch; hardware remains disabled")
 
     run_id = time.strftime("%Y%m%dT%H%M%S")
     output = LOG_DIR / f"computed_torque_10cycle_{run_id}.npz"
+    csv_output = LOG_DIR / f"computed_torque_10cycle_{run_id}_500hz.csv"
+    telemetry = None
     try:
         control = friction_ff.start_session(arm)
+        initial, initial_drained = drain_feedback_queue(control)
+        initial_q, initial_dq, initial_tau = checked_state(initial)
+        print(f"confirmed startup: discarded {initial_drained-1} stale feedback frames")
+        print("confirmed raw encoder branch q_deg:", np.round(np.rad2deg(initial_q), 3))
+        print("confirmed physical-equivalent q_deg:",
+              np.round(np.rad2deg(principal_angle(initial_q)), 3))
+        runtime_reference, encoder_offsets = shift_reference_near_encoder(reference, initial_q)
+        runtime_q_ref = runtime_reference[1]
+        entry_delta_deg = np.rad2deg(runtime_q_ref[0] - initial_q)
+        print("encoder-equivalent reference offsets deg:", np.round(np.rad2deg(encoder_offsets), 3))
+        print("executed pose A encoder branch deg:", np.round(np.rad2deg(runtime_q_ref[0]), 3))
+        print("entry delta deg:", np.round(entry_delta_deg, 3))
+        if np.any(np.abs(entry_delta_deg) > 180.0 + 1e-6):
+            raise RuntimeError("encoder-equivalent entry delta unexpectedly exceeds 180 deg")
+        telemetry = CsvTelemetryLogger(csv_output)
+        telemetry.write(
+            initial, initial_q, initial_dq, initial_tau,
+            initial_q, np.zeros(6), np.full(6, np.nan),
+            "confirmed_start", command_written=False,
+        )
+        print("500 Hz per-run CSV log:", csv_output)
         for attempt in range(1, MAX_RUN_ATTEMPTS + 1):
             try:
                 print(f"computed-torque attempt {attempt}/{MAX_RUN_ATTEMPTS}")
-                soft_move(control, model, data, q_ref[0], models, breakaway_models)
+                soft_move(
+                    control, model, data, runtime_q_ref[0], models,
+                    breakaway_models, actuator_inertia, telemetry,
+                    "mit_bridge_to_A",
+                )
                 arrays = run_reference(
-                    control, model, data, reference, models, breakaway_models,
-                    actuator_inertia,
+                    control, model, data, runtime_reference, models,
+                    breakaway_models, actuator_inertia, telemetry,
                 )
                 if RETURN_TO_MEASURED_START:
                     print("returning smoothly to measured startup pose")
-                    soft_move(control, model, data, initial_q, models, breakaway_models)
+                    soft_move(
+                        control, model, data, initial_q, models,
+                        breakaway_models, actuator_inertia, telemetry,
+                        "mit_bridge_return",
+                    )
                     print("measured startup pose restored")
                 atomic_save(
                     output, arrays, urdf_sha256=np.asarray(sha256(URDF)),
@@ -466,6 +661,11 @@ def main():
                     pose_b_executed_deg=POSE_B_EXECUTED_DEG,
                     round_trips=np.asarray(ROUND_TRIPS),
                     max_reference_speed_deg_s=np.asarray(MAX_REFERENCE_SPEED_DEG_S),
+                    dynamic_torque_scale=DYNAMIC_TORQUE_SCALE,
+                    encoder_reference_offsets_rad=encoder_offsets,
+                    host_mass_matrix_feedback_enabled=np.asarray(ENABLE_HOST_MASS_MATRIX_FEEDBACK),
+                    track_mit_kp=TRACK_MIT_KP.astype(float),
+                    track_mit_kd=TRACK_MIT_KD.astype(float),
                     run_completed=np.asarray(True),
                 )
                 print("telemetry saved+fsynced:", output)
@@ -476,9 +676,15 @@ def main():
                 print("recoverable computed-torque failure:", error)
                 arm, control = friction_ff.recover_session(arm, error)
                 print("fault cleared; returning to measured startup pose before retry")
-                soft_move(control, model, data, initial_q, models, breakaway_models)
+                soft_move(
+                    control, model, data, initial_q, models, breakaway_models,
+                    actuator_inertia,
+                )
                 print("restarting all 10 cycles from the beginning")
     finally:
+        if telemetry is not None:
+            telemetry.close()
+            print(f"500 Hz CSV closed+fsynced: {telemetry.path} rows={telemetry.rows}")
         friction_ff.best_effort_disable(arm)
         print("All axes disabled.")
 

@@ -8,6 +8,11 @@ __pycache__
 build_*
 build-*
 launch.json
+.idea/
+.pytest_cache/
+**/__pycache__/
+*.py[cod]
+*.log
 
 # Real-arm calibration telemetry and runtime checkpoints.
 # Keep scripts, excitation designs, fitted parameters, and exported URDFs in Git;
@@ -16,3 +21,10 @@ tools/dynamic_identification/runs/
 tools/dynamic_identification/runs_dynamic_batch/
 tools/dynamic_identification/runs_mit_position_diagnostic/
 tools/dynamic_identification/*.csv
+
+# All raw real-arm runs are local datasets.  The calibration/controller code,
+# compact fitted JSON/NPZ parameters, audited excitation designs, and exported
+# URDFs remain versioned; high-rate telemetry does not.
+tools/dynamic_identification/runs*/
+tools/friction_calibration/runs*/
+tools/static_gravity_calibration/runs*/
