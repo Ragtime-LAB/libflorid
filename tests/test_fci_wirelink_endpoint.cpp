@@ -903,8 +903,13 @@ void testTypedEndpointLifecycle() {
     const auto s_poll_after = s_host.stats().m_runtime_poll_calls;
     require(s_poll_after - s_poll_before < 20,
             "RPC deadline handling busy-spun");
+    // Let the terminal RX/TX wake already queued by the timeout settle before
+    // measuring idle behavior. The second window must remain completely
+    // event-driven.
+    std::this_thread::sleep_for(50ms);
+    const auto s_idle_poll_count = s_host.stats().m_runtime_poll_calls;
     std::this_thread::sleep_for(30ms);
-    require(s_host.stats().m_runtime_poll_calls == s_poll_after,
+    require(s_host.stats().m_runtime_poll_calls == s_idle_poll_count,
             "idle endpoint retained a hidden periodic wakeup");
 
     s_host_to_device.m_busy.store(true, std::memory_order_release);
