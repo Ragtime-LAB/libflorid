@@ -19,6 +19,9 @@ namespace {
 using namespace std::chrono_literals;
 using florid::DeviceInfo;
 using florid::JointMIT;
+using florid::JointPVT;
+using florid::JointPosVel;
+using florid::JointVel;
 using florid::detail::FciEndpointStatus;
 using florid::detail::FciOperationResult;
 using florid::detail::FciOperationState;
@@ -181,7 +184,9 @@ public:
     std::size_t m_acquire_requests{};
     std::size_t m_release_requests{};
     std::size_t m_info_requests{};
+    std::size_t m_other_rpc_requests{};
     std::size_t m_joint_commands{};
+    std::array<std::size_t, 9> m_control_messages{};
     joint_mit_command_t m_last_joint{};
     std::atomic<bool> m_drop_device_info{};
     std::atomic<std::uint64_t> m_send_failures{};
@@ -205,8 +210,156 @@ private:
             case GET_DEVICE_INFO_REQUEST_MESSAGE_ID:
                 s_self.s_deviceInfo(s_context, s_event);
                 break;
+            case SET_DEVICE_INFO_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_device_info_request_t,
+                                        set_device_info_response_t>(
+                    s_context, s_event, set_device_info_request_decode,
+                    set_device_info_response_clear,
+                    fci_arm_set_device_info_response_send_reliable,
+                    DEVICE_INFO_OK);
+                break;
+            case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
+                s_self.s_deviceSettings(s_context, s_event);
+                break;
+            case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_device_settings_request_t,
+                                        set_device_settings_response_t>(
+                    s_context, s_event, set_device_settings_request_decode,
+                    set_device_settings_response_clear,
+                    fci_arm_set_device_settings_response_send_reliable,
+                    DEVICE_SETTINGS_OK);
+                break;
+            case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_arm_control_mode_request_t,
+                                        set_arm_control_mode_response_t>(
+                    s_context, s_event,
+                    set_arm_control_mode_request_decode,
+                    set_arm_control_mode_response_clear,
+                    fci_arm_set_arm_control_mode_response_send_reliable,
+                    MODE_OK);
+                break;
+            case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_gripper_control_mode_request_t,
+                                        set_gripper_control_mode_response_t>(
+                    s_context, s_event,
+                    set_gripper_control_mode_request_decode,
+                    set_gripper_control_mode_response_clear,
+                    fci_arm_set_gripper_control_mode_response_send_reliable,
+                    MODE_OK);
+                break;
+            case SET_ARM_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_arm_mode_request_t,
+                                        set_arm_mode_response_t>(
+                    s_context, s_event, set_arm_mode_request_decode,
+                    set_arm_mode_response_clear,
+                    fci_arm_set_arm_mode_response_send_reliable, MODE_OK);
+                break;
+            case HOME_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<home_request_t, home_response_t>(
+                    s_context, s_event, home_request_decode,
+                    home_response_clear,
+                    fci_arm_home_response_send_reliable, HOME_OK);
+                break;
+            case SET_ZERO_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_zero_request_t,
+                                        set_zero_response_t>(
+                    s_context, s_event, set_zero_request_decode,
+                    set_zero_response_clear,
+                    fci_arm_set_zero_response_send_reliable,
+                    FAULT_OPERATION_OK);
+                break;
+            case CLEAR_ERROR_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<clear_error_request_t,
+                                        clear_error_response_t>(
+                    s_context, s_event, clear_error_request_decode,
+                    clear_error_response_clear,
+                    fci_arm_clear_error_response_send_reliable,
+                    FAULT_OPERATION_OK);
+                break;
+            case CLEAR_FAULTS_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<clear_faults_request_t,
+                                        clear_faults_response_t>(
+                    s_context, s_event, clear_faults_request_decode,
+                    clear_faults_response_clear,
+                    fci_arm_clear_faults_response_send_reliable,
+                    FAULT_OPERATION_OK);
+                break;
+            case EMERGENCY_STOP_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<emergency_stop_request_t,
+                                        emergency_stop_response_t>(
+                    s_context, s_event, emergency_stop_request_decode,
+                    emergency_stop_response_clear,
+                    fci_arm_emergency_stop_response_send_reliable,
+                    EMERGENCY_STOP_OK);
+                break;
+            case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID:
+                s_self.s_motorRegisterRead(s_context, s_event);
+                break;
+            case MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<motor_register_write_request_t,
+                                        motor_register_write_response_t>(
+                    s_context, s_event,
+                    motor_register_write_request_decode,
+                    motor_register_write_response_clear,
+                    fci_arm_motor_register_write_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
+            case MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<
+                    motor_store_parameters_request_t,
+                    motor_store_parameters_response_t>(
+                    s_context, s_event,
+                    motor_store_parameters_request_decode,
+                    motor_store_parameters_response_clear,
+                    fci_arm_motor_store_parameters_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
+            case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<motor_set_zero_request_t,
+                                        motor_set_zero_response_t>(
+                    s_context, s_event, motor_set_zero_request_decode,
+                    motor_set_zero_response_clear,
+                    fci_arm_motor_set_zero_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
             case JOINT_MIT_COMMAND_MESSAGE_ID:
                 s_self.s_joint(s_event);
+                break;
+            case GRIPPER_MIT_COMMAND_MESSAGE_ID:
+                s_self.s_control<gripper_mit_command_t>(
+                    s_event, gripper_mit_command_decode, 0);
+                break;
+            case JOINT_POSITION_VELOCITY_COMMAND_MESSAGE_ID:
+                s_self.s_control<joint_position_velocity_command_t>(
+                    s_event, joint_position_velocity_command_decode, 1);
+                break;
+            case JOINT_VELOCITY_COMMAND_MESSAGE_ID:
+                s_self.s_control<joint_velocity_command_t>(
+                    s_event, joint_velocity_command_decode, 2);
+                break;
+            case JOINT_PVT_COMMAND_MESSAGE_ID:
+                s_self.s_control<joint_pvt_command_t>(
+                    s_event, joint_pvt_command_decode, 3);
+                break;
+            case CARTESIAN_POSE_COMMAND_MESSAGE_ID:
+                s_self.s_control<cartesian_pose_command_t>(
+                    s_event, cartesian_pose_command_decode, 4);
+                break;
+            case CARTESIAN_VELOCITY_COMMAND_MESSAGE_ID:
+                s_self.s_control<cartesian_velocity_command_t>(
+                    s_event, cartesian_velocity_command_decode, 5);
+                break;
+            case GRIPPER_POSITION_VELOCITY_COMMAND_MESSAGE_ID:
+                s_self.s_control<gripper_position_velocity_command_t>(
+                    s_event, gripper_position_velocity_command_decode, 6);
+                break;
+            case GRIPPER_VELOCITY_COMMAND_MESSAGE_ID:
+                s_self.s_control<gripper_velocity_command_t>(
+                    s_event, gripper_velocity_command_decode, 7);
+                break;
+            case GRIPPER_PVT_COMMAND_MESSAGE_ID:
+                s_self.s_control<gripper_pvt_command_t>(
+                    s_event, gripper_pvt_command_decode, 8);
                 break;
             default:
                 break;
@@ -224,6 +377,49 @@ private:
     static fci_arm_encode_scratch_t s_scratch(
         std::array<std::uint8_t, 256>& s_storage) noexcept {
         return {s_storage.data(), s_storage.size()};
+    }
+
+    template <typename Request, typename Response, typename Decode,
+              typename Clear, typename Send>
+    void s_statusResponse(wl_ctx_t& s_context, const wl_event_t& s_event,
+                          Decode s_decode, Clear s_clear, Send s_send,
+                          std::int32_t s_status) noexcept {
+        Request s_request{};
+        if (s_decode(s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            ++m_other_rpc_requests;
+        }
+        Response s_response{};
+        s_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = s_status;
+        std::array<std::uint8_t, 256> s_encode{};
+        s_recordSend(s_send(&s_context, &s_response, s_scratch(s_encode)));
+        m_cv.notify_all();
+    }
+
+    template <typename Message, typename Decode>
+    void s_control(const wl_event_t& s_event, Decode s_decode,
+                   std::size_t s_index) noexcept {
+        Message s_message{};
+        if (s_decode(s_event.payload, s_event.payload_len, &s_message) !=
+                WL_CODEC_OK ||
+            !s_message.has_lease_token ||
+            s_message.lease_token != m_lease_token) {
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            ++m_control_messages[s_index];
+        }
+        m_cv.notify_all();
     }
 
     void s_acquire(wl_ctx_t& s_context,
@@ -332,6 +528,85 @@ private:
         std::array<std::uint8_t, 256> s_encode{};
         s_recordSend(fci_arm_get_device_info_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode)));
+    }
+
+    void s_deviceSettings(wl_ctx_t& s_context,
+                          const wl_event_t& s_event) noexcept {
+        get_device_settings_request_t s_request{};
+        if (get_device_settings_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            ++m_other_rpc_requests;
+        }
+        get_device_settings_response_t s_response{};
+        get_device_settings_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = DEVICE_SETTINGS_OK;
+        s_response.has_settings = true;
+        auto& s_settings = s_response.settings;
+        s_settings.has_firmware_dt_us = true;
+        s_settings.firmware_dt_us = 1000;
+        s_settings.has_gravity_scale = true;
+        s_settings.has_torque_continuous = true;
+        s_settings.has_torque_peak = true;
+        s_settings.has_thermal_capacity = true;
+        s_settings.has_torque_ramp_rate = true;
+        s_settings.has_joint_limit_min = true;
+        s_settings.has_joint_limit_max = true;
+        for (std::size_t s_index = 0; s_index < 7; ++s_index) {
+            s_settings.torque_continuous[s_index] = 1.0F;
+            s_settings.torque_peak[s_index] = 2.0F;
+            s_settings.thermal_capacity[s_index] = 3.0F;
+            s_settings.torque_ramp_rate[s_index] = 4.0F;
+        }
+        for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+            s_settings.gravity_scale[s_index] = 1.0F;
+            s_settings.joint_limit_min[s_index] = -2.0F;
+            s_settings.joint_limit_max[s_index] = 2.0F;
+        }
+        std::array<std::uint8_t, 256> s_encode{};
+        s_recordSend(fci_arm_get_device_settings_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode)));
+        m_cv.notify_all();
+    }
+
+    void s_motorRegisterRead(wl_ctx_t& s_context,
+                             const wl_event_t& s_event) noexcept {
+        motor_register_read_request_t s_request{};
+        if (motor_register_read_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_joint_id ||
+            !s_request.has_register_id) {
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            ++m_other_rpc_requests;
+        }
+        motor_register_read_response_t s_response{};
+        motor_register_read_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = MOTOR_OPERATION_OK;
+        s_response.has_joint_id = true;
+        s_response.joint_id = s_request.joint_id;
+        s_response.has_register_id = true;
+        s_response.register_id = s_request.register_id;
+        s_response.has_value = true;
+        s_response.value = 12.5F;
+        std::array<std::uint8_t, 256> s_encode{};
+        s_recordSend(fci_arm_motor_register_read_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode)));
+        m_cv.notify_all();
     }
 
     void s_joint(const wl_event_t& s_event) noexcept {
@@ -448,6 +723,66 @@ void testTypedEndpointLifecycle() {
     require(s_lease.m_token == s_device.m_lease_token,
             "control lease token mismatch");
 
+    auto s_expect_rpc = [&](const florid::detail::FciSubmitResult& s_submit,
+                            const char* s_message) {
+        require(s_submit.m_status == FciEndpointStatus::kOk, s_message);
+        require(s_host.waitOperation(s_submit.m_request_id, 1s,
+                                     s_operation) == FciEndpointStatus::kOk,
+                s_message);
+        require(s_host.takeOperation(s_submit.m_request_id, s_operation) ==
+                    FciEndpointStatus::kOk,
+                s_message);
+    };
+
+    s_expect_rpc(s_host.setDeviceInfo("\xE6\x9C\xBA\xE6\xA2\xB0\xE8\x87\x82",
+                                      florid::FirmwareType::kCobotArm, 250),
+                 "SetDeviceInfo failed");
+    const auto s_get_settings = s_host.getDeviceSettings(250);
+    require(s_get_settings.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_get_settings.m_request_id, 1s,
+                                     s_operation) == FciEndpointStatus::kOk,
+            "GetDeviceSettings failed");
+    florid::DeviceSettings s_settings{};
+    require(s_host.takeDeviceSettings(s_get_settings.m_request_id,
+                                      s_operation, s_settings) ==
+                FciEndpointStatus::kOk &&
+                s_settings.m_firmware_period_us == 1000 &&
+                s_settings.m_torque_fold[6].m_peak_torque == 2.0F,
+            "GetDeviceSettings domain result failed");
+    s_expect_rpc(s_host.setDeviceSettings(s_settings, 250),
+                 "SetDeviceSettings failed");
+    s_expect_rpc(s_host.setArmControlMode(
+                     florid::detail::FciMotorControlMode::kMit, 250),
+                 "SetArmControlMode failed");
+    s_expect_rpc(s_host.setGripperControlMode(
+                     florid::detail::FciMotorControlMode::kPvt, 250),
+                 "SetGripperControlMode failed");
+    s_expect_rpc(s_host.setArmMode(florid::detail::FciArmMode::kPc, 250),
+                 "SetArmMode failed");
+    s_expect_rpc(s_host.home(250), "Home failed");
+    s_expect_rpc(s_host.setZero(2, 250), "SetZero failed");
+    s_expect_rpc(s_host.clearError(2, 250), "ClearError failed");
+    s_expect_rpc(s_host.clearFaults(250), "ClearFaults failed");
+    s_expect_rpc(s_host.emergencyStop(250), "EmergencyStop failed");
+    const auto s_read_register = s_host.readMotorRegister(2, 0x1e, 250);
+    require(s_read_register.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_read_register.m_request_id, 1s,
+                                     s_operation) == FciEndpointStatus::kOk,
+            "MotorRegisterRead failed");
+    float s_register_value{};
+    require(s_host.takeMotorRegister(s_read_register.m_request_id,
+                                     s_operation, s_register_value) ==
+                FciEndpointStatus::kOk &&
+                s_register_value == 12.5F,
+            "MotorRegisterRead typed result failed");
+    s_expect_rpc(s_host.writeMotorRegister(2, 0x1e, 7.5F, 250),
+                 "MotorRegisterWrite failed");
+    s_expect_rpc(s_host.storeMotorParameters(2, 250),
+                 "MotorStoreParameters failed");
+    s_expect_rpc(s_host.setMotorZero(2, 250), "MotorSetZero failed");
+    require(s_device.m_other_rpc_requests == 15,
+            "not every typed RPC reached the peer");
+
     JointMIT s_joint{};
     s_joint.m_q[0] = 1.0F;
     s_joint.m_kp[0] = 10.0F;
@@ -461,6 +796,51 @@ void testTypedEndpointLifecycle() {
     require(s_device.m_last_joint.has_lease_token &&
                 s_device.m_last_joint.lease_token == s_device.m_lease_token,
             "JointMIT omitted the lease token");
+
+    auto s_wait_control = [&](std::size_t s_index, const char* s_message) {
+        waitFor(s_device.m_cv, s_device.m_mutex,
+                [&] { return s_device.m_control_messages[s_index] == 1; },
+                s_message);
+    };
+    require(s_host.sendGripperMit(s_joint, 2000, 101) ==
+                FciEndpointStatus::kOk,
+            "GripperMIT send failed");
+    s_wait_control(0, "GripperMIT did not reach the peer");
+    JointPosVel s_pos_vel{};
+    require(s_host.sendJointPositionVelocity(s_pos_vel, 102) ==
+                FciEndpointStatus::kOk,
+            "JointPositionVelocity send failed");
+    s_wait_control(1, "JointPositionVelocity did not reach the peer");
+    JointVel s_velocity{};
+    require(s_host.sendJointVelocity(s_velocity, 103) ==
+                FciEndpointStatus::kOk,
+            "JointVelocity send failed");
+    s_wait_control(2, "JointVelocity did not reach the peer");
+    JointPVT s_pvt{};
+    require(s_host.sendJointPvt(s_pvt, 104) == FciEndpointStatus::kOk,
+            "JointPVT send failed");
+    s_wait_control(3, "JointPVT did not reach the peer");
+    florid::CartesianPose s_pose{};
+    require(s_host.sendCartesianPose(s_pose, 2000, 105) ==
+                FciEndpointStatus::kOk,
+            "CartesianPose send failed");
+    s_wait_control(4, "CartesianPose did not reach the peer");
+    florid::CartesianVelocities s_twist{};
+    require(s_host.sendCartesianVelocity(s_twist, 2000, 106) ==
+                FciEndpointStatus::kOk,
+            "CartesianVelocity send failed");
+    s_wait_control(5, "CartesianVelocity did not reach the peer");
+    require(s_host.sendGripperPositionVelocity(s_pos_vel, 107) ==
+                FciEndpointStatus::kOk,
+            "GripperPositionVelocity send failed");
+    s_wait_control(6, "GripperPositionVelocity did not reach the peer");
+    require(s_host.sendGripperVelocity(s_velocity, 108) ==
+                FciEndpointStatus::kOk,
+            "GripperVelocity send failed");
+    s_wait_control(7, "GripperVelocity did not reach the peer");
+    require(s_host.sendGripperPvt(s_pvt, 109) == FciEndpointStatus::kOk,
+            "GripperPVT send failed");
+    s_wait_control(8, "GripperPVT did not reach the peer");
 
     s_host_to_device.m_busy.store(true, std::memory_order_release);
     for (int s_index = 2; s_index <= 20; ++s_index) {

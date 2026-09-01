@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <condition_variable>
 #include <mutex>
+#include <string_view>
 
 namespace florid::detail {
 
@@ -57,6 +58,21 @@ enum class FciControlLeaseState : std::uint8_t {
     kReleasing,
     kExpired,
     kFailed,
+};
+
+enum class FciArmMode : std::uint8_t {
+    kPc,
+    kDrag,
+    kDamp,
+    kRetracting,
+    kTeleop,
+};
+
+enum class FciMotorControlMode : std::uint8_t {
+    kMit = 1,
+    kPositionVelocity = 2,
+    kVelocity = 3,
+    kPvt = 4,
 };
 
 struct FciSubmitResult {
@@ -144,6 +160,36 @@ public:
     FciSubmitResult releaseControlLease(
         std::uint32_t s_rpc_timeout_ms) noexcept;
     FciSubmitResult getDeviceInfo(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setDeviceInfo(std::string_view s_custom_name,
+                                  FirmwareType s_firmware_type,
+                                  std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult getDeviceSettings(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setDeviceSettings(const DeviceSettings& s_settings,
+                                      std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setArmControlMode(FciMotorControlMode s_mode,
+                                      std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setGripperControlMode(FciMotorControlMode s_mode,
+                                          std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setArmMode(FciArmMode s_mode,
+                               std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult home(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setZero(std::uint8_t s_joint_id,
+                            std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult clearError(std::uint8_t s_joint_id,
+                               std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult clearFaults(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult emergencyStop(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult readMotorRegister(std::uint8_t s_joint_id,
+                                      std::uint8_t s_register_id,
+                                      std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult writeMotorRegister(std::uint8_t s_joint_id,
+                                       std::uint8_t s_register_id,
+                                       float s_value,
+                                       std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult storeMotorParameters(
+        std::uint8_t s_joint_id, std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setMotorZero(std::uint8_t s_joint_id,
+                                 std::uint32_t s_timeout_ms) noexcept;
 
     FciEndpointStatus inspectOperation(
         std::uint64_t s_request_id,
@@ -159,6 +205,12 @@ public:
     FciEndpointStatus takeDeviceInfo(std::uint64_t s_request_id,
                                      FciOperationResult& s_result,
                                      DeviceInfo& s_info) noexcept;
+    FciEndpointStatus takeDeviceSettings(std::uint64_t s_request_id,
+                                         FciOperationResult& s_result,
+                                         DeviceSettings& s_settings) noexcept;
+    FciEndpointStatus takeMotorRegister(std::uint64_t s_request_id,
+                                        FciOperationResult& s_result,
+                                        float& s_value) noexcept;
 
     FciControlLeaseSnapshot controlLease() const noexcept;
     FciEndpointStatus latestArmStatus(
@@ -169,6 +221,33 @@ public:
     FciEndpointStatus sendJointMit(const JointMIT& s_command,
                                    std::uint32_t s_dt_us,
                                    std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendGripperMit(
+        const JointMIT& s_command, std::uint32_t s_dt_us,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendJointPositionVelocity(
+        const JointPosVel& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendJointVelocity(
+        const JointVel& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendJointPvt(
+        const JointPVT& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendCartesianPose(
+        const CartesianPose& s_command, std::uint32_t s_dt_us,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendCartesianVelocity(
+        const CartesianVelocities& s_command, std::uint32_t s_dt_us,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendGripperPositionVelocity(
+        const JointPosVel& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendGripperVelocity(
+        const JointVel& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
+    FciEndpointStatus sendGripperPvt(
+        const JointPVT& s_command,
+        std::uint64_t s_sdk_timestamp_us) noexcept;
 
     WirelinkExecutorStats executorStats() const noexcept {
         return m_executor.stats();
@@ -181,6 +260,35 @@ private:
         kAcquireLease,
         kReleaseLease,
         kGetDeviceInfo,
+        kSetDeviceInfo,
+        kGetDeviceSettings,
+        kSetDeviceSettings,
+        kSetArmControlMode,
+        kSetGripperControlMode,
+        kSetArmMode,
+        kHome,
+        kSetZero,
+        kClearError,
+        kClearFaults,
+        kEmergencyStop,
+        kMotorRegisterRead,
+        kMotorRegisterWrite,
+        kMotorStoreParameters,
+        kMotorSetZero,
+    };
+
+    struct OperationRequest {
+        DeviceSettings m_device_settings{};
+        std::array<char, s_kMaximumDeviceNameBytes + 1> m_custom_name{};
+        std::uint8_t m_custom_name_size{};
+        FirmwareType m_firmware_type{FirmwareType::kUnknown};
+        std::uint64_t m_lease_token{};
+        std::uint32_t m_requested_lease_timeout_ms{};
+        std::uint8_t m_joint_id{};
+        std::uint8_t m_register_id{};
+        FciArmMode m_arm_mode{FciArmMode::kPc};
+        FciMotorControlMode m_control_mode{FciMotorControlMode::kMit};
+        float m_value{};
     };
 
     struct FixedDeviceInfo {
@@ -198,14 +306,17 @@ private:
         std::uint64_t m_request_id{};
         std::uint32_t m_operation_id{};
         std::uint32_t m_timeout_ms{};
-        std::uint32_t m_requested_lease_timeout_ms{};
-        std::uint64_t m_lease_token{};
+        OperationRequest m_request{};
         RpcKind m_kind{RpcKind::kNone};
         FciOperationState m_state{FciOperationState::kUnknown};
         FciEndpointStatus m_status{FciEndpointStatus::kNoData};
         std::int32_t m_domain_status{};
         std::int32_t m_link_status{};
         FixedDeviceInfo m_device_info{};
+        DeviceSettings m_device_settings{};
+        float m_motor_register_value{};
+        bool m_device_settings_valid{};
+        bool m_motor_register_valid{};
         bool m_internal{};
         bool m_used{};
     };
@@ -262,9 +373,12 @@ private:
     void s_releaseRuntimeOperation(RpcKind s_kind,
                                    std::uint32_t s_operation_id) noexcept;
     FciSubmitResult s_submit(RpcKind s_kind, std::uint32_t s_timeout_ms,
-                             std::uint32_t s_requested_lease_timeout_ms,
-                             std::uint64_t s_lease_token,
+                             const OperationRequest& s_request,
                              bool s_internal) noexcept;
+    FciEndpointStatus s_commandToken(std::uint64_t& s_token) const noexcept;
+    FciEndpointStatus s_submitLatestPayload(
+        std::uint16_t s_message_id, const std::uint8_t* s_payload,
+        std::size_t s_payload_size) noexcept;
     std::size_t s_findSlot(std::uint64_t s_request_id) const noexcept;
     std::size_t s_findQueuedSlot() const noexcept;
     std::size_t s_allocateSlot(bool s_internal) const noexcept;
@@ -299,7 +413,7 @@ private:
     bool m_initialized{};
     bool m_running{};
     std::size_t m_runtime_storage_bytes{};
-    std::atomic<std::uint32_t> m_joint_sequence{};
+    std::atomic<std::uint32_t> m_command_sequence{};
     AtomicStats m_stats{};
 };
 

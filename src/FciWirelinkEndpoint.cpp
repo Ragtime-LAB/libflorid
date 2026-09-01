@@ -133,6 +133,133 @@ FirmwareType s_firmwareType(firmware_type_t s_type) noexcept {
     }
 }
 
+bool s_firmwareTypeToWire(FirmwareType s_type,
+                          firmware_type_t& s_wire) noexcept {
+    switch (s_type) {
+        case FirmwareType::kStandardArm:
+            s_wire = FIRMWARE_STANDARD_ARM;
+            return true;
+        case FirmwareType::kMobileArm:
+            s_wire = FIRMWARE_MOBILE_ARM;
+            return true;
+        case FirmwareType::kCobotArm:
+            s_wire = FIRMWARE_COBOT_ARM;
+            return true;
+        case FirmwareType::kUnknown:
+            return false;
+    }
+    return false;
+}
+
+arm_mode_t s_armMode(FciArmMode s_mode) noexcept {
+    switch (s_mode) {
+        case FciArmMode::kPc: return ARM_MODE_PC;
+        case FciArmMode::kDrag: return ARM_MODE_DRAG;
+        case FciArmMode::kDamp: return ARM_MODE_DAMP;
+        case FciArmMode::kRetracting: return ARM_MODE_RETRACTING;
+        case FciArmMode::kTeleop: return ARM_MODE_TELEOP;
+    }
+    return ARM_MODE_PC;
+}
+
+motor_control_mode_t s_controlMode(FciMotorControlMode s_mode) noexcept {
+    switch (s_mode) {
+        case FciMotorControlMode::kMit: return MOTOR_CONTROL_MIT;
+        case FciMotorControlMode::kPositionVelocity:
+            return MOTOR_CONTROL_POSITION_VELOCITY;
+        case FciMotorControlMode::kVelocity: return MOTOR_CONTROL_VELOCITY;
+        case FciMotorControlMode::kPvt: return MOTOR_CONTROL_PVT;
+    }
+    return MOTOR_CONTROL_MIT;
+}
+
+bool s_validSettings(const DeviceSettings& s_settings) noexcept {
+    if (s_settings.m_firmware_period_us < 100 ||
+        s_settings.m_firmware_period_us > 1'000'000 ||
+        !s_allFinite(s_settings.m_gravity_scale)) {
+        return false;
+    }
+    for (const auto& s_fold : s_settings.m_torque_fold) {
+        if (!std::isfinite(s_fold.m_continuous_torque) ||
+            !std::isfinite(s_fold.m_peak_torque) ||
+            !std::isfinite(s_fold.m_thermal_capacity) ||
+            !std::isfinite(s_fold.m_torque_ramp_rate) ||
+            s_fold.m_continuous_torque < 0 ||
+            s_fold.m_peak_torque < s_fold.m_continuous_torque ||
+            s_fold.m_thermal_capacity < 0 ||
+            s_fold.m_torque_ramp_rate < 0) {
+            return false;
+        }
+    }
+    for (const auto& s_limits : s_settings.m_joint_limits) {
+        if (!std::isfinite(s_limits.m_min) ||
+            !std::isfinite(s_limits.m_max) ||
+            s_limits.m_min > s_limits.m_max) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool s_settingsFromWire(const device_settings_t& s_wire,
+                        DeviceSettings& s_settings) noexcept {
+    if (!s_wire.has_firmware_dt_us || !s_wire.has_gravity_scale ||
+        !s_wire.has_torque_continuous || !s_wire.has_torque_peak ||
+        !s_wire.has_thermal_capacity || !s_wire.has_torque_ramp_rate ||
+        !s_wire.has_joint_limit_min || !s_wire.has_joint_limit_max) {
+        return false;
+    }
+    DeviceSettings s_domain{};
+    s_domain.m_firmware_period_us = s_wire.firmware_dt_us;
+    std::copy_n(s_wire.gravity_scale, 6, s_domain.m_gravity_scale.begin());
+    for (std::size_t s_index = 0; s_index < 7; ++s_index) {
+        s_domain.m_torque_fold[s_index] = TorqueFoldParameters{
+            .m_continuous_torque = s_wire.torque_continuous[s_index],
+            .m_peak_torque = s_wire.torque_peak[s_index],
+            .m_thermal_capacity = s_wire.thermal_capacity[s_index],
+            .m_torque_ramp_rate = s_wire.torque_ramp_rate[s_index],
+        };
+    }
+    for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+        s_domain.m_joint_limits[s_index] = JointLimits{
+            .m_min = s_wire.joint_limit_min[s_index],
+            .m_max = s_wire.joint_limit_max[s_index],
+        };
+    }
+    if (!s_validSettings(s_domain)) return false;
+    s_settings = s_domain;
+    return true;
+}
+
+void s_settingsToWire(const DeviceSettings& s_settings,
+                      device_settings_t& s_wire) noexcept {
+    device_settings_clear(&s_wire);
+    s_wire.has_firmware_dt_us = true;
+    s_wire.firmware_dt_us = s_settings.m_firmware_period_us;
+    s_wire.has_gravity_scale = true;
+    std::copy(s_settings.m_gravity_scale.begin(),
+              s_settings.m_gravity_scale.end(), s_wire.gravity_scale);
+    s_wire.has_torque_continuous = true;
+    s_wire.has_torque_peak = true;
+    s_wire.has_thermal_capacity = true;
+    s_wire.has_torque_ramp_rate = true;
+    for (std::size_t s_index = 0; s_index < 7; ++s_index) {
+        const auto& s_fold = s_settings.m_torque_fold[s_index];
+        s_wire.torque_continuous[s_index] = s_fold.m_continuous_torque;
+        s_wire.torque_peak[s_index] = s_fold.m_peak_torque;
+        s_wire.thermal_capacity[s_index] = s_fold.m_thermal_capacity;
+        s_wire.torque_ramp_rate[s_index] = s_fold.m_torque_ramp_rate;
+    }
+    s_wire.has_joint_limit_min = true;
+    s_wire.has_joint_limit_max = true;
+    for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+        s_wire.joint_limit_min[s_index] =
+            s_settings.m_joint_limits[s_index].m_min;
+        s_wire.joint_limit_max[s_index] =
+            s_settings.m_joint_limits[s_index].m_max;
+    }
+}
+
 bool s_copyString(const wl_codec_string_t& s_source, char* s_destination,
                   std::size_t s_capacity,
                   std::uint8_t& s_size) noexcept {
@@ -303,8 +430,11 @@ FciSubmitResult FciWirelinkEndpoint::acquireControlLease(
             s_current_token = m_lease.m_token;
         }
     }
-    return s_submit(RpcKind::kAcquireLease, s_rpc_timeout_ms,
-                    s_requested_timeout_ms, s_current_token, false);
+    OperationRequest s_request{};
+    s_request.m_requested_lease_timeout_ms = s_requested_timeout_ms;
+    s_request.m_lease_token = s_current_token;
+    return s_submit(RpcKind::kAcquireLease, s_rpc_timeout_ms, s_request,
+                    false);
 }
 
 FciSubmitResult FciWirelinkEndpoint::releaseControlLease(
@@ -324,7 +454,9 @@ FciSubmitResult FciWirelinkEndpoint::releaseControlLease(
         }
         s_token = m_lease.m_token;
     }
-    return s_submit(RpcKind::kReleaseLease, s_rpc_timeout_ms, 0, s_token,
+    OperationRequest s_request{};
+    s_request.m_lease_token = s_token;
+    return s_submit(RpcKind::kReleaseLease, s_rpc_timeout_ms, s_request,
                     false);
 }
 
@@ -333,7 +465,186 @@ FciSubmitResult FciWirelinkEndpoint::getDeviceInfo(
     if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
         return {FciEndpointStatus::kInvalidArgument, 0};
     }
-    return s_submit(RpcKind::kGetDeviceInfo, s_timeout_ms, 0, 0, false);
+    return s_submit(RpcKind::kGetDeviceInfo, s_timeout_ms,
+                    OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setDeviceInfo(
+    std::string_view s_custom_name, FirmwareType s_firmware_type,
+    std::uint32_t s_timeout_ms) noexcept {
+    firmware_type_t s_wire_type{};
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
+        s_custom_name.size() > s_kMaximumDeviceNameBytes ||
+        !s_firmwareTypeToWire(s_firmware_type, s_wire_type)) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    if (!s_custom_name.empty()) {
+        std::memcpy(s_request.m_custom_name.data(), s_custom_name.data(),
+                    s_custom_name.size());
+    }
+    s_request.m_custom_name_size =
+        static_cast<std::uint8_t>(s_custom_name.size());
+    s_request.m_firmware_type = s_firmware_type;
+    return s_submit(RpcKind::kSetDeviceInfo, s_timeout_ms, s_request, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::getDeviceSettings(
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    return s_submit(RpcKind::kGetDeviceSettings, s_timeout_ms,
+                    OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setDeviceSettings(
+    const DeviceSettings& s_settings, std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
+        !s_validSettings(s_settings)) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_device_settings = s_settings;
+    return s_submit(RpcKind::kSetDeviceSettings, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setArmControlMode(
+    FciMotorControlMode s_mode, std::uint32_t s_timeout_ms) noexcept {
+    const auto s_value = static_cast<std::uint8_t>(s_mode);
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
+        s_value < 1 || s_value > 4) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_control_mode = s_mode;
+    return s_submit(RpcKind::kSetArmControlMode, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setGripperControlMode(
+    FciMotorControlMode s_mode, std::uint32_t s_timeout_ms) noexcept {
+    const auto s_value = static_cast<std::uint8_t>(s_mode);
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
+        s_value < 1 || s_value > 4) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_control_mode = s_mode;
+    return s_submit(RpcKind::kSetGripperControlMode, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setArmMode(
+    FciArmMode s_mode, std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
+        static_cast<std::uint8_t>(s_mode) > 4) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_arm_mode = s_mode;
+    return s_submit(RpcKind::kSetArmMode, s_timeout_ms, s_request, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::home(
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    return s_submit(RpcKind::kHome, s_timeout_ms, OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setZero(
+    std::uint8_t s_joint_id, std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    return s_submit(RpcKind::kSetZero, s_timeout_ms, s_request, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::clearError(
+    std::uint8_t s_joint_id, std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    return s_submit(RpcKind::kClearError, s_timeout_ms, s_request, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::clearFaults(
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    return s_submit(RpcKind::kClearFaults, s_timeout_ms,
+                    OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::emergencyStop(
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    return s_submit(RpcKind::kEmergencyStop, s_timeout_ms,
+                    OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::readMotorRegister(
+    std::uint8_t s_joint_id, std::uint8_t s_register_id,
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    s_request.m_register_id = s_register_id;
+    return s_submit(RpcKind::kMotorRegisterRead, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::writeMotorRegister(
+    std::uint8_t s_joint_id, std::uint8_t s_register_id, float s_value,
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || !std::isfinite(s_value) || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    s_request.m_register_id = s_register_id;
+    s_request.m_value = s_value;
+    return s_submit(RpcKind::kMotorRegisterWrite, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::storeMotorParameters(
+    std::uint8_t s_joint_id, std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    return s_submit(RpcKind::kMotorStoreParameters, s_timeout_ms, s_request,
+                    false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setMotorZero(
+    std::uint8_t s_joint_id, std::uint32_t s_timeout_ms) noexcept {
+    if (s_joint_id > 6 || s_timeout_ms == 0 ||
+        s_timeout_ms >= s_kMaximumRelativeTimeout) {
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    }
+    OperationRequest s_request{};
+    s_request.m_joint_id = s_joint_id;
+    return s_submit(RpcKind::kMotorSetZero, s_timeout_ms, s_request, false);
 }
 
 FciEndpointStatus FciWirelinkEndpoint::inspectOperation(
@@ -411,6 +722,52 @@ FciEndpointStatus FciWirelinkEndpoint::takeDeviceInfo(
     return s_result_out.m_status;
 }
 
+FciEndpointStatus FciWirelinkEndpoint::takeDeviceSettings(
+    std::uint64_t s_request_id, FciOperationResult& s_result_out,
+    DeviceSettings& s_settings) noexcept {
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    const std::size_t s_index = s_findSlot(s_request_id);
+    if (s_index == s_kNoSlot ||
+        m_operations[s_index].m_kind != RpcKind::kGetDeviceSettings) {
+        return FciEndpointStatus::kNoData;
+    }
+    auto& s_slot = m_operations[s_index];
+    if (!s_terminal(s_slot.m_state)) {
+        s_result_out = s_result(s_slot);
+        return FciEndpointStatus::kBusy;
+    }
+    s_result_out = s_result(s_slot);
+    if (s_slot.m_status == FciEndpointStatus::kOk &&
+        s_slot.m_device_settings_valid) {
+        s_settings = s_slot.m_device_settings;
+    }
+    s_slot = OperationSlot{};
+    return s_result_out.m_status;
+}
+
+FciEndpointStatus FciWirelinkEndpoint::takeMotorRegister(
+    std::uint64_t s_request_id, FciOperationResult& s_result_out,
+    float& s_value) noexcept {
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    const std::size_t s_index = s_findSlot(s_request_id);
+    if (s_index == s_kNoSlot ||
+        m_operations[s_index].m_kind != RpcKind::kMotorRegisterRead) {
+        return FciEndpointStatus::kNoData;
+    }
+    auto& s_slot = m_operations[s_index];
+    if (!s_terminal(s_slot.m_state)) {
+        s_result_out = s_result(s_slot);
+        return FciEndpointStatus::kBusy;
+    }
+    s_result_out = s_result(s_slot);
+    if (s_slot.m_status == FciEndpointStatus::kOk &&
+        s_slot.m_motor_register_valid) {
+        s_value = s_slot.m_motor_register_value;
+    }
+    s_slot = OperationSlot{};
+    return s_result_out.m_status;
+}
+
 FciControlLeaseSnapshot FciWirelinkEndpoint::controlLease() const noexcept {
     std::lock_guard<std::mutex> s_lock(m_mutex);
     return m_lease;
@@ -444,17 +801,8 @@ FciEndpointStatus FciWirelinkEndpoint::sendJointMit(
     }
 
     std::uint64_t s_lease_token{};
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        if (!m_running ||
-            (m_lease.m_state != FciControlLeaseState::kHeld &&
-             m_lease.m_state != FciControlLeaseState::kRenewQueued &&
-             m_lease.m_state != FciControlLeaseState::kRenewing) ||
-            m_lease.m_token == 0) {
-            return FciEndpointStatus::kNoLease;
-        }
-        s_lease_token = m_lease.m_token;
-    }
+    const auto s_lease_status = s_commandToken(s_lease_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
 
     joint_mit_command_t s_wire{};
     joint_mit_command_clear(&s_wire);
@@ -472,7 +820,7 @@ FciEndpointStatus FciWirelinkEndpoint::sendJointMit(
     s_wire.dt_us = s_dt_us;
     s_wire.has_sequence = true;
     s_wire.sequence =
-        m_joint_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
     s_wire.has_gravity_compensation = true;
     s_wire.gravity_compensation = s_command.m_firmware_gravity;
     s_wire.has_sdk_timestamp_us = true;
@@ -486,8 +834,341 @@ FciEndpointStatus FciWirelinkEndpoint::sendJointMit(
     const wl_codec_status_t s_codec = joint_mit_command_encode(
         &s_wire, s_payload.data(), s_payload.size(), &s_payload_size);
     if (s_codec != WL_CODEC_OK) return FciEndpointStatus::kCodecError;
-    return s_endpointStatus(m_executor.submitLatest(
-        JOINT_MIT_COMMAND_MESSAGE_ID, s_payload.data(), s_payload_size));
+    return s_submitLatestPayload(JOINT_MIT_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_payload_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendGripperMit(
+    const JointMIT& s_command, std::uint32_t s_dt_us,
+    std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (s_dt_us == 0 || !std::isfinite(s_command.m_q[0]) ||
+        !std::isfinite(s_command.m_dq[0]) ||
+        !std::isfinite(s_command.m_tau[0]) ||
+        !std::isfinite(s_command.m_kp[0]) ||
+        !std::isfinite(s_command.m_kd[0])) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+
+    gripper_mit_command_t s_wire{};
+    gripper_mit_command_clear(&s_wire);
+    s_wire.has_position = true;
+    s_wire.position = s_command.m_q[0];
+    s_wire.has_velocity = true;
+    s_wire.velocity = s_command.m_dq[0];
+    s_wire.has_torque = true;
+    s_wire.torque = s_command.m_tau[0];
+    s_wire.has_kp = true;
+    s_wire.kp = s_command.m_kp[0];
+    s_wire.has_kd = true;
+    s_wire.kd = s_command.m_kd[0];
+    s_wire.has_dt_us = true;
+    s_wire.dt_us = s_dt_us;
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_gravity_compensation = true;
+    s_wire.gravity_compensation = s_command.m_firmware_gravity;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (gripper_mit_command_encode(&s_wire, s_payload.data(),
+                                   s_payload.size(), &s_size) != WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(GRIPPER_MIT_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendJointPositionVelocity(
+    const JointPosVel& s_command,
+    std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!s_allFinite(s_command.m_q) || !s_allFinite(s_command.m_dq)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    joint_position_velocity_command_t s_wire{};
+    joint_position_velocity_command_clear(&s_wire);
+    s_wire.has_position = true;
+    s_wire.has_velocity = true;
+    std::copy_n(s_command.m_q, 6, s_wire.position);
+    std::copy_n(s_command.m_dq, 6, s_wire.velocity);
+    s_wire.has_enabled_mask = true;
+    s_wire.enabled_mask = UINT8_C(0x3f);
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (joint_position_velocity_command_encode(
+            &s_wire, s_payload.data(), s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(JOINT_POSITION_VELOCITY_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendJointVelocity(
+    const JointVel& s_command, std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!s_allFinite(s_command.m_dq)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    joint_velocity_command_t s_wire{};
+    joint_velocity_command_clear(&s_wire);
+    s_wire.has_velocity = true;
+    std::copy_n(s_command.m_dq, 6, s_wire.velocity);
+    s_wire.has_enabled_mask = true;
+    s_wire.enabled_mask = UINT8_C(0x3f);
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (joint_velocity_command_encode(&s_wire, s_payload.data(),
+                                      s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(JOINT_VELOCITY_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendJointPvt(
+    const JointPVT& s_command, std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!s_allFinite(s_command.m_q) ||
+        !s_allFinite(s_command.m_dq_limit) ||
+        !s_allFinite(s_command.m_current_limit_norm)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    joint_pvt_command_t s_wire{};
+    joint_pvt_command_clear(&s_wire);
+    s_wire.has_position = true;
+    s_wire.has_velocity_limit = true;
+    s_wire.has_current_limit_normalized = true;
+    std::copy_n(s_command.m_q, 6, s_wire.position);
+    std::copy_n(s_command.m_dq_limit, 6, s_wire.velocity_limit);
+    std::copy_n(s_command.m_current_limit_norm, 6,
+                s_wire.current_limit_normalized);
+    s_wire.has_enabled_mask = true;
+    s_wire.enabled_mask = UINT8_C(0x3f);
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (joint_pvt_command_encode(&s_wire, s_payload.data(), s_payload.size(),
+                                 &s_size) != WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(JOINT_PVT_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendCartesianPose(
+    const CartesianPose& s_command, std::uint32_t s_dt_us,
+    std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (s_dt_us == 0 || !s_allFinite(s_command.m_T) ||
+        !s_allFinite(s_command.m_kp) || !s_allFinite(s_command.m_kd)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    cartesian_pose_command_t s_wire{};
+    cartesian_pose_command_clear(&s_wire);
+    s_wire.has_transform = true;
+    s_wire.has_kp = true;
+    s_wire.has_kd = true;
+    std::copy_n(s_command.m_T, 16, s_wire.transform);
+    std::copy_n(s_command.m_kp, 6, s_wire.kp);
+    std::copy_n(s_command.m_kd, 6, s_wire.kd);
+    s_wire.has_dt_us = true;
+    s_wire.dt_us = s_dt_us;
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_gravity_compensation = true;
+    s_wire.gravity_compensation = false;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (cartesian_pose_command_encode(&s_wire, s_payload.data(),
+                                      s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(CARTESIAN_POSE_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendCartesianVelocity(
+    const CartesianVelocities& s_command, std::uint32_t s_dt_us,
+    std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (s_dt_us == 0 || !s_allFinite(s_command.m_v) ||
+        !s_allFinite(s_command.m_kp) || !s_allFinite(s_command.m_kd)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    cartesian_velocity_command_t s_wire{};
+    cartesian_velocity_command_clear(&s_wire);
+    s_wire.has_twist = true;
+    s_wire.has_kp = true;
+    s_wire.has_kd = true;
+    std::copy_n(s_command.m_v, 6, s_wire.twist);
+    std::copy_n(s_command.m_kp, 6, s_wire.kp);
+    std::copy_n(s_command.m_kd, 6, s_wire.kd);
+    s_wire.has_dt_us = true;
+    s_wire.dt_us = s_dt_us;
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_gravity_compensation = true;
+    s_wire.gravity_compensation = false;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (cartesian_velocity_command_encode(
+            &s_wire, s_payload.data(), s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(CARTESIAN_VELOCITY_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendGripperPositionVelocity(
+    const JointPosVel& s_command,
+    std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!std::isfinite(s_command.m_q[0]) ||
+        !std::isfinite(s_command.m_dq[0])) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    gripper_position_velocity_command_t s_wire{};
+    gripper_position_velocity_command_clear(&s_wire);
+    s_wire.has_position = true;
+    s_wire.position = s_command.m_q[0];
+    s_wire.has_velocity = true;
+    s_wire.velocity = s_command.m_dq[0];
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (gripper_position_velocity_command_encode(
+            &s_wire, s_payload.data(), s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(
+        GRIPPER_POSITION_VELOCITY_COMMAND_MESSAGE_ID, s_payload.data(),
+        s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendGripperVelocity(
+    const JointVel& s_command, std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!std::isfinite(s_command.m_dq[0])) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    gripper_velocity_command_t s_wire{};
+    gripper_velocity_command_clear(&s_wire);
+    s_wire.has_velocity = true;
+    s_wire.velocity = s_command.m_dq[0];
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (gripper_velocity_command_encode(&s_wire, s_payload.data(),
+                                        s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(GRIPPER_VELOCITY_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendGripperPvt(
+    const JointPVT& s_command, std::uint64_t s_sdk_timestamp_us) noexcept {
+    if (!std::isfinite(s_command.m_q[0]) ||
+        !std::isfinite(s_command.m_dq_limit[0]) ||
+        !std::isfinite(s_command.m_current_limit_norm[0])) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    gripper_pvt_command_t s_wire{};
+    gripper_pvt_command_clear(&s_wire);
+    s_wire.has_position = true;
+    s_wire.position = s_command.m_q[0];
+    s_wire.has_velocity_limit = true;
+    s_wire.velocity_limit = s_command.m_dq_limit[0];
+    s_wire.has_current_limit_normalized = true;
+    s_wire.current_limit_normalized = s_command.m_current_limit_norm[0];
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (gripper_pvt_command_encode(&s_wire, s_payload.data(),
+                                   s_payload.size(), &s_size) != WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(GRIPPER_PVT_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
 }
 
 void FciWirelinkEndpoint::s_onEvent(void* s_user_data, wl_ctx_t& s_context,
@@ -586,6 +1267,28 @@ FciEndpointStatus FciWirelinkEndpoint::s_endpointStatus(int s_result) noexcept {
         case WL_ERR_INVALID_STATE: return FciEndpointStatus::kNotReady;
         default: return FciEndpointStatus::kLinkError;
     }
+}
+
+FciEndpointStatus FciWirelinkEndpoint::s_commandToken(
+    std::uint64_t& s_token) const noexcept {
+    s_token = 0;
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    if (!m_running) return FciEndpointStatus::kNotReady;
+    if ((m_lease.m_state != FciControlLeaseState::kHeld &&
+         m_lease.m_state != FciControlLeaseState::kRenewQueued &&
+         m_lease.m_state != FciControlLeaseState::kRenewing) ||
+        m_lease.m_token == 0) {
+        return FciEndpointStatus::kNoLease;
+    }
+    s_token = m_lease.m_token;
+    return FciEndpointStatus::kOk;
+}
+
+FciEndpointStatus FciWirelinkEndpoint::s_submitLatestPayload(
+    std::uint16_t s_message_id, const std::uint8_t* s_payload,
+    std::size_t s_payload_size) noexcept {
+    return s_endpointStatus(
+        m_executor.submitLatest(s_message_id, s_payload, s_payload_size));
 }
 
 std::uint32_t FciWirelinkEndpoint::s_until(wl_time_ms_t s_now,
@@ -713,6 +1416,66 @@ bool FciWirelinkEndpoint::s_finishActive(wl_ctx_t& s_context,
             s_inspect = fci_arm_get_device_info_client_inspect(
                 &m_runtime_instance.runtime, s_operation_id, &s_client);
             break;
+        case RpcKind::kSetDeviceInfo:
+            s_inspect = fci_arm_set_device_info_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kGetDeviceSettings:
+            s_inspect = fci_arm_get_device_settings_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kSetDeviceSettings:
+            s_inspect = fci_arm_set_device_settings_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kSetArmControlMode:
+            s_inspect = fci_arm_set_arm_control_mode_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kSetGripperControlMode:
+            s_inspect = fci_arm_set_gripper_control_mode_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kSetArmMode:
+            s_inspect = fci_arm_set_arm_mode_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kHome:
+            s_inspect = fci_arm_home_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kSetZero:
+            s_inspect = fci_arm_set_zero_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kClearError:
+            s_inspect = fci_arm_clear_error_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kClearFaults:
+            s_inspect = fci_arm_clear_faults_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kEmergencyStop:
+            s_inspect = fci_arm_emergency_stop_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kMotorRegisterRead:
+            s_inspect = fci_arm_motor_register_read_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kMotorRegisterWrite:
+            s_inspect = fci_arm_motor_register_write_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kMotorStoreParameters:
+            s_inspect = fci_arm_motor_store_parameters_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
+        case RpcKind::kMotorSetZero:
+            s_inspect = fci_arm_motor_set_zero_client_inspect(
+                &m_runtime_instance.runtime, s_operation_id, &s_client);
+            break;
         case RpcKind::kNone:
             break;
     }
@@ -746,7 +1509,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         s_slot = m_operations[s_index];
         if (s_slot.m_kind == RpcKind::kAcquireLease) {
             m_lease.m_state =
-                (s_slot.m_internal || s_slot.m_lease_token != 0)
+                (s_slot.m_internal || s_slot.m_request.m_lease_token != 0)
                                   ? FciControlLeaseState::kRenewing
                                   : FciControlLeaseState::kAcquiring;
         } else if (s_slot.m_kind == RpcKind::kReleaseLease) {
@@ -765,10 +1528,10 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             acquire_control_lease_request_clear(&s_request);
             s_request.has_requested_timeout_ms = true;
             s_request.requested_timeout_ms =
-                s_slot.m_requested_lease_timeout_ms;
-            if (s_slot.m_lease_token != 0) {
+                s_slot.m_request.m_requested_lease_timeout_ms;
+            if (s_slot.m_request.m_lease_token != 0) {
                 s_request.has_current_token = true;
-                s_request.current_token = s_slot.m_lease_token;
+                s_request.current_token = s_slot.m_request.m_lease_token;
             }
             s_started = fci_arm_acquire_control_lease_client_start_scratch(
                 &s_context, &m_runtime_instance.runtime, &s_request,
@@ -779,7 +1542,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             release_control_lease_request_t s_request{};
             release_control_lease_request_clear(&s_request);
             s_request.has_lease_token = true;
-            s_request.lease_token = s_slot.m_lease_token;
+            s_request.lease_token = s_slot.m_request.m_lease_token;
             s_started = fci_arm_release_control_lease_client_start_scratch(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms, s_scratch);
@@ -789,6 +1552,164 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             get_device_info_request_t s_request{};
             get_device_info_request_clear(&s_request);
             s_started = fci_arm_get_device_info_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetDeviceInfo: {
+            set_device_info_request_t s_request{};
+            set_device_info_request_clear(&s_request);
+            s_request.has_custom_name = true;
+            s_request.custom_name = {
+                s_slot.m_request.m_custom_name.data(),
+                s_slot.m_request.m_custom_name_size,
+            };
+            s_request.has_firmware_type = true;
+            if (!s_firmwareTypeToWire(s_slot.m_request.m_firmware_type,
+                                      s_request.firmware_type)) {
+                break;
+            }
+            s_started = fci_arm_set_device_info_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kGetDeviceSettings: {
+            get_device_settings_request_t s_request{};
+            get_device_settings_request_clear(&s_request);
+            s_started = fci_arm_get_device_settings_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetDeviceSettings: {
+            set_device_settings_request_t s_request{};
+            set_device_settings_request_clear(&s_request);
+            s_request.has_settings = true;
+            s_settingsToWire(s_slot.m_request.m_device_settings,
+                             s_request.settings);
+            s_started = fci_arm_set_device_settings_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetArmControlMode: {
+            set_arm_control_mode_request_t s_request{};
+            set_arm_control_mode_request_clear(&s_request);
+            s_request.has_mode = true;
+            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
+            s_started = fci_arm_set_arm_control_mode_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetGripperControlMode: {
+            set_gripper_control_mode_request_t s_request{};
+            set_gripper_control_mode_request_clear(&s_request);
+            s_request.has_mode = true;
+            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
+            s_started = fci_arm_set_gripper_control_mode_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetArmMode: {
+            set_arm_mode_request_t s_request{};
+            set_arm_mode_request_clear(&s_request);
+            s_request.has_mode = true;
+            s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
+            s_started = fci_arm_set_arm_mode_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kHome: {
+            home_request_t s_request{};
+            home_request_clear(&s_request);
+            s_started = fci_arm_home_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kSetZero: {
+            set_zero_request_t s_request{};
+            set_zero_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_set_zero_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kClearError: {
+            clear_error_request_t s_request{};
+            clear_error_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_clear_error_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kClearFaults: {
+            clear_faults_request_t s_request{};
+            clear_faults_request_clear(&s_request);
+            s_started = fci_arm_clear_faults_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kEmergencyStop: {
+            emergency_stop_request_t s_request{};
+            emergency_stop_request_clear(&s_request);
+            s_started = fci_arm_emergency_stop_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kMotorRegisterRead: {
+            motor_register_read_request_t s_request{};
+            motor_register_read_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_request.has_register_id = true;
+            s_request.register_id = s_slot.m_request.m_register_id;
+            s_started = fci_arm_motor_register_read_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kMotorRegisterWrite: {
+            motor_register_write_request_t s_request{};
+            motor_register_write_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_request.has_register_id = true;
+            s_request.register_id = s_slot.m_request.m_register_id;
+            s_request.has_value = true;
+            s_request.value = s_slot.m_request.m_value;
+            s_started = fci_arm_motor_register_write_client_start_scratch(
+                &s_context, &m_runtime_instance.runtime, &s_request,
+                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kMotorStoreParameters: {
+            motor_store_parameters_request_t s_request{};
+            motor_store_parameters_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started =
+                fci_arm_motor_store_parameters_client_start_scratch(
+                    &s_context, &m_runtime_instance.runtime, &s_request,
+                    s_slot.m_timeout_ms, s_now_ms, s_scratch);
+            break;
+        }
+        case RpcKind::kMotorSetZero: {
+            motor_set_zero_request_t s_request{};
+            motor_set_zero_request_clear(&s_request);
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_motor_set_zero_client_start_scratch(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms, s_scratch);
             break;
@@ -816,7 +1737,8 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_operation.m_link_status = s_started.detail.rpc.core_result;
             m_active_operation = s_kNoSlot;
             if (s_operation.m_kind == RpcKind::kAcquireLease) {
-                m_lease.m_state = s_operation.m_lease_token != 0
+                m_lease.m_state =
+                    s_operation.m_request.m_lease_token != 0
                                       ? FciControlLeaseState::kExpired
                                       : FciControlLeaseState::kFailed;
                 m_lease.m_status = s_operation.m_status;
@@ -849,8 +1771,11 @@ bool FciWirelinkEndpoint::s_scheduleRenewal(wl_time_ms_t s_now_ms) noexcept {
         s_token = m_lease.m_token;
         s_timeout = m_lease_requested_timeout_ms;
     }
+    OperationRequest s_request{};
+    s_request.m_requested_lease_timeout_ms = s_timeout;
+    s_request.m_lease_token = s_token;
     const auto s_result = s_submit(RpcKind::kAcquireLease, s_timeout,
-                                   s_timeout, s_token, true);
+                                   s_request, true);
     return s_result.m_status == FciEndpointStatus::kOk;
 }
 
@@ -920,6 +1845,10 @@ void FciWirelinkEndpoint::s_finalize(
 
     std::uint64_t s_granted_token{};
     std::uint32_t s_granted_timeout{};
+    DeviceSettings s_device_settings{};
+    float s_motor_register_value{};
+    bool s_device_settings_valid{};
+    bool s_motor_register_valid{};
     bool s_response_valid = true;
     if (s_state == FciOperationState::kCompleted ||
         s_state == FciOperationState::kDomainError) {
@@ -1010,6 +1939,179 @@ void FciWirelinkEndpoint::s_finalize(
                 }
                 break;
             }
+            case RpcKind::kSetDeviceInfo: {
+                set_device_info_response_t s_response{};
+                const auto s_decoded = fci_arm_set_device_info_client_decode(
+                    &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kGetDeviceSettings: {
+                get_device_settings_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_get_device_settings_client_decode(&s_client,
+                                                               &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) {
+                    s_domain_status = s_response.status;
+                    if (s_response.status == DEVICE_SETTINGS_OK) {
+                        s_response_valid = s_response.has_settings &&
+                                           s_settingsFromWire(
+                                               s_response.settings,
+                                               s_device_settings);
+                        s_device_settings_valid = s_response_valid;
+                    }
+                }
+                break;
+            }
+            case RpcKind::kSetDeviceSettings: {
+                set_device_settings_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_set_device_settings_client_decode(&s_client,
+                                                               &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kSetArmControlMode: {
+                set_arm_control_mode_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_set_arm_control_mode_client_decode(&s_client,
+                                                                &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kSetGripperControlMode: {
+                set_gripper_control_mode_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_set_gripper_control_mode_client_decode(
+                        &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kSetArmMode: {
+                set_arm_mode_response_t s_response{};
+                const auto s_decoded = fci_arm_set_arm_mode_client_decode(
+                    &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kHome: {
+                home_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_home_client_decode(&s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kSetZero: {
+                set_zero_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_set_zero_client_decode(&s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kClearError: {
+                clear_error_response_t s_response{};
+                const auto s_decoded = fci_arm_clear_error_client_decode(
+                    &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kClearFaults: {
+                clear_faults_response_t s_response{};
+                const auto s_decoded = fci_arm_clear_faults_client_decode(
+                    &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kEmergencyStop: {
+                emergency_stop_response_t s_response{};
+                const auto s_decoded = fci_arm_emergency_stop_client_decode(
+                    &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kMotorRegisterRead: {
+                motor_register_read_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_motor_register_read_client_decode(&s_client,
+                                                               &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) {
+                    s_domain_status = s_response.status;
+                    if (s_response.status == MOTOR_OPERATION_OK) {
+                        OperationRequest s_request{};
+                        {
+                            std::lock_guard<std::mutex> s_lock(m_mutex);
+                            s_request = m_operations[s_index].m_request;
+                        }
+                        s_response_valid =
+                            s_response.has_joint_id &&
+                            s_response.joint_id == s_request.m_joint_id &&
+                            s_response.has_register_id &&
+                            s_response.register_id ==
+                                s_request.m_register_id &&
+                            s_response.has_value &&
+                            std::isfinite(s_response.value);
+                        if (s_response_valid) {
+                            s_motor_register_value = s_response.value;
+                            s_motor_register_valid = true;
+                        }
+                    }
+                }
+                break;
+            }
+            case RpcKind::kMotorRegisterWrite: {
+                motor_register_write_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_motor_register_write_client_decode(&s_client,
+                                                                &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kMotorStoreParameters: {
+                motor_store_parameters_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_motor_store_parameters_client_decode(
+                        &s_client, &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
+            case RpcKind::kMotorSetZero: {
+                motor_set_zero_response_t s_response{};
+                const auto s_decoded =
+                    fci_arm_motor_set_zero_client_decode(&s_client,
+                                                          &s_response);
+                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                                   s_response.has_status;
+                if (s_response_valid) s_domain_status = s_response.status;
+                break;
+            }
             case RpcKind::kNone:
                 s_response_valid = false;
                 break;
@@ -1053,6 +2155,10 @@ void FciWirelinkEndpoint::s_finalize(
     s_slot.m_domain_status = s_domain_status;
     s_slot.m_link_status = s_client.link_result;
     s_slot.m_device_info = s_device_info;
+    s_slot.m_device_settings = s_device_settings;
+    s_slot.m_motor_register_value = s_motor_register_value;
+    s_slot.m_device_settings_valid = s_device_settings_valid;
+    s_slot.m_motor_register_valid = s_motor_register_valid;
 
     if (s_kind == RpcKind::kAcquireLease) {
         if (s_status == FciEndpointStatus::kOk) {
@@ -1064,7 +2170,7 @@ void FciWirelinkEndpoint::s_finalize(
                 .m_granted_timeout_ms = s_granted_timeout,
             };
             m_lease_requested_timeout_ms =
-                s_slot.m_requested_lease_timeout_ms;
+                s_slot.m_request.m_requested_lease_timeout_ms;
             const std::uint32_t s_renew_delay =
                 std::max<std::uint32_t>(1, s_granted_timeout / 2);
             m_lease_renew_at_ms = s_now_ms + s_renew_delay;
@@ -1112,6 +2218,66 @@ void FciWirelinkEndpoint::s_releaseRuntimeOperation(
             (void)fci_arm_get_device_info_client_release(
                 &m_runtime_instance.runtime, s_operation_id);
             break;
+        case RpcKind::kSetDeviceInfo:
+            (void)fci_arm_set_device_info_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kGetDeviceSettings:
+            (void)fci_arm_get_device_settings_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kSetDeviceSettings:
+            (void)fci_arm_set_device_settings_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kSetArmControlMode:
+            (void)fci_arm_set_arm_control_mode_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kSetGripperControlMode:
+            (void)fci_arm_set_gripper_control_mode_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kSetArmMode:
+            (void)fci_arm_set_arm_mode_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kHome:
+            (void)fci_arm_home_client_release(&m_runtime_instance.runtime,
+                                              s_operation_id);
+            break;
+        case RpcKind::kSetZero:
+            (void)fci_arm_set_zero_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kClearError:
+            (void)fci_arm_clear_error_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kClearFaults:
+            (void)fci_arm_clear_faults_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kEmergencyStop:
+            (void)fci_arm_emergency_stop_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kMotorRegisterRead:
+            (void)fci_arm_motor_register_read_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kMotorRegisterWrite:
+            (void)fci_arm_motor_register_write_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kMotorStoreParameters:
+            (void)fci_arm_motor_store_parameters_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
+        case RpcKind::kMotorSetZero:
+            (void)fci_arm_motor_set_zero_client_release(
+                &m_runtime_instance.runtime, s_operation_id);
+            break;
         case RpcKind::kNone:
             break;
     }
@@ -1119,8 +2285,7 @@ void FciWirelinkEndpoint::s_releaseRuntimeOperation(
 
 FciSubmitResult FciWirelinkEndpoint::s_submit(
     RpcKind s_kind, std::uint32_t s_timeout_ms,
-    std::uint32_t s_requested_lease_timeout_ms,
-    std::uint64_t s_lease_token, bool s_internal) noexcept {
+    const OperationRequest& s_request, bool s_internal) noexcept {
     std::uint64_t s_request_id{};
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
@@ -1134,9 +2299,7 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
         m_operations[s_index] = OperationSlot{
             .m_request_id = s_request_id,
             .m_timeout_ms = s_timeout_ms,
-            .m_requested_lease_timeout_ms =
-                s_requested_lease_timeout_ms,
-            .m_lease_token = s_lease_token,
+            .m_request = s_request,
             .m_kind = s_kind,
             .m_state = FciOperationState::kQueued,
             .m_status = FciEndpointStatus::kOk,
@@ -1144,7 +2307,8 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
             .m_used = true,
         };
         if (s_kind == RpcKind::kAcquireLease) {
-            m_lease.m_state = (s_internal || s_lease_token != 0)
+            m_lease.m_state =
+                (s_internal || s_request.m_lease_token != 0)
                                   ? FciControlLeaseState::kRenewQueued
                                   : FciControlLeaseState::kAcquireQueued;
             m_lease.m_status = FciEndpointStatus::kOk;
