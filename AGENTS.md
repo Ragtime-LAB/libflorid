@@ -27,7 +27,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 `git clone --recurse-submodules`:
 | Path | Upstream |
 |---|---|
-| `protocol/` | fci_protocol (packet defs, sessions, transport adapters, RPL framing) |
+| `protocol/` | FCI `.wl` schemas, WLC profiles, and generated Wirelink component targets |
 | `3rdparty/astrial/` | Cross-platform serial library (ASIO, io_uring on Linux) |
 | `3rdparty/readerwriterqueue/` | Lock-free SPSC queue |
 | `3rdparty/acados/` | MPC solver; needs `--recurse-submodules` (blasfeo, hpipm nested) |
@@ -37,7 +37,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 | Target | Path | Links |
 |---|---|---|
 | `florid` (lib) | `src/*.cpp` | `fci_protocol` + `astrial` |
-| `fci_protocol` | `protocol/` | INTERFACE target, vendored `3rdparty/rpl` |
+| `fci_protocol::arm` | `protocol/` | Generated ABI-7 host endpoint linked with Wirelink |
 | `astrial` | `3rdparty/astrial/` | Static lib, vendored ASIO |
 | `florid_example_*` | `examples/` | `florid` |
 | `test_transport_pipeline` | `tests/` | `MockTransport`, no hardware |
@@ -47,7 +47,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 
 **URI** formats passed to `Arm::create()`:
 - `usb:///dev/ttyACM0` — `usb://` prefix mandatory
-- `udp://<ip>:<port>` — binds a fixed local UDP endpoint (e.g. `udp://192.168.1.200:5080`), learns the device source endpoint from the first received datagram, same RPL stream over UDP (best-effort)
+- `udp://<ip>:<port>` — binds a fixed local UDP endpoint (e.g. `udp://192.168.1.200:5080`), learns the device source endpoint from the first received datagram, and carries the same Wirelink COBS stream over UDP (best-effort)
 - `mock://` — test only (transparent to `ArmImpl`)
 
 **Control loops** (two APIs):
