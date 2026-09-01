@@ -1,3 +1,4 @@
+#include "florid/Arm.hpp"
 #include "florid/detail/ArmImpl.hpp"
 #include "florid/detail/Seqlock.hpp"
 #include "florid/detail/UdpTransport.hpp"
@@ -8,6 +9,7 @@
 
 #include <asio.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <atomic>
@@ -15,13 +17,24 @@
 #include <cstdio>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <vector>
 #include <thread>
+#include <type_traits>
 #include <chrono>
 
 using namespace florid;
+
+static_assert(
+    std::is_same_v<decltype(Version::m_major), std::uint32_t>);
+static_assert(std::is_same_v<decltype(&Arm::deviceInfo),
+                             const DeviceInfo& (Arm::*)() const>);
+static_assert(std::is_same_v<decltype(&Arm::deviceSettings),
+                             const DeviceSettings& (Arm::*)() const>);
+static_assert(std::is_same_v<decltype(&Arm::readDiagnostics),
+                             ArmDiagnostics (Arm::*)()>);
 
 #ifdef _WIN32
 void s_disableUdpConnReset(asio::ip::udp::socket& s_socket) {
@@ -45,7 +58,8 @@ std::vector<uint8_t> s_makeAckFrame(std::uint8_t s_req_id) {
     };
 }
 
-std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id) {
+std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id,
+                                            bool s_invalid = false) {
     // Frame: 5-byte header + 72-byte payload = 77 bytes
     // Payload: req_id(1) + protocol_version(3) + fw_version(3)
     //          + board_name(32) + custom_name(32) + fw_type(1)
@@ -58,6 +72,17 @@ std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id) {
     s_frame[9] = 2;                             // fw_version.major
     s_frame[10] = 3;                            // fw_version.minor
     s_frame[11] = 1;                            // fw_version.patch
+    constexpr char s_board_name[] = "willow";
+    constexpr char s_custom_name[] = "机械臂";
+    std::memcpy(s_frame.data() + 12, s_board_name, sizeof(s_board_name));
+    std::memcpy(s_frame.data() + 44, s_custom_name, sizeof(s_custom_name));
+    s_frame[76] = 1;                            // MobileArm
+    if (s_invalid) {
+        // Legacy fixed strings must be NUL-terminated and have zero padding.
+        // Preserve the valid prefix, but reject a non-zero byte after the NUL.
+        s_frame[43] = 'x';
+        s_frame[76] = 0xfe;
+    }
     return s_frame;
 }
 
@@ -80,6 +105,9 @@ std::vector<uint8_t> s_makeDeviceSettingsFrame(std::uint8_t s_req_id) {
 
 class MockTransport : public Transport {
 public:
+    explicit MockTransport(bool s_invalid_device_info = false)
+        : m_invalid_device_info(s_invalid_device_info) {}
+
     bool send(const std::uint8_t* s_data, std::size_t s_size) override {
         m_sent.insert(m_sent.end(), s_data, s_data + s_size);
 
@@ -90,12 +118,15 @@ public:
             if (s_cmd == 0x6215) {
                 std::uint8_t s_req_id = s_data[5];
                 inject(s_makeAckFrame(s_req_id));
-                inject(s_makeDeviceInfoFrame(s_req_id));
+                inject(s_makeDeviceInfoFrame(s_req_id, m_invalid_device_info));
             }
             if (s_cmd == 0x6228) {
                 std::uint8_t s_req_id = s_data[5];
                 inject(s_makeAckFrame(s_req_id));
                 inject(s_makeDeviceSettingsFrame(s_req_id));
+            }
+            if (s_cmd == 0x622A) {
+                inject(s_makeAckFrame(s_data[5]));
             }
         }
         return true;
@@ -118,6 +149,7 @@ public:
     std::vector<uint8_t> m_sent;
     ReceiveFunctor m_recv_cb{nullptr};
     void* m_recv_ctx{nullptr};
+    bool m_invalid_device_info{};
 };
 
 // ────────────────────────────────────────────────────────────
@@ -143,6 +175,25 @@ std::vector<std::uint8_t> serializeArmStatus(fci::arm::ArmStatus& s_status) {
     });
 
     auto s_result = s_sess.notify(s_status);
+    assert(s_result.has_value());
+    return s_bytes;
+}
+
+std::vector<std::uint8_t> serializeDiagnostics(
+    fci::arm::ArmDiagnostics& s_diagnostics) {
+    using Session = RPL::USBTransport<
+        RPL::AckManager<DummyTick>,
+        std::function<void(const std::uint8_t*, std::size_t)>,
+        USBAck,
+        fci::arm::ArmDiagnostics>;
+
+    std::vector<std::uint8_t> s_bytes;
+    Session s_session;
+    s_session.on_send([&s_bytes](const std::uint8_t* s_data,
+                                 std::size_t s_size) {
+        s_bytes.assign(s_data, s_data + s_size);
+    });
+    const auto s_result = s_session.notify(s_diagnostics);
     assert(s_result.has_value());
     return s_bytes;
 }
@@ -254,13 +305,51 @@ void test_arm_status_roundtrip() {
 
     // Verify device info was fetched from mock response
     assert(s_impl.firmwarePeriodUs() == 2000);
-    assert(s_impl.getDeviceInfo().protocol_version.major == 1);
-    assert(s_impl.getDeviceInfo().fw_version.major == 2);
-    assert(s_impl.getDeviceInfo().fw_version.minor == 3);
-    assert(s_impl.getDeviceInfo().fw_version.patch == 1);
+    assert(s_impl.getDeviceInfo().m_protocol_version.m_major == 1);
+    assert(s_impl.getDeviceInfo().m_firmware_version.m_major == 2);
+    assert(s_impl.getDeviceInfo().m_firmware_version.m_minor == 3);
+    assert(s_impl.getDeviceInfo().m_firmware_version.m_patch == 1);
+    assert(s_impl.getDeviceInfo().m_board_name == "willow");
+    assert(s_impl.getDeviceInfo().m_custom_name == "机械臂");
+    assert(s_impl.getDeviceInfo().m_firmware_type ==
+           FirmwareType::kMobileArm);
 
     // Verify device settings were fetched
-    assert(s_impl.getDeviceSettings().firmware_dt_us == 2000);
+    assert(s_impl.getDeviceSettings().m_firmware_period_us == 2000);
+
+    auto s_settings = s_impl.getDeviceSettings();
+    s_settings.m_firmware_period_us = 1000;
+    s_settings.m_gravity_scale[0] = 1.25f;
+    s_settings.m_torque_fold[0] = TorqueFoldParameters{
+        .m_continuous_torque = 1.0f,
+        .m_peak_torque = 2.0f,
+        .m_thermal_capacity = 3.0f,
+        .m_torque_ramp_rate = 4.0f,
+    };
+    s_settings.m_joint_limits[0] = JointLimits{.m_min = -1.0f,
+                                               .m_max = 1.0f};
+    assert(s_impl.setDeviceSettings(s_settings));
+    assert(s_impl.getDeviceSettings().m_firmware_period_us == 1000);
+    assert(s_impl.firmwarePeriodUs() == 1000);
+
+    const auto s_sent_before_invalid = s_mock->m_sent.size();
+    auto s_invalid_settings = s_settings;
+    s_invalid_settings.m_gravity_scale[0] =
+        std::numeric_limits<float>::quiet_NaN();
+    assert(!s_impl.setDeviceSettings(s_invalid_settings));
+    s_invalid_settings = s_settings;
+    s_invalid_settings.m_joint_limits[0] = JointLimits{.m_min = 2.0f,
+                                                       .m_max = 1.0f};
+    assert(!s_impl.setDeviceSettings(s_invalid_settings));
+    assert(s_mock->m_sent.size() == s_sent_before_invalid);
+
+    assert(!s_impl.readMotorRegister(0, MotorRegister::SpeedLoopKp));
+    assert(!s_impl.writeMotorRegister(
+        1, static_cast<MotorRegister>(0xff), 1.0f));
+    assert(!s_impl.writeMotorRegister(
+        1, MotorRegister::SpeedLoopKp,
+        std::numeric_limits<float>::infinity()));
+    assert(s_mock->m_sent.size() == s_sent_before_invalid);
 
     // Build a fake ArmStatus
     fci::arm::ArmStatus s_status{};
@@ -304,11 +393,58 @@ void test_arm_status_roundtrip() {
     assert(s_state.m_F_ext[0] == 5.5f);
     assert(s_state.m_gripper_q == 0.05f);
 
+    fci::arm::ArmDiagnostics s_diagnostics{};
+    s_diagnostics.uptime_s = 10;
+    s_diagnostics.tick_count = 5;
+    s_diagnostics.mode_entry_ms = 20;
+    s_diagnostics.bus_healthy = 1;
+    s_diagnostics.bus_state = 3;
+    s_diagnostics.tx_err_count = 2;
+    s_diagnostics.rx_err_count = 4;
+    s_diagnostics.joints[0].healthy = 1;
+    s_diagnostics.joints[0].temp_c = 42.5f;
+    s_diagnostics.gripper.healthy = 1;
+    s_diagnostics.gripper.temp_c = 38.0f;
+    auto s_diagnostics_frame = serializeDiagnostics(s_diagnostics);
+    s_mock->inject(s_diagnostics_frame);
+    auto s_domain_diagnostics = s_impl.readDiagnostics();
+    assert(s_domain_diagnostics.m_tick_count == 5);
+    assert(s_domain_diagnostics.m_bus_healthy);
+    assert(s_domain_diagnostics.m_bus_state == BusState::kBusOff);
+    assert(s_domain_diagnostics.m_joints[0].m_healthy);
+    assert(s_domain_diagnostics.m_joints[0].m_temperature_c == 42.5f);
+
+    s_diagnostics.tick_count = 6;
+    s_diagnostics.bus_healthy = 2;
+    s_diagnostics.bus_state = 0xfe;
+    s_diagnostics.joints[0].healthy = 2;
+    s_diagnostics.joints[0].temp_c =
+        std::numeric_limits<float>::quiet_NaN();
+    s_diagnostics_frame = serializeDiagnostics(s_diagnostics);
+    s_mock->inject(s_diagnostics_frame);
+    s_domain_diagnostics = s_impl.readDiagnostics();
+    assert(!s_domain_diagnostics.m_bus_healthy);
+    assert(s_domain_diagnostics.m_bus_state == BusState::kUnknown);
+    assert(!s_domain_diagnostics.m_joints[0].m_healthy);
+    assert(s_domain_diagnostics.m_joints[0].m_temperature_c == 0.0f);
+
+    printf("  PASS\n");
+}
+
+void test_device_info_validation() {
+    printf("Test 2: DeviceInfo bridge validates legacy strings and enums\n");
+
+    auto s_transport = std::make_unique<MockTransport>(true);
+    ArmImpl s_impl(std::move(s_transport));
+    assert(s_impl.getDeviceInfo().m_board_name.empty());
+    assert(s_impl.getDeviceInfo().m_custom_name == "机械臂");
+    assert(s_impl.getDeviceInfo().m_firmware_type == FirmwareType::kUnknown);
+
     printf("  PASS\n");
 }
 
 void test_multiple_frames() {
-    printf("Test 2: Multiple sequential ArmStatus frames\n");
+    printf("Test 3: Multiple sequential ArmStatus frames\n");
 
     auto s_transport = std::make_unique<MockTransport>();
     auto* s_mock = static_cast<MockTransport*>(s_transport.get());
@@ -331,7 +467,7 @@ void test_multiple_frames() {
 }
 
 void test_parse_garbage() {
-    printf("Test 3: Garbage data does not crash\n");
+    printf("Test 4: Garbage data does not crash\n");
 
     auto s_transport = std::make_unique<MockTransport>();
     auto* s_mock = static_cast<MockTransport*>(s_transport.get());
@@ -356,7 +492,7 @@ void test_parse_garbage() {
 }
 
 void test_control_loop() {
-    printf("Test 4: Control loop sends commands\n");
+    printf("Test 5: Control loop sends commands\n");
 
     auto s_transport = std::make_unique<MockTransport>();
     auto* s_mock = static_cast<MockTransport*>(s_transport.get());
@@ -399,7 +535,7 @@ void test_control_loop() {
 }
 
 void test_udp_loopback() {
-    printf("Test 5: UDP loopback with FakeUdpDevice\n");
+    printf("Test 6: UDP loopback with FakeUdpDevice\n");
 
     const auto s_sdk_addr = asio::ip::udp::endpoint(asio::ip::make_address("127.0.0.1"),
                                                     s_pickFreeUdpPort());
@@ -438,7 +574,7 @@ void test_udp_loopback() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         assert(s_impl.firmwarePeriodUs() == 2000);
-        assert(s_impl.getDeviceInfo().fw_version.major == 2);
+        assert(s_impl.getDeviceInfo().m_firmware_version.m_major == 2);
 
         // Push a fresh ArmStatus frame over real UDP and read it back.
         fci::arm::ArmStatus s_status{};
@@ -466,6 +602,7 @@ void test_udp_loopback() {
 
 int main() {
     test_arm_status_roundtrip();
+    test_device_info_validation();
     test_multiple_frames();
     test_parse_garbage();
     test_control_loop();

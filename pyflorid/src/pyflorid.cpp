@@ -7,10 +7,9 @@
 #include "florid/ArmState.hpp"
 #include "florid/ArmControl.hpp"
 #include "florid/ControlTypes.hpp"
+#include "florid/DeviceTypes.hpp"
 #include "florid/Duration.hpp"
 #include "florid/Exceptions.hpp"
-
-#include "fci_protocol/arm/constants.hpp"
 
 namespace py = pybind11;
 
@@ -40,40 +39,87 @@ PYBIND11_MODULE(_pyflorid, m) {
         .value("JointImpedance",    florid::ControllerMode::JointImpedance)
         .value("CartesianImpedance", florid::ControllerMode::CartesianImpedance);
 
-    py::enum_<fci::arm::MotorRegister>(m, "MotorRegister")
-        .value("TorqueConstant",        fci::arm::MotorRegister::TorqueConstant)
-        .value("GearEfficiency",        fci::arm::MotorRegister::GearEfficiency)
-        .value("CurrentLoopBandwidth",  fci::arm::MotorRegister::CurrentLoopBandwidth)
-        .value("SpeedLoopKp",           fci::arm::MotorRegister::SpeedLoopKp)
-        .value("SpeedLoopKi",           fci::arm::MotorRegister::SpeedLoopKi)
-        .value("PositionLoopKp",        fci::arm::MotorRegister::PositionLoopKp)
-        .value("PositionLoopKi",        fci::arm::MotorRegister::PositionLoopKi)
-        .value("SpeedLoopDamping",      fci::arm::MotorRegister::SpeedLoopDamping)
-        .value("SpeedLoopFilterBW",     fci::arm::MotorRegister::SpeedLoopFilterBW)
-        .value("CurrentEnhanceFactor",  fci::arm::MotorRegister::CurrentEnhanceFactor)
-        .value("VelocityEnhanceFactor", fci::arm::MotorRegister::VelocityEnhanceFactor)
-        .value("VoltageUnder",          fci::arm::MotorRegister::VoltageUnder)
-        .value("VoltageOver",           fci::arm::MotorRegister::VoltageOver)
-        .value("TemperatureLimit",      fci::arm::MotorRegister::TemperatureLimit)
-        .value("OvercurrentLimit",      fci::arm::MotorRegister::OvercurrentLimit)
-        .value("Acceleration",          fci::arm::MotorRegister::Acceleration)
-        .value("Deceleration",          fci::arm::MotorRegister::Deceleration)
-        .value("MaxSpeed",              fci::arm::MotorRegister::MaxSpeed)
-        .value("PositionMax",           fci::arm::MotorRegister::PositionMax)
-        .value("VelocityMax",           fci::arm::MotorRegister::VelocityMax)
-        .value("TorqueMax",             fci::arm::MotorRegister::TorqueMax)
-        .value("DampingCoefficient",    fci::arm::MotorRegister::DampingCoefficient)
-        .value("Inertia",               fci::arm::MotorRegister::Inertia)
-        .value("HardwareVersion",       fci::arm::MotorRegister::HardwareVersion)
-        .value("SoftwareVersion",       fci::arm::MotorRegister::SoftwareVersion)
-        .value("PolePairs",             fci::arm::MotorRegister::PolePairs)
-        .value("PhaseResistance",       fci::arm::MotorRegister::PhaseResistance)
-        .value("PhaseInductance",       fci::arm::MotorRegister::PhaseInductance)
-        .value("FluxLinkage",           fci::arm::MotorRegister::FluxLinkage)
-        .value("GearRatio",             fci::arm::MotorRegister::GearRatio)
-        .value("SubVersion",            fci::arm::MotorRegister::SubVersion)
-        .value("MotorPosition",         fci::arm::MotorRegister::MotorPosition)
-        .value("OutputPosition",        fci::arm::MotorRegister::OutputPosition);
+    py::enum_<florid::FirmwareType>(m, "FirmwareType")
+        .value("StandardArm", florid::FirmwareType::kStandardArm)
+        .value("MobileArm", florid::FirmwareType::kMobileArm)
+        .value("CobotArm", florid::FirmwareType::kCobotArm)
+        .value("Unknown", florid::FirmwareType::kUnknown);
+
+    py::enum_<florid::BusState>(m, "BusState")
+        .value("ErrorActive", florid::BusState::kErrorActive)
+        .value("ErrorWarning", florid::BusState::kErrorWarning)
+        .value("ErrorPassive", florid::BusState::kErrorPassive)
+        .value("BusOff", florid::BusState::kBusOff)
+        .value("Stopped", florid::BusState::kStopped)
+        .value("Unknown", florid::BusState::kUnknown);
+
+    py::enum_<florid::MotorRegister>(m, "MotorRegister")
+        .value("TorqueConstant",        florid::MotorRegister::TorqueConstant)
+        .value("GearEfficiency",        florid::MotorRegister::GearEfficiency)
+        .value("CurrentLoopBandwidth",  florid::MotorRegister::CurrentLoopBandwidth)
+        .value("SpeedLoopKp",           florid::MotorRegister::SpeedLoopKp)
+        .value("SpeedLoopKi",           florid::MotorRegister::SpeedLoopKi)
+        .value("PositionLoopKp",        florid::MotorRegister::PositionLoopKp)
+        .value("PositionLoopKi",        florid::MotorRegister::PositionLoopKi)
+        .value("SpeedLoopDamping",      florid::MotorRegister::SpeedLoopDamping)
+        .value("SpeedLoopFilterBW",     florid::MotorRegister::SpeedLoopFilterBW)
+        .value("CurrentEnhanceFactor",  florid::MotorRegister::CurrentEnhanceFactor)
+        .value("VelocityEnhanceFactor", florid::MotorRegister::VelocityEnhanceFactor)
+        .value("VoltageUnder",          florid::MotorRegister::VoltageUnder)
+        .value("VoltageOver",           florid::MotorRegister::VoltageOver)
+        .value("TemperatureLimit",      florid::MotorRegister::TemperatureLimit)
+        .value("OvercurrentLimit",      florid::MotorRegister::OvercurrentLimit)
+        .value("Acceleration",          florid::MotorRegister::Acceleration)
+        .value("Deceleration",          florid::MotorRegister::Deceleration)
+        .value("MaxSpeed",              florid::MotorRegister::MaxSpeed)
+        .value("PositionMax",           florid::MotorRegister::PositionMax)
+        .value("VelocityMax",           florid::MotorRegister::VelocityMax)
+        .value("TorqueMax",             florid::MotorRegister::TorqueMax)
+        .value("DampingCoefficient",    florid::MotorRegister::DampingCoefficient)
+        .value("Inertia",               florid::MotorRegister::Inertia)
+        .value("HardwareVersion",       florid::MotorRegister::HardwareVersion)
+        .value("SoftwareVersion",       florid::MotorRegister::SoftwareVersion)
+        .value("PolePairs",             florid::MotorRegister::PolePairs)
+        .value("PhaseResistance",       florid::MotorRegister::PhaseResistance)
+        .value("PhaseInductance",       florid::MotorRegister::PhaseInductance)
+        .value("FluxLinkage",           florid::MotorRegister::FluxLinkage)
+        .value("GearRatio",             florid::MotorRegister::GearRatio)
+        .value("SubVersion",            florid::MotorRegister::SubVersion)
+        .value("MotorPosition",         florid::MotorRegister::MotorPosition)
+        .value("OutputPosition",        florid::MotorRegister::OutputPosition);
+
+    py::class_<florid::Version>(m, "Version")
+        .def(py::init<>())
+        .def_readwrite("major", &florid::Version::m_major)
+        .def_readwrite("minor", &florid::Version::m_minor)
+        .def_readwrite("patch", &florid::Version::m_patch);
+
+    py::class_<florid::DeviceInfo>(m, "DeviceInfo")
+        .def(py::init<>())
+        .def_readonly("protocol_version", &florid::DeviceInfo::m_protocol_version)
+        .def_readonly("fw_version", &florid::DeviceInfo::m_firmware_version)
+        .def_readonly("board_name", &florid::DeviceInfo::m_board_name)
+        .def_readonly("custom_name", &florid::DeviceInfo::m_custom_name)
+        .def_readonly("fw_type", &florid::DeviceInfo::m_firmware_type);
+
+    py::class_<florid::TorqueFoldParameters>(m, "TorqueFoldParameters")
+        .def(py::init<>())
+        .def_readwrite("continuous_torque", &florid::TorqueFoldParameters::m_continuous_torque)
+        .def_readwrite("peak_torque", &florid::TorqueFoldParameters::m_peak_torque)
+        .def_readwrite("thermal_capacity", &florid::TorqueFoldParameters::m_thermal_capacity)
+        .def_readwrite("torque_ramp_rate", &florid::TorqueFoldParameters::m_torque_ramp_rate);
+
+    py::class_<florid::JointLimits>(m, "JointLimits")
+        .def(py::init<>())
+        .def_readwrite("min", &florid::JointLimits::m_min)
+        .def_readwrite("max", &florid::JointLimits::m_max);
+
+    py::class_<florid::DeviceSettings>(m, "DeviceSettings")
+        .def(py::init<>())
+        .def_readwrite("firmware_period_us", &florid::DeviceSettings::m_firmware_period_us)
+        .def_readwrite("gravity_scale", &florid::DeviceSettings::m_gravity_scale)
+        .def_readwrite("torque_fold", &florid::DeviceSettings::m_torque_fold)
+        .def_readwrite("joint_limits", &florid::DeviceSettings::m_joint_limits);
 
     // ── Duration ────────────────────────────────────
     py::class_<florid::Duration>(m, "Duration")
@@ -152,34 +198,39 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def("write_motor_register",  &florid::Arm::writeMotorRegister);
     arm.def("store_parameters",       &florid::Arm::storeParameters);
     arm.def("set_zero_point",         &florid::Arm::setZeroPoint);
+    arm.def("device_info",            &florid::Arm::deviceInfo,
+            py::return_value_policy::reference_internal);
+    arm.def("device_settings",        &florid::Arm::deviceSettings,
+            py::return_value_policy::reference_internal);
+    arm.def("set_device_settings",    &florid::Arm::setDeviceSettings);
     arm.def("read_diagnostics",      &florid::Arm::readDiagnostics);
 
     // ── Diagnostics structs ─────────────────────────
-    py::class_<fci::arm::JointDiag>(m, "JointDiag")
+    py::class_<florid::JointDiagnostics>(m, "JointDiag")
         .def(py::init<>())
-        .def_readonly("healthy",  &fci::arm::JointDiag::healthy)
-        .def_readonly("temp_c",   &fci::arm::JointDiag::temp_c);
+        .def_readonly("healthy", &florid::JointDiagnostics::m_healthy)
+        .def_readonly("temp_c", &florid::JointDiagnostics::m_temperature_c);
 
-    py::class_<fci::arm::GripperDiag>(m, "GripperDiag")
+    py::class_<florid::GripperDiagnostics>(m, "GripperDiag")
         .def(py::init<>())
-        .def_readonly("healthy",  &fci::arm::GripperDiag::healthy)
-        .def_readonly("temp_c",   &fci::arm::GripperDiag::temp_c);
+        .def_readonly("healthy", &florid::GripperDiagnostics::m_healthy)
+        .def_readonly("temp_c", &florid::GripperDiagnostics::m_temperature_c);
 
-    py::class_<fci::arm::ArmDiagnostics>(m, "ArmDiagnostics")
+    py::class_<florid::ArmDiagnostics>(m, "ArmDiagnostics")
         .def(py::init<>())
-        .def_readonly("uptime_s",            &fci::arm::ArmDiagnostics::uptime_s)
-        .def_readonly("tick_count",          &fci::arm::ArmDiagnostics::tick_count)
-        .def_readonly("mode_entry_ms",       &fci::arm::ArmDiagnostics::mode_entry_ms)
-        .def_readonly("bus_healthy",         &fci::arm::ArmDiagnostics::bus_healthy)
-        .def_readonly("bus_state",     &fci::arm::ArmDiagnostics::bus_state)
-        .def_readonly("tx_err_count",  &fci::arm::ArmDiagnostics::tx_err_count)
-        .def_readonly("rx_err_count",  &fci::arm::ArmDiagnostics::rx_err_count)
-        .def_property_readonly("joints", [](const fci::arm::ArmDiagnostics& s_d) {
+        .def_readonly("uptime_s", &florid::ArmDiagnostics::m_uptime_s)
+        .def_readonly("tick_count", &florid::ArmDiagnostics::m_tick_count)
+        .def_readonly("mode_entry_ms", &florid::ArmDiagnostics::m_mode_entry_ms)
+        .def_readonly("bus_healthy", &florid::ArmDiagnostics::m_bus_healthy)
+        .def_readonly("bus_state", &florid::ArmDiagnostics::m_bus_state)
+        .def_readonly("tx_err_count", &florid::ArmDiagnostics::m_tx_error_count)
+        .def_readonly("rx_err_count", &florid::ArmDiagnostics::m_rx_error_count)
+        .def_property_readonly("joints", [](const florid::ArmDiagnostics& s_d) {
             py::list l;
-            for (int i = 0; i < 6; ++i) l.append(s_d.joints[i]);
+            for (const auto& s_joint : s_d.m_joints) l.append(s_joint);
             return l;
         })
-        .def_readonly("gripper",            &fci::arm::ArmDiagnostics::gripper);
+        .def_readonly("gripper", &florid::ArmDiagnostics::m_gripper);
 
     // ── Sub-modules ─────────────────────────────────
     bind_control_types(m);

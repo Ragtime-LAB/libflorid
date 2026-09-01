@@ -1,5 +1,4 @@
 #include "florid/Arm.hpp"
-#include "fci_protocol/arm/constants.hpp"
 
 #include <atomic>
 #include <csignal>
@@ -8,7 +7,7 @@
 #include <string>
 #include <thread>
 
-using fci::arm::MotorRegister;
+using florid::MotorRegister;
 
 static std::atomic<bool> g_running{true};
 

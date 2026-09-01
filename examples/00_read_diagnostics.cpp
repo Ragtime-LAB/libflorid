@@ -54,7 +54,7 @@ int main(int s_argc, char** s_argv) {
     int s_count = 0;
     while (g_running && s_count < 100) {
         auto s_d = s_arm->readDiagnostics();
-        if (s_d.tick_count == 0) {
+        if (s_d.m_tick_count == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             continue;
         }
@@ -66,18 +66,22 @@ int main(int s_argc, char** s_argv) {
         }
 
         printf("  %-22u %-10u %-8u %-12u %-12u %-8u\n",
-               s_d.uptime_s, s_d.tick_count,
-               s_d.bus_healthy, s_d.tx_err_count, s_d.rx_err_count,
-               s_d.mode_entry_ms);
+               s_d.m_uptime_s, s_d.m_tick_count,
+               static_cast<unsigned>(s_d.m_bus_healthy),
+               s_d.m_tx_error_count, s_d.m_rx_error_count,
+               s_d.m_mode_entry_ms);
 
-        if (s_d.tick_count >= 5) {
+        if (s_d.m_tick_count >= 5) {
             printf("\n  Joint diagnostics:\n");
             for (int i = 0; i < 6; ++i) {
-                auto& j = s_d.joints[i];
-                printf("    J%d: healthy=%u  temp=%.1fC\n", i + 1, j.healthy, j.temp_c);
+                const auto& j = s_d.m_joints[i];
+                printf("    J%d: healthy=%u  temp=%.1fC\n", i + 1,
+                       static_cast<unsigned>(j.m_healthy),
+                       j.m_temperature_c);
             }
-            auto& g = s_d.gripper;
-            printf("  Gripper: healthy=%u  temp=%.1fC\n", g.healthy, g.temp_c);
+            const auto& g = s_d.m_gripper;
+            printf("  Gripper: healthy=%u  temp=%.1fC\n",
+                   static_cast<unsigned>(g.m_healthy), g.m_temperature_c);
             break;
         }
 

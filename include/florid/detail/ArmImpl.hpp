@@ -5,6 +5,7 @@
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
+#include "florid/DeviceTypes.hpp"
 #include "florid/core/ArmCore.hpp"
 #include "florid/core/traits.hpp"
 #include "florid/detail/Transport.hpp"
@@ -14,8 +15,6 @@
 #include "fci_protocol/session/arm_control_session.hpp"
 #include "fci_protocol/transport/byte_stream_transport.hpp"
 #include "fci_protocol/arm/packets.hpp"
-#include "fci_protocol/arm/device_info.hpp"
-#include "fci_protocol/arm/device_settings.hpp"
 #include "fci_protocol/arm/constants.hpp"
 
 #include "readerwriterqueue.h"
@@ -52,15 +51,15 @@ public:
     static void s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size);
 
     // ── Device info / settings ──
-    const fci::arm::DeviceInfo& getDeviceInfo() const { return m_device_info; }
-    const fci::arm::DeviceSettings& getDeviceSettings() const { return m_device_settings; }
+    const DeviceInfo& getDeviceInfo() const { return m_device_info; }
+    const DeviceSettings& getDeviceSettings() const { return m_device_settings; }
     std::uint32_t firmwarePeriodUs() const { return m_fw_dt_us; }
-    fci::arm::FirmwareType firmwareType() const { return static_cast<fci::arm::FirmwareType>(m_device_info.fw_type); }
-    bool setDeviceSettings(const fci::arm::DeviceSettings& s_settings);
+    FirmwareType firmwareType() const { return m_device_info.m_firmware_type; }
+    bool setDeviceSettings(const DeviceSettings& s_settings);
 
     // ── Arm state ──
     ArmState readOnce();
-    fci::arm::ArmDiagnostics readDiagnostics();
+    ArmDiagnostics readDiagnostics();
     ArmControl& controlHandle() { return m_arm_control; }
 
     // ── Control loop (template, called from Arm) ──
@@ -133,8 +132,10 @@ public:
     void stop();
 
     // ── Motor register access (joint_id: 1–7, 1–6 = arm joints, 7 = gripper) ──
-    std::optional<float> readMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid);
-    bool writeMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid, float s_value);
+    std::optional<float> readMotorRegister(std::uint8_t s_joint_id,
+                                           MotorRegister s_rid);
+    bool writeMotorRegister(std::uint8_t s_joint_id, MotorRegister s_rid,
+                            float s_value);
     bool storeParameters(std::uint8_t s_joint_id);
     bool setZeroPoint(std::uint8_t s_joint_id);
 
@@ -210,12 +211,12 @@ private:
     std::uint32_t m_last_status_seq{0};
 
     // ── Diagnostics (latest snapshot) ──
-    fci::arm::ArmDiagnostics m_last_diag{};
+    ArmDiagnostics m_last_diag{};
     std::uint32_t m_last_diag_tick{0};
 
     // ── Cached DeviceInfo / DeviceSettings ──
-    fci::arm::DeviceInfo m_device_info{};
-    fci::arm::DeviceSettings m_device_settings{};
+    DeviceInfo m_device_info{};
+    DeviceSettings m_device_settings{};
     std::uint32_t m_fw_dt_us{2000};
 
     // ── Connection ──

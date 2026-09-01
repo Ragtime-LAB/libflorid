@@ -14,11 +14,11 @@
 static std::atomic<bool> g_running{true};
 
 static const char* s_modeName(std::uint32_t s_mode) {
-    switch (static_cast<fci::arm::ArmMode>(s_mode)) {
-        case fci::arm::ArmMode::Pc:  return "PC";
-        case fci::arm::ArmMode::Drag: return "DRAG";
-        case fci::arm::ArmMode::Damp: return "DAMP";
-        case fci::arm::ArmMode::Retracting: return "RETR";
+    switch (s_mode) {
+        case 0: return "PC";
+        case 1: return "DRAG";
+        case 2: return "DAMP";
+        case 3: return "RETR";
         default: return "??";
     }
 }
@@ -67,13 +67,18 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
     // ── Device info ──
     const auto& s_info = s_arm->deviceInfo();
     printf("Device info:\n");
-    printf("  Board:        %s\n", s_info.board_name.data());
-    printf("  Custom name:  %s\n", s_info.custom_name.data());
+    printf("  Board:        %s\n", s_info.m_board_name.c_str());
+    printf("  Custom name:  %s\n", s_info.m_custom_name.c_str());
     printf("  FW version:   %u.%u.%u\n",
-           s_info.fw_version.major, s_info.fw_version.minor, s_info.fw_version.patch);
+           s_info.m_firmware_version.m_major,
+           s_info.m_firmware_version.m_minor,
+           s_info.m_firmware_version.m_patch);
     printf("  Protocol ver: %u.%u.%u\n",
-           s_info.protocol_version.major, s_info.protocol_version.minor, s_info.protocol_version.patch);
-    printf("  FW type:      %d\n", s_info.fw_type);
+           s_info.m_protocol_version.m_major,
+           s_info.m_protocol_version.m_minor,
+           s_info.m_protocol_version.m_patch);
+    printf("  FW type:      %u\n",
+           static_cast<unsigned>(s_info.m_firmware_type));
     printf("\n");
 
     // ── Echo state ──

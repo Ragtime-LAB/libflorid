@@ -5,14 +5,10 @@
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
+#include "florid/DeviceTypes.hpp"
 #include "florid/Errors.hpp"
 #include "florid/core/ActiveControl.hpp"
 #include "florid/Gripper.hpp"
-
-#include "fci_protocol/arm/constants.hpp"
-#include "fci_protocol/arm/device_info.hpp"
-#include "fci_protocol/arm/device_settings.hpp"
-#include "fci_protocol/arm/diagnostics.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -90,8 +86,10 @@ public:
 
     // ── Motor register access (joint_id: 1–7, 1–6 = arm joints, 7 = gripper) ──
 
-    std::optional<float> readMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid);
-    bool writeMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid, float s_value);
+    std::optional<float> readMotorRegister(std::uint8_t s_joint_id,
+                                           MotorRegister s_rid);
+    bool writeMotorRegister(std::uint8_t s_joint_id, MotorRegister s_rid,
+                            float s_value);
     bool storeParameters(std::uint8_t s_joint_id);
     bool setZeroPoint(std::uint8_t s_joint_id);
 
@@ -99,10 +97,10 @@ public:
     ReconnectPolicy reconnectPolicy() const;
     void setReconnectPolicy(ReconnectPolicy s_p);
     bool isConnected() const;
-    const fci::arm::DeviceInfo& deviceInfo() const;
-    const fci::arm::DeviceSettings& deviceSettings() const;
-    bool setDeviceSettings(const fci::arm::DeviceSettings& s_settings);
-    fci::arm::ArmDiagnostics readDiagnostics();
+    const DeviceInfo& deviceInfo() const;
+    const DeviceSettings& deviceSettings() const;
+    bool setDeviceSettings(const DeviceSettings& s_settings);
+    ArmDiagnostics readDiagnostics();
 
 private:
     Arm() = default;

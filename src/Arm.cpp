@@ -172,10 +172,12 @@ void Arm::stop() { m_impl->stop(); }
 
 // ── Motor register access ──
 
-std::optional<float> Arm::readMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid) {
+std::optional<float> Arm::readMotorRegister(std::uint8_t s_joint_id,
+                                            MotorRegister s_rid) {
     return m_impl->readMotorRegister(s_joint_id, s_rid);
 }
-bool Arm::writeMotorRegister(std::uint8_t s_joint_id, fci::arm::MotorRegister s_rid, float s_value) {
+bool Arm::writeMotorRegister(std::uint8_t s_joint_id, MotorRegister s_rid,
+                             float s_value) {
     return m_impl->writeMotorRegister(s_joint_id, s_rid, s_value);
 }
 bool Arm::storeParameters(std::uint8_t s_joint_id) {
@@ -189,9 +191,13 @@ std::uint32_t Arm::firmwarePeriodUs() const { return m_impl->firmwarePeriodUs();
 ReconnectPolicy Arm::reconnectPolicy() const { return m_impl->reconnectPolicy(); }
 void Arm::setReconnectPolicy(ReconnectPolicy s_p) { m_impl->setReconnectPolicy(s_p); }
 bool Arm::isConnected() const { return m_impl->isConnected(); }
-const fci::arm::DeviceInfo& Arm::deviceInfo() const { return m_impl->getDeviceInfo(); }
-const fci::arm::DeviceSettings& Arm::deviceSettings() const { return m_impl->getDeviceSettings(); }
-bool Arm::setDeviceSettings(const fci::arm::DeviceSettings& s_settings) { return m_impl->setDeviceSettings(s_settings); }
-fci::arm::ArmDiagnostics Arm::readDiagnostics() { return m_impl->readDiagnostics(); }
+const DeviceInfo& Arm::deviceInfo() const { return m_impl->getDeviceInfo(); }
+const DeviceSettings& Arm::deviceSettings() const {
+    return m_impl->getDeviceSettings();
+}
+bool Arm::setDeviceSettings(const DeviceSettings& s_settings) {
+    return m_impl->setDeviceSettings(s_settings);
+}
+ArmDiagnostics Arm::readDiagnostics() { return m_impl->readDiagnostics(); }
 
 } // namespace florid
