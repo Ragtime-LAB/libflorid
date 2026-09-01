@@ -24,6 +24,15 @@ struct WirelinkCommandResult {
 struct WirelinkExecutorHooks {
     using ServiceFn = int (*)(void* s_user_data) noexcept;
     using QuiesceFn = void (*)(void* s_user_data) noexcept;
+    // Runs on the owner thread after core events have been dispatched. Return
+    // true only when another immediate bounded application pass is required.
+    using ApplicationProgressFn = bool (*)(void* s_user_data,
+                                            wl_ctx_t& s_context,
+                                            wl_time_ms_t s_now_ms) noexcept;
+    // Side-effect-free relative deadline query. Zero means due now and
+    // WL_POLL_NO_DEADLINE_MS disables timed wakeups for this source.
+    using DeadlineHintFn = std::uint32_t (*)(const void* s_user_data,
+                                             wl_time_ms_t s_now_ms) noexcept;
     // Terminal RX owner. The hook must dispatch the borrowed event and call
     // wl_event_release() exactly once before returning. Generated WLC runtime
     // dispatchers naturally satisfy this contract. With no hook installed, the
@@ -34,8 +43,16 @@ struct WirelinkExecutorHooks {
                                   const WirelinkCommandResult& s_result) noexcept;
 
     void* m_user_data{};
+    // Owner-pass order is adapter service, core event dispatch, application
+    // progress, and queued TX dispatch. Deadline hints are queried only after a
+    // pass reports no immediate work; the executor sleeps until the earliest of
+    // core, application, and adapter deadlines. All-none means an unbounded
+    // event-driven sleep.
     ServiceFn m_service{};
     QuiesceFn m_quiesce{};
+    ApplicationProgressFn m_application_progress{};
+    DeadlineHintFn m_application_deadline_hint{};
+    DeadlineHintFn m_adapter_deadline_hint{};
     EventFn m_on_event{};
     CompletionFn m_on_completion{};
 };

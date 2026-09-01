@@ -670,6 +670,163 @@ void testLatestGetsNextGapWithoutStarvingReliable() {
             "reliable FIFO starved LATEST at the next free TX gap");
 }
 
+struct SchedulerCapture {
+    mutable std::mutex mutex;
+    std::condition_variable cv;
+    std::uint32_t application_delay_ms{50};
+    std::uint32_t adapter_delay_ms{WL_POLL_NO_DEADLINE_MS};
+    wl_time_ms_t started_ms{};
+    std::chrono::steady_clock::time_point started_at{};
+    std::chrono::steady_clock::time_point application_fired_at{};
+    std::chrono::steady_clock::time_point adapter_fired_at{};
+    bool started{};
+    bool application_fired{};
+    bool adapter_fired{};
+    std::atomic<std::size_t> progress_calls{};
+    std::atomic<std::size_t> service_calls{};
+
+    static std::uint32_t remaining(wl_time_ms_t s_now_ms,
+                                   wl_time_ms_t s_started_ms,
+                                   std::uint32_t s_delay_ms) noexcept {
+        const std::uint32_t s_elapsed = s_now_ms - s_started_ms;
+        return s_elapsed >= s_delay_ms ? 0 : s_delay_ms - s_elapsed;
+    }
+
+    static bool applicationProgress(void* s_user_data, wl_ctx_t&,
+                                    wl_time_ms_t s_now_ms) noexcept {
+        auto& s_self = *static_cast<SchedulerCapture*>(s_user_data);
+        s_self.progress_calls.fetch_add(1, std::memory_order_relaxed);
+        bool s_notify{};
+        {
+            std::lock_guard<std::mutex> s_lock(s_self.mutex);
+            if (!s_self.started) {
+                s_self.started = true;
+                s_self.started_ms = s_now_ms;
+                s_self.started_at = std::chrono::steady_clock::now();
+            }
+            if (!s_self.application_fired &&
+                remaining(s_now_ms, s_self.started_ms,
+                          s_self.application_delay_ms) == 0) {
+                s_self.application_fired = true;
+                s_self.application_fired_at =
+                    std::chrono::steady_clock::now();
+                s_notify = true;
+            }
+        }
+        if (s_notify) s_self.cv.notify_all();
+        return false;
+    }
+
+    static std::uint32_t applicationDeadline(
+        const void* s_user_data, wl_time_ms_t s_now_ms) noexcept {
+        const auto& s_self =
+            *static_cast<const SchedulerCapture*>(s_user_data);
+        std::lock_guard<std::mutex> s_lock(s_self.mutex);
+        if (!s_self.started || s_self.application_fired) {
+            return WL_POLL_NO_DEADLINE_MS;
+        }
+        return remaining(s_now_ms, s_self.started_ms,
+                         s_self.application_delay_ms);
+    }
+
+    static int service(void* s_user_data) noexcept {
+        auto& s_self = *static_cast<SchedulerCapture*>(s_user_data);
+        s_self.service_calls.fetch_add(1, std::memory_order_relaxed);
+        bool s_notify{};
+        {
+            std::lock_guard<std::mutex> s_lock(s_self.mutex);
+            if (s_self.started && !s_self.adapter_fired &&
+                s_self.adapter_delay_ms != WL_POLL_NO_DEADLINE_MS &&
+                std::chrono::steady_clock::now() - s_self.started_at >=
+                    std::chrono::milliseconds(s_self.adapter_delay_ms)) {
+                s_self.adapter_fired = true;
+                s_self.adapter_fired_at = std::chrono::steady_clock::now();
+                s_notify = true;
+            }
+        }
+        if (s_notify) s_self.cv.notify_all();
+        return WL_ERR_NO_DATA;
+    }
+
+    static std::uint32_t adapterDeadline(
+        const void* s_user_data, wl_time_ms_t s_now_ms) noexcept {
+        const auto& s_self =
+            *static_cast<const SchedulerCapture*>(s_user_data);
+        std::lock_guard<std::mutex> s_lock(s_self.mutex);
+        if (!s_self.started || s_self.adapter_fired ||
+            s_self.adapter_delay_ms == WL_POLL_NO_DEADLINE_MS) {
+            return WL_POLL_NO_DEADLINE_MS;
+        }
+        return remaining(s_now_ms, s_self.started_ms,
+                         s_self.adapter_delay_ms);
+    }
+};
+
+void runApplicationDeadlineTest(SchedulerCapture& s_capture) {
+    LinkStorage s_storage;
+    WirelinkExecutor s_executor;
+    const auto s_config = makeConfig(
+        WL_ENVELOPE_NATIVE_PACKET, UINT64_C(0x8000000000000008));
+    const auto s_descriptor = s_storage.descriptor();
+    require(s_executor.initialize(s_config, s_descriptor) == WL_OK,
+            "deadline executor initialization failed");
+
+    WirelinkExecutorHooks s_hooks{};
+    s_hooks.m_user_data = &s_capture;
+    s_hooks.m_service = SchedulerCapture::service;
+    s_hooks.m_application_progress = SchedulerCapture::applicationProgress;
+    s_hooks.m_application_deadline_hint =
+        SchedulerCapture::applicationDeadline;
+    s_hooks.m_adapter_deadline_hint = SchedulerCapture::adapterDeadline;
+    require(s_executor.setHooks(s_hooks) == WL_OK, "deadline hooks failed");
+    require(s_executor.start() == WL_OK, "deadline executor start failed");
+
+    waitFor(s_capture.cv, s_capture.mutex,
+            [&] { return s_capture.application_fired; },
+            "application deadline did not drive owner progress");
+    const auto s_application_elapsed =
+        s_capture.application_fired_at - s_capture.started_at;
+    require(s_application_elapsed >=
+                std::chrono::milliseconds(s_capture.application_delay_ms - 5),
+            "application timeout fired prematurely");
+    require(s_application_elapsed < std::chrono::milliseconds(500),
+            "application timeout missed its scheduler deadline");
+
+    if (s_capture.adapter_delay_ms != WL_POLL_NO_DEADLINE_MS) {
+        require(s_capture.adapter_fired,
+                "adapter policy deadline was not serviced");
+        const auto s_adapter_elapsed =
+            s_capture.adapter_fired_at - s_capture.started_at;
+        require(s_adapter_elapsed >=
+                    std::chrono::milliseconds(s_capture.adapter_delay_ms - 5),
+                "adapter policy fired prematurely");
+        require(s_adapter_elapsed < s_application_elapsed,
+                "scheduler did not select the earlier adapter deadline");
+    }
+
+    const auto s_idle_progress_calls =
+        s_capture.progress_calls.load(std::memory_order_relaxed);
+    const auto s_idle_service_calls =
+        s_capture.service_calls.load(std::memory_order_relaxed);
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    require(s_capture.progress_calls.load(std::memory_order_relaxed) ==
+                s_idle_progress_calls &&
+                s_capture.service_calls.load(std::memory_order_relaxed) ==
+                    s_idle_service_calls,
+            "deadline scheduler busy-spun after all hints became none");
+    s_executor.stop();
+}
+
+void testApplicationAndAdapterDeadlineScheduling() {
+    SchedulerCapture s_application_only;
+    runApplicationDeadlineTest(s_application_only);
+
+    SchedulerCapture s_combined;
+    s_combined.application_delay_ms = 70;
+    s_combined.adapter_delay_ms = 20;
+    runApplicationDeadlineTest(s_combined);
+}
+
 } // namespace
 
 int main() {
@@ -684,6 +841,8 @@ int main() {
         std::puts("PASS: FIFO is bounded and shutdown is deterministic");
         testLatestGetsNextGapWithoutStarvingReliable();
         std::puts("PASS: latest control gets a bounded-fair TX gap");
+        testApplicationAndAdapterDeadlineScheduling();
+        std::puts("PASS: scheduler merges application and adapter deadlines");
         return 0;
     } catch (const std::exception& s_error) {
         std::fprintf(stderr, "FAIL: %s\n", s_error.what());

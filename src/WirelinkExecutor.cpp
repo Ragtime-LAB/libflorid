@@ -260,28 +260,57 @@ void WirelinkExecutor::s_run() noexcept {
         bool s_progress = s_pollEvents(s_now);
         if (m_stop_requested.load(std::memory_order_acquire)) break;
 
+        if (m_hooks.m_application_progress != nullptr &&
+            m_hooks.m_application_progress(m_hooks.m_user_data, m_context,
+                                             s_nowMs())) {
+            s_progress = true;
+        }
+        if (m_stop_requested.load(std::memory_order_acquire)) break;
+
         if (s_dispatchOne()) {
             s_progress = true;
         }
         if (s_progress) continue;
 
         wl_poll_hint_t s_hint{};
-        const int s_hint_result = wl_poll_get_hint(&m_context, s_nowMs(), &s_hint);
+        const wl_time_ms_t s_hint_now = s_nowMs();
+        const int s_hint_result =
+            wl_poll_get_hint(&m_context, s_hint_now, &s_hint);
         if (s_hint_result != WL_OK) {
             m_stats.m_poll_errors.fetch_add(1, std::memory_order_relaxed);
         } else if (s_hint.work_pending != 0) {
             continue;
         }
 
+        std::uint32_t s_next_deadline =
+            s_hint_result == WL_OK ? s_hint.next_deadline_ms
+                                   : WL_POLL_NO_DEADLINE_MS;
+        if (m_hooks.m_application_deadline_hint != nullptr) {
+            const std::uint32_t s_application_deadline =
+                m_hooks.m_application_deadline_hint(m_hooks.m_user_data,
+                                                    s_hint_now);
+            if (s_application_deadline < s_next_deadline) {
+                s_next_deadline = s_application_deadline;
+            }
+        }
+        if (m_hooks.m_adapter_deadline_hint != nullptr) {
+            const std::uint32_t s_adapter_deadline =
+                m_hooks.m_adapter_deadline_hint(m_hooks.m_user_data,
+                                                s_hint_now);
+            if (s_adapter_deadline < s_next_deadline) {
+                s_next_deadline = s_adapter_deadline;
+            }
+        }
+        if (s_next_deadline == 0) continue;
+
         if (m_stop_requested.load(std::memory_order_acquire) ||
             m_wake_generation.load(std::memory_order_acquire) !=
                 s_observed_wake) {
             continue;
         }
-        if (s_hint_result == WL_OK &&
-            s_hint.next_deadline_ms != WL_POLL_NO_DEADLINE_MS) {
+        if (s_next_deadline != WL_POLL_NO_DEADLINE_MS) {
             (void)m_wake.try_acquire_for(
-                std::chrono::milliseconds(s_hint.next_deadline_ms));
+                std::chrono::milliseconds(s_next_deadline));
         } else {
             m_wake.acquire();
         }
