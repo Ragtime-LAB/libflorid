@@ -175,7 +175,6 @@ int WirelinkExecutor::submitLatest(std::uint16_t s_message_id,
             return WL_ERR_QUEUE_FULL;
         }
 
-        s_lane->m_command.m_ticket = 0;
         s_lane->m_command.m_generation = m_next_generation++;
         if (m_next_generation == 0) m_next_generation = 1;
         s_lane->m_command.m_message_id = s_message_id;
@@ -189,48 +188,6 @@ int WirelinkExecutor::submitLatest(std::uint16_t s_message_id,
     }
 
     m_stats.m_latest_submitted.fetch_add(1, std::memory_order_relaxed);
-    notify();
-    return WL_OK;
-}
-
-int WirelinkExecutor::submitReliable(std::uint16_t s_message_id,
-                                     const std::uint8_t* s_payload,
-                                     std::size_t s_payload_size,
-                                     std::uint64_t& s_ticket) noexcept {
-    s_ticket = 0;
-    if (s_message_id == 0 || s_payload_size > s_kMaximumCommandPayload ||
-        (s_payload == nullptr && s_payload_size != 0)) {
-        return WL_ERR_INVALID_ARG;
-    }
-    if (!m_accepting.load(std::memory_order_acquire)) {
-        return WL_ERR_CANCELLED;
-    }
-
-    {
-        std::lock_guard<std::mutex> s_lock(m_command_mutex);
-        if (!m_accepting.load(std::memory_order_relaxed)) {
-            return WL_ERR_CANCELLED;
-        }
-        if (m_reliable_count == s_kReliableQueueCapacity) {
-            m_stats.m_reliable_queue_full.fetch_add(1, std::memory_order_relaxed);
-            return WL_ERR_QUEUE_FULL;
-        }
-
-        Command& s_command = m_reliable_queue[m_reliable_tail];
-        s_command.m_ticket = m_next_ticket++;
-        if (m_next_ticket == 0) m_next_ticket = 1;
-        s_command.m_generation = 0;
-        s_command.m_message_id = s_message_id;
-        s_command.m_payload_size = static_cast<std::uint16_t>(s_payload_size);
-        if (s_payload_size != 0) {
-            std::memcpy(s_command.m_payload.data(), s_payload, s_payload_size);
-        }
-        s_ticket = s_command.m_ticket;
-        m_reliable_tail = (m_reliable_tail + 1) % s_kReliableQueueCapacity;
-        ++m_reliable_count;
-    }
-
-    m_stats.m_reliable_submitted.fetch_add(1, std::memory_order_relaxed);
     notify();
     return WL_OK;
 }
@@ -339,49 +296,14 @@ bool WirelinkExecutor::s_pollEvents(wl_time_ms_t s_now_ms) noexcept {
 }
 
 bool WirelinkExecutor::s_dispatchOne() noexcept {
-    if (m_active_reliable_valid) return false;
-
-    Command s_reliable{};
     Command s_latest{};
-    const bool s_has_reliable = s_peekReliable(s_reliable);
-    const bool s_has_latest = s_peekLatest(s_latest);
-    if (!s_has_reliable && !s_has_latest) return false;
-
-    // Alternate when both classes are pending. LATEST gets the first free TX
-    // gap, while a reliable FIFO entry is guaranteed the following gap.
-    const bool s_send_latest =
-        s_has_latest && (!s_has_reliable || !m_latest_had_last_turn);
-    if (!s_send_latest) {
-        wl_tx_handle_t s_handle{};
-        const int s_result = wl_send_reliable(
-            &m_context, s_reliable.m_message_id,
-            s_reliable.m_payload.data(), s_reliable.m_payload_size, &s_handle);
-        if (s_result == WL_OK) {
-            s_popReliable(s_reliable.m_ticket);
-            m_active_reliable = s_reliable;
-            m_active_handle = s_handle;
-            m_active_reliable_valid = true;
-            m_latest_had_last_turn = false;
-            m_stats.m_reliable_dispatched.fetch_add(1, std::memory_order_relaxed);
-            return true;
-        }
-        if (s_result == WL_ERR_BUSY || s_result == WL_ERR_WOULD_BLOCK) {
-            return false;
-        }
-
-        s_popReliable(s_reliable.m_ticket);
-        m_latest_had_last_turn = false;
-        m_stats.m_reliable_failed.fetch_add(1, std::memory_order_relaxed);
-        s_complete(s_reliable, WL_TX_STATE_FAILED, s_result, 0);
-        return true;
-    }
+    if (!s_peekLatest(s_latest)) return false;
 
     const int s_result = wl_send_unreliable(
         &m_context, s_latest.m_message_id, s_latest.m_payload.data(),
         s_latest.m_payload_size);
     if (s_result == WL_OK) {
         s_removeLatest(s_latest.m_generation);
-        m_latest_had_last_turn = true;
         m_stats.m_latest_dispatched.fetch_add(1, std::memory_order_relaxed);
         return true;
     }
@@ -390,7 +312,6 @@ bool WirelinkExecutor::s_dispatchOne() noexcept {
     }
 
     s_removeLatest(s_latest.m_generation);
-    m_latest_had_last_turn = true;
     m_stats.m_latest_failed.fetch_add(1, std::memory_order_relaxed);
     return true;
 }
@@ -414,8 +335,8 @@ void WirelinkExecutor::s_handleEvent(const wl_event_t& s_event) noexcept {
     }
 
     // Internal control-unit sends (for example a reliable RX ACK) have no
-    // user-visible handle and therefore belong to neither a generated RPC
-    // client nor an executor command.
+    // user-visible handle and therefore do not belong to a generated RPC
+    // client transaction.
     if (s_event.handle == 0) return;
 
     // Generated RPC runtimes must see terminal TX events before the handle is
@@ -424,44 +345,8 @@ void WirelinkExecutor::s_handleEvent(const wl_event_t& s_event) noexcept {
         m_hooks.m_on_event(m_hooks.m_user_data, m_context, s_event);
     }
 
-    if (!m_active_reliable_valid || s_event.handle != m_active_handle) {
-        wl_tx_result_t s_ignored{};
-        (void)wl_tx_take(&m_context, s_event.handle, &s_ignored);
-        return;
-    }
-
-    wl_tx_result_t s_result{};
-    int s_take_result = wl_tx_take(&m_context, m_active_handle, &s_result);
-    if (s_take_result != WL_OK) {
-        s_result.state = WL_TX_STATE_FAILED;
-        s_result.result = s_take_result;
-        s_result.retries_used = 0;
-    }
-
-    const Command s_command = m_active_reliable;
-    m_active_reliable_valid = false;
-    m_active_handle = 0;
-    if (s_result.state == WL_TX_STATE_SUCCESS) {
-        m_stats.m_reliable_completed.fetch_add(1, std::memory_order_relaxed);
-    } else {
-        m_stats.m_reliable_failed.fetch_add(1, std::memory_order_relaxed);
-    }
-    s_complete(s_command, s_result.state, s_result.result,
-               s_result.retries_used);
-}
-
-void WirelinkExecutor::s_complete(const Command& s_command,
-                                  wl_tx_state_t s_state, int s_result,
-                                  std::uint16_t s_retries) noexcept {
-    if (m_hooks.m_on_completion == nullptr) return;
-    const WirelinkCommandResult s_completion{
-        .m_ticket = s_command.m_ticket,
-        .m_message_id = s_command.m_message_id,
-        .m_state = s_state,
-        .m_result = s_result,
-        .m_retries_used = s_retries,
-    };
-    m_hooks.m_on_completion(m_hooks.m_user_data, s_completion);
+    wl_tx_result_t s_ignored{};
+    (void)wl_tx_take(&m_context, s_event.handle, &s_ignored);
 }
 
 void WirelinkExecutor::s_shutdownOnOwner() noexcept {
@@ -484,25 +369,6 @@ void WirelinkExecutor::s_shutdownOnOwner() noexcept {
         }
     }
 
-    if (m_active_reliable_valid) {
-        (void)wl_tx_cancel(&m_context, m_active_handle);
-        wl_tx_result_t s_ignored{};
-        (void)wl_tx_take(&m_context, m_active_handle, &s_ignored);
-        const Command s_command = m_active_reliable;
-        m_active_reliable_valid = false;
-        m_active_handle = 0;
-        m_stats.m_reliable_cancelled.fetch_add(1, std::memory_order_relaxed);
-        s_complete(s_command, WL_TX_STATE_CANCELLED, WL_ERR_CANCELLED, 0);
-    }
-
-    while (true) {
-        Command s_command{};
-        if (!s_peekReliable(s_command)) break;
-        s_popReliable(s_command.m_ticket);
-        m_stats.m_reliable_cancelled.fetch_add(1, std::memory_order_relaxed);
-        s_complete(s_command, WL_TX_STATE_CANCELLED, WL_ERR_CANCELLED, 0);
-    }
-
     {
         std::lock_guard<std::mutex> s_lock(m_command_mutex);
         std::uint64_t s_cancelled{};
@@ -518,23 +384,6 @@ void WirelinkExecutor::s_shutdownOnOwner() noexcept {
         }
     }
     (void)wl_set_sink(&m_context, nullptr, nullptr);
-}
-
-bool WirelinkExecutor::s_peekReliable(Command& s_command) noexcept {
-    std::lock_guard<std::mutex> s_lock(m_command_mutex);
-    if (m_reliable_count == 0) return false;
-    s_command = m_reliable_queue[m_reliable_head];
-    return true;
-}
-
-void WirelinkExecutor::s_popReliable(std::uint64_t s_ticket) noexcept {
-    std::lock_guard<std::mutex> s_lock(m_command_mutex);
-    if (m_reliable_count == 0 ||
-        m_reliable_queue[m_reliable_head].m_ticket != s_ticket) {
-        return;
-    }
-    m_reliable_head = (m_reliable_head + 1) % s_kReliableQueueCapacity;
-    --m_reliable_count;
 }
 
 bool WirelinkExecutor::s_peekLatest(Command& s_command) noexcept {
@@ -584,18 +433,6 @@ WirelinkExecutorStats WirelinkExecutor::stats() const noexcept {
             m_stats.m_latest_failed.load(std::memory_order_relaxed),
         .m_latest_cancelled =
             m_stats.m_latest_cancelled.load(std::memory_order_relaxed),
-        .m_reliable_submitted =
-            m_stats.m_reliable_submitted.load(std::memory_order_relaxed),
-        .m_reliable_queue_full =
-            m_stats.m_reliable_queue_full.load(std::memory_order_relaxed),
-        .m_reliable_dispatched =
-            m_stats.m_reliable_dispatched.load(std::memory_order_relaxed),
-        .m_reliable_completed =
-            m_stats.m_reliable_completed.load(std::memory_order_relaxed),
-        .m_reliable_failed =
-            m_stats.m_reliable_failed.load(std::memory_order_relaxed),
-        .m_reliable_cancelled =
-            m_stats.m_reliable_cancelled.load(std::memory_order_relaxed),
     };
 }
 

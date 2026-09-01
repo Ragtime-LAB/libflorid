@@ -25,16 +25,12 @@ public:
 
     UdpTransport(const UdpTransport&) = delete;
     UdpTransport& operator=(const UdpTransport&) = delete;
-    UdpTransport(UdpTransport&&) noexcept;
-    UdpTransport& operator=(UdpTransport&&) noexcept;
+    UdpTransport(UdpTransport&&) = delete;
+    UdpTransport& operator=(UdpTransport&&) = delete;
 
     bool send(const std::uint8_t* s_data, std::size_t s_size) override;
 
     void setReceiveCallback(ReceiveFunctor s_callback, void* s_context) override;
-
-    void poll() override;
-
-    bool isConnected() const;
 
 private:
     struct Impl;

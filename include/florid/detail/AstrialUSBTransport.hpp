@@ -1,11 +1,10 @@
 #ifndef FLORID_DETAIL_ASTRIAL_USB_TRANSPORT_HPP
 #define FLORID_DETAIL_ASTRIAL_USB_TRANSPORT_HPP
 
+#include "florid/detail/ReceiveCallbackGate.hpp"
 #include "florid/detail/Transport.hpp"
 
-#include <atomic>
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -30,16 +29,12 @@ public:
 
   AstrialUSBTransport(const AstrialUSBTransport &) = delete;
   AstrialUSBTransport &operator=(const AstrialUSBTransport &) = delete;
-  AstrialUSBTransport(AstrialUSBTransport &&) noexcept;
-  AstrialUSBTransport &operator=(AstrialUSBTransport &&) noexcept;
+  AstrialUSBTransport(AstrialUSBTransport &&) = delete;
+  AstrialUSBTransport &operator=(AstrialUSBTransport &&) = delete;
 
   bool send(const std::uint8_t *s_data, std::size_t s_size) override;
 
   void setReceiveCallback(ReceiveFunctor s_callback, void *s_context) override;
-
-  void poll() override;
-
-  bool isConnected() const;
 
   static std::vector<UsbDeviceInfo> listDevices();
 
@@ -47,10 +42,7 @@ private:
   void s_installReceiveHandler();
 
   std::unique_ptr<Serial> m_serial;
-  std::atomic<ReceiveFunctor> m_recv_callback{nullptr};
-  std::atomic<void *> m_recv_context{nullptr};
-  std::mutex m_write_mutex;
-  // TODO: remove this mutex for performance
+  detail::ReceiveCallbackGate m_receive_callback;
 };
 
 } // namespace florid

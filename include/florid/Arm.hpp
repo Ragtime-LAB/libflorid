@@ -90,9 +90,6 @@ public:
     bool setZeroPoint(std::uint8_t s_joint_id);
 
     std::uint32_t firmwarePeriodUs() const;
-    ReconnectPolicy reconnectPolicy() const;
-    void setReconnectPolicy(ReconnectPolicy s_p);
-    bool isConnected() const;
     const DeviceInfo& deviceInfo() const;
     const DeviceSettings& deviceSettings() const;
     bool setDeviceSettings(const DeviceSettings& s_settings);

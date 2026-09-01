@@ -872,11 +872,12 @@ void testTypedEndpointLifecycle() {
     waitFor(s_status_capture.m_cv, s_status_capture.m_mutex,
             [&] { return s_status_capture.m_calls == 1; },
             "ArmStatus callback did not run");
-    florid::detail::FciArmStatusSnapshot s_snapshot{};
-    require(s_host.latestArmStatus(s_snapshot) == FciEndpointStatus::kOk &&
-                s_snapshot.m_state.m_seq == 41 &&
-                s_snapshot.m_state.m_q[0] == 4.25F,
-            "ArmStatus snapshot was not stable after borrowed release");
+    {
+        std::lock_guard<std::mutex> s_lock(s_status_capture.m_mutex);
+        require(s_status_capture.m_status.m_state.m_seq == 41 &&
+                    s_status_capture.m_status.m_state.m_q[0] == 4.25F,
+                "ArmStatus callback snapshot was not stable after borrowed release");
+    }
 
     const auto s_release = s_host.releaseControlLease(250);
     require(s_release.m_status == FciEndpointStatus::kOk,
@@ -912,11 +913,24 @@ void testTypedEndpointLifecycle() {
     require(s_host.stats().m_runtime_poll_calls == s_idle_poll_count,
             "idle endpoint retained a hidden periodic wakeup");
 
+    const auto s_rpc_started_before_shutdown =
+        s_host.stats().m_rpc_started;
     s_host_to_device.m_busy.store(true, std::memory_order_release);
     const auto s_pending = s_host.getDeviceInfo(500);
     require(s_pending.m_status == FciEndpointStatus::kOk,
             "pending shutdown RPC was not queued");
-    std::this_thread::sleep_for(10ms);
+    // A queued operation owns no generated-runtime slot yet.  Waiting an
+    // arbitrary amount of wall time made this test depend on whether the
+    // executor happened to run before stop(); wait for the slot acquisition
+    // that the release/cancellation counters are intended to verify.
+    const auto s_rpc_start_deadline = std::chrono::steady_clock::now() + 1s;
+    while (s_host.stats().m_rpc_started == s_rpc_started_before_shutdown &&
+           std::chrono::steady_clock::now() < s_rpc_start_deadline) {
+        std::this_thread::yield();
+    }
+    require(s_host.stats().m_rpc_started ==
+                s_rpc_started_before_shutdown + 1,
+            "pending shutdown RPC never acquired a runtime slot");
     const auto s_stop_started = std::chrono::steady_clock::now();
     s_host.stop();
     require(std::chrono::steady_clock::now() - s_stop_started < 500ms,

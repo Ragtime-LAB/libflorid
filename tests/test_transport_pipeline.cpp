@@ -1,8 +1,12 @@
 #include "florid/detail/ArmImpl.hpp"
+#include "florid/detail/ReceiveCallbackGate.hpp"
 #include "florid/detail/Transport.hpp"
+#include "florid/detail/UdpTransport.hpp"
 #include "florid/detail/WirelinkExecutor.hpp"
 
 #include "fci_arm_bindings.h"
+
+#include <asio.hpp>
 
 #include <algorithm>
 #include <array>
@@ -14,6 +18,7 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <semaphore>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -27,6 +32,8 @@ using florid::JointMIT;
 using florid::JointPosVel;
 using florid::MotorRegister;
 using florid::Transport;
+using florid::UdpTransport;
+using florid::detail::ReceiveCallbackGate;
 using florid::detail::WirelinkExecutor;
 using florid::detail::WirelinkExecutorHooks;
 
@@ -68,21 +75,16 @@ public:
 
     void setReceiveCallback(ReceiveFunctor s_callback,
                             void* s_context) override {
-        m_context.store(s_context, std::memory_order_relaxed);
-        m_callback.store(s_callback, std::memory_order_release);
+        m_receive_callback.set(s_callback, s_context);
     }
-
-    void poll() override {}
 
     bool deliver(const std::uint8_t* s_data, std::size_t s_size) noexcept {
         std::size_t s_offset{};
         while (s_offset < s_size) {
             const auto s_chunk = std::min<std::size_t>(3, s_size - s_offset);
-            const auto s_callback =
-                m_callback.load(std::memory_order_acquire);
-            if (s_callback == nullptr) return false;
-            s_callback(m_context.load(std::memory_order_relaxed),
-                       s_data + s_offset, s_chunk);
+            if (!m_receive_callback.invoke(s_data + s_offset, s_chunk)) {
+                return false;
+            }
             s_offset += s_chunk;
         }
         return true;
@@ -90,8 +92,7 @@ public:
 
 private:
     DevicePeer& m_peer;
-    std::atomic<ReceiveFunctor> m_callback{};
-    std::atomic<void*> m_context{};
+    ReceiveCallbackGate m_receive_callback;
 };
 
 class DevicePeer {
@@ -589,11 +590,179 @@ private:
     std::atomic<std::uint8_t> m_last_register_joint{0xff};
 };
 
-LoopbackTransport::~LoopbackTransport() { m_peer.detach(*this); }
+LoopbackTransport::~LoopbackTransport() {
+    m_receive_callback.clear();
+    m_peer.detach(*this);
+}
 
 bool LoopbackTransport::send(const std::uint8_t* s_data,
                              std::size_t s_size) {
     return m_peer.feed(s_data, s_size);
+}
+
+struct BlockingReceive {
+    std::binary_semaphore m_entered{0};
+    std::binary_semaphore m_return_allowed{0};
+    std::atomic<std::size_t> m_call_count{};
+
+    static void callback(void* s_context, const std::uint8_t*,
+                         std::size_t) {
+        auto& s_self = *static_cast<BlockingReceive*>(s_context);
+        s_self.m_call_count.fetch_add(1, std::memory_order_relaxed);
+        s_self.m_entered.release();
+        s_self.m_return_allowed.acquire();
+    }
+};
+
+void testReceiveCallbackDetachQuiesces() {
+    ReceiveCallbackGate s_gate;
+    BlockingReceive s_receive;
+    const std::uint8_t s_byte{};
+    s_gate.set(BlockingReceive::callback, &s_receive);
+
+    std::jthread s_receiver([&] { s_gate.invoke(&s_byte, 1); });
+    const bool s_callback_started = s_receive.m_entered.try_acquire_for(1s);
+    if (!s_callback_started) {
+        // Keep the failure path joinable even if the callback starts just
+        // after the timeout.
+        s_receive.m_return_allowed.release();
+        s_gate.clear();
+        s_receiver.join();
+        require(false, "receive callback did not start");
+    }
+
+    std::binary_semaphore s_detach_started{0};
+    std::binary_semaphore s_detach_returned{0};
+    std::jthread s_detacher([&] {
+        s_detach_started.release();
+        s_gate.clear();
+        s_detach_returned.release();
+    });
+    s_detach_started.acquire();
+    const bool s_detached_early = s_detach_returned.try_acquire_for(25ms);
+
+    s_receive.m_return_allowed.release();
+    const bool s_detached =
+        s_detached_early || s_detach_returned.try_acquire_for(1s);
+    s_receiver.join();
+    s_detacher.join();
+
+    require(!s_detached_early,
+            "callback detach returned while a callback was in flight");
+    require(s_detached,
+            "callback detach did not unblock after the callback returned");
+    require(!s_gate.invoke(&s_byte, 1) &&
+                s_receive.m_call_count.load(std::memory_order_relaxed) == 1,
+            "detached receive callback was invoked again");
+}
+
+void testUdpTransportDetachQuiesces() {
+    asio::io_context s_peer_context;
+    asio::ip::udp::socket s_port_probe(
+        s_peer_context,
+        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
+    const auto s_host_port = s_port_probe.local_endpoint().port();
+    asio::error_code s_error;
+    s_port_probe.close(s_error);
+    require(!s_error, "UDP port probe could not be closed");
+
+    asio::ip::udp::socket s_peer(
+        s_peer_context,
+        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
+    const asio::ip::udp::endpoint s_host(
+        asio::ip::address_v4::loopback(), s_host_port);
+    const std::array<std::uint8_t, 1> s_datagram{0x5a};
+
+    std::jthread s_discovery([&](std::stop_token s_stop) {
+        while (!s_stop.stop_requested()) {
+            asio::error_code s_send_error;
+            s_peer.send_to(asio::buffer(s_datagram), s_host, 0,
+                           s_send_error);
+            std::this_thread::sleep_for(1ms);
+        }
+    });
+
+    UdpTransport s_transport("127.0.0.1", s_host_port, 2s);
+    s_discovery.request_stop();
+    s_discovery.join();
+
+    BlockingReceive s_receive;
+    s_transport.setReceiveCallback(BlockingReceive::callback, &s_receive);
+    s_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
+    const bool s_callback_started =
+        !s_error && s_receive.m_entered.try_acquire_for(1s);
+    if (!s_callback_started) {
+        s_receive.m_return_allowed.release();
+        s_transport.setReceiveCallback(nullptr, nullptr);
+        require(false, "UDP receive callback did not start");
+    }
+
+    std::binary_semaphore s_detach_started{0};
+    std::binary_semaphore s_detach_returned{0};
+    std::jthread s_detacher([&] {
+        s_detach_started.release();
+        s_transport.setReceiveCallback(nullptr, nullptr);
+        s_detach_returned.release();
+    });
+    s_detach_started.acquire();
+    const bool s_detached_early = s_detach_returned.try_acquire_for(25ms);
+
+    s_receive.m_return_allowed.release();
+    const bool s_detached =
+        s_detached_early || s_detach_returned.try_acquire_for(1s);
+    s_detacher.join();
+
+    require(!s_detached_early,
+            "UDP callback detach returned while a callback was in flight");
+    require(s_detached,
+            "UDP callback detach did not unblock after callback return");
+
+    const auto s_call_count =
+        s_receive.m_call_count.load(std::memory_order_relaxed);
+    s_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
+    require(!s_error, "post-detach UDP datagram send failed");
+    std::this_thread::sleep_for(25ms);
+    require(s_receive.m_call_count.load(std::memory_order_relaxed) ==
+                s_call_count,
+            "UDP callback ran again after detach returned");
+
+    // A later datagram from another source must not retarget commands away
+    // from the endpoint that completed discovery.
+    asio::ip::udp::socket s_other_peer(
+        s_peer_context,
+        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
+    s_other_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
+    require(!s_error, "second UDP peer datagram send failed");
+    std::this_thread::sleep_for(10ms);
+
+    const std::array<std::uint8_t, 2> s_reply{0xa5, 0x5a};
+    require(s_transport.send(s_reply.data(), s_reply.size()),
+            "UDP reply to learned peer failed");
+    s_peer.non_blocking(true, s_error);
+    require(!s_error, "could not make UDP test peer nonblocking");
+
+    bool s_reply_received = false;
+    std::array<std::uint8_t, 8> s_reply_buffer{};
+    asio::ip::udp::endpoint s_reply_source;
+    const auto s_reply_deadline = std::chrono::steady_clock::now() + 1s;
+    while (std::chrono::steady_clock::now() < s_reply_deadline) {
+        const auto s_received = s_peer.receive_from(
+            asio::buffer(s_reply_buffer), s_reply_source, 0, s_error);
+        if (!s_error) {
+            s_reply_received =
+                s_received == s_reply.size() &&
+                std::equal(s_reply.begin(), s_reply.end(),
+                           s_reply_buffer.begin());
+            break;
+        }
+        if (s_error != asio::error::would_block &&
+            s_error != asio::error::try_again) {
+            break;
+        }
+        std::this_thread::sleep_for(1ms);
+    }
+    require(s_reply_received,
+            "UDP peer changed after its first publication");
 }
 
 void testArmImplWirelinkPipeline() {
@@ -605,7 +774,6 @@ void testArmImplWirelinkPipeline() {
 
     {
         ArmImpl s_impl(std::move(s_transport));
-        require(s_impl.isConnected(), "ArmImpl did not complete handshake");
         require(s_peer.acquireCount() >= 1, "lease request was not observed");
         require(s_impl.getDeviceInfo().m_board_name == "loopback" &&
                     s_impl.getDeviceInfo().m_firmware_version.m_patch == 4,
@@ -688,8 +856,6 @@ void testArmImplWirelinkPipeline() {
             "second peer sink attachment failed");
     {
         ArmImpl s_second(std::move(s_second_transport));
-        require(s_second.isConnected(),
-                "immediate second ArmImpl did not complete handshake");
     }
     require(s_peer.newLeaseCount() == 2 && s_peer.releaseCount() == 2,
             "consecutive ArmImpl sessions did not own distinct leases");
@@ -705,6 +871,8 @@ void testArmImplWirelinkPipeline() {
 
 int main() {
     try {
+        testReceiveCallbackDetachQuiesces();
+        testUdpTransportDetachQuiesces();
         testArmImplWirelinkPipeline();
         return 0;
     } catch (const std::exception& s_error) {

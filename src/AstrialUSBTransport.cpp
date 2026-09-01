@@ -26,47 +26,22 @@ AstrialUSBTransport::AstrialUSBTransport(const std::string &s_port_path,
 }
 
 AstrialUSBTransport::~AstrialUSBTransport() {
+  m_receive_callback.clear();
   if (m_serial) {
     m_serial->close();
   }
 }
 
-AstrialUSBTransport::AstrialUSBTransport(AstrialUSBTransport &&s_other) noexcept
-    : m_serial(std::move(s_other.m_serial)),
-      m_recv_callback(s_other.m_recv_callback.exchange(nullptr)),
-      m_recv_context(s_other.m_recv_context.exchange(nullptr)) {
-  if (m_recv_callback.load(std::memory_order_acquire)) {
-    s_installReceiveHandler();
-  }
-}
-
-AstrialUSBTransport &
-AstrialUSBTransport::operator=(AstrialUSBTransport &&s_other) noexcept {
-  if (this != &s_other) {
-    m_serial = std::move(s_other.m_serial);
-    m_recv_callback.store(s_other.m_recv_callback.exchange(nullptr),
-                          std::memory_order_release);
-    m_recv_context.store(s_other.m_recv_context.exchange(nullptr),
-                         std::memory_order_release);
-    if (m_recv_callback.load(std::memory_order_acquire)) {
-      s_installReceiveHandler();
-    }
-  }
-  return *this;
-}
-
 bool AstrialUSBTransport::send(const std::uint8_t *s_data, std::size_t s_size) {
   if (!m_serial)
     return false;
-  std::lock_guard<std::mutex> s_lock(m_write_mutex);
   auto s_r = m_serial->write(std::span<const std::uint8_t>(s_data, s_size));
   return s_r.has_value();
 }
 
 void AstrialUSBTransport::setReceiveCallback(ReceiveFunctor s_callback,
                                              void *s_context) {
-  m_recv_context.store(s_context, std::memory_order_relaxed);
-  m_recv_callback.store(s_callback, std::memory_order_release);
+  m_receive_callback.set(s_callback, s_context);
 
   if (s_callback && m_serial) {
     s_installReceiveHandler();
@@ -75,20 +50,9 @@ void AstrialUSBTransport::setReceiveCallback(ReceiveFunctor s_callback,
 
 void AstrialUSBTransport::s_installReceiveHandler() {
   m_serial->on_data([this](std::span<const std::uint8_t> s_data) {
-    const auto s_callback = m_recv_callback.load(std::memory_order_acquire);
-    if (s_callback) {
-      s_callback(m_recv_context.load(std::memory_order_relaxed), s_data.data(),
-                 s_data.size());
-    }
+    m_receive_callback.invoke(s_data.data(), s_data.size());
   });
 }
-
-void AstrialUSBTransport::poll() {
-  // Astrial has its own internal ASIO io_context thread driving async I/O.
-  // No polling needed on the host platform.
-}
-
-bool AstrialUSBTransport::isConnected() const { return m_serial != nullptr; }
 
 std::vector<UsbDeviceInfo> AstrialUSBTransport::listDevices() {
   std::vector<UsbDeviceInfo> s_devices;

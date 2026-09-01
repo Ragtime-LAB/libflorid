@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 
 project(florid VERSION 0.1.0 LANGUAGES CXX C)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,8 +15,6 @@ set(WIRELINK_SOURCE_DIR "" CACHE PATH
     "Optional Wirelink source tree used by libflorid")
 set(WLC_EXECUTABLE "" CACHE FILEPATH
     "Host wlc executable used to generate the FCI Wirelink bindings")
-
-include(SDKDependencies)
 
 if(BUILD_MPC)
     set(ACADOS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/acados" CACHE PATH "acados source directory")
@@ -40,6 +36,7 @@ endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake")
 fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
+set(BUILD_EXAMPLE OFF)
 add_subdirectory(3rdparty/astrial)
 find_package(Threads REQUIRED)
 

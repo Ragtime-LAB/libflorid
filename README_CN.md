@@ -153,7 +153,7 @@ C++ 中以 `s_` 前缀命名的方法绑定为 snake_case 名称（`firmware_per
 | `ActiveControl<T>` | `start*Control()` 返回的读写轮询句柄。用 `readOnce()` 读取 `ArmState`，用 `writeOnce()` 发送指令。 |
 | `Gripper` | `arm->gripper()`；为夹爪电机（joint_id 7）提供相同的控制模式与 `ActiveControl` 轮询。 |
 | `Model<Traits>` | 无状态计算类，委托给生成的 `Traits`（`fk`、`pose`、雅可比、`mass`、`coriolis`、`gravity`）。更换模板参数即可切换臂型。 |
-| `detail::Transport` | 抽象字节传输（`send`/`setReceiveCallback`/`poll`）。I/O callback 只 feed 字节并唤醒 endpoint executor。 |
+| `detail::Transport` | 推送式抽象字节传输（`send`/`setReceiveCallback`）。Wirelink owner 线程是唯一发送者；I/O callback 只 feed 字节并唤醒 endpoint executor。 |
 | `FciWirelinkEndpoint` | 从 `protocol/schema/wirelink/arm/*.wl` 生成的单 owner host runtime。遥测从 borrowed LATEST view 复制为稳定快照，实时指令按 message ID 合并最新值，配置操作使用 typed reliable RPC 和可续租 control lease。 |
 
 ## 构建选项

@@ -20,8 +20,6 @@ public:
 
     void markReceived(std::uint64_t s_echo_timestamp_us, std::uint64_t s_host_now_us);
 
-    void markSent(std::uint64_t s_host_now_us);
-
     std::uint64_t stateAgeUs(std::uint64_t s_host_now_us) const {
         if (m_recv_time_us == 0) return 0;
         return s_host_now_us - m_recv_time_us;
@@ -31,9 +29,7 @@ public:
 
     double receiveJitterUs() const { return m_jitter_us; }
 
-    double receiveHz(std::uint64_t s_host_now_us) const;
-
-    void setEmaAlpha(float s_alpha) { m_alpha = s_alpha; }
+    double receiveHz() const;
 
 private:
     static constexpr int g_window_size = 64;

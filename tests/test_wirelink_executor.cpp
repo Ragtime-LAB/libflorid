@@ -2,7 +2,6 @@
 
 #include "wirelink/frame.h"
 
-#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -17,7 +16,6 @@
 
 namespace {
 
-using florid::detail::WirelinkCommandResult;
 using florid::detail::WirelinkExecutor;
 using florid::detail::WirelinkExecutorHooks;
 
@@ -101,11 +99,14 @@ struct RxCapture {
     std::thread::id quiesce_thread{};
     std::size_t event_count{};
     std::size_t release_count{};
+    bool hold_after_final_release{true};
+    bool continue_after_final_release{};
     std::atomic<std::size_t> service_calls{};
 
     static int service(void* s_user_data) noexcept {
         auto& s_self = *static_cast<RxCapture*>(s_user_data);
         s_self.service_calls.fetch_add(1, std::memory_order_relaxed);
+        s_self.cv.notify_all();
         return WL_ERR_NO_DATA;
     }
 
@@ -121,9 +122,15 @@ struct RxCapture {
         }
         wl_event_release(&s_context, &s_event);
         {
-            std::lock_guard<std::mutex> s_lock(s_self.mutex);
+            std::unique_lock<std::mutex> s_lock(s_self.mutex);
             ++s_self.release_count;
             s_self.cv.notify_all();
+            if (s_self.release_count == 2 &&
+                s_self.hold_after_final_release) {
+                s_self.cv.wait(s_lock, [&] {
+                    return s_self.continue_after_final_release;
+                });
+            }
         }
     }
 
@@ -193,6 +200,26 @@ void testFeedOnlyWakesOwner() {
         }
         require(s_received, "RX event was not dispatched");
     }
+    // Hold the owner in the final callback while queuing a fully-published
+    // wake.  That removes the generation/semaphore publication race from the
+    // measurement: the next pass must consume this wake, and no earlier wake
+    // can arrive after the sample point.
+    const auto s_service_calls_before_barrier =
+        s_capture.service_calls.load(std::memory_order_relaxed);
+    s_executor.notify();
+    {
+        std::lock_guard<std::mutex> s_lock(s_capture.mutex);
+        s_capture.continue_after_final_release = true;
+        s_capture.cv.notify_all();
+    }
+    waitFor(s_capture.cv, s_capture.mutex,
+            [&] {
+                return s_capture.service_calls.load(
+                           std::memory_order_relaxed) >
+                       s_service_calls_before_barrier;
+            },
+            "executor did not service the idle barrier");
+
     require(s_feed_result == WL_OK && s_accepted == s_frames.size(),
             "producer did not feed the complete frames");
     require(s_capture.event_count == 2 && s_capture.release_count == 2,
@@ -208,7 +235,6 @@ void testFeedOnlyWakesOwner() {
     require(s_capture.callback_thread != s_producer_thread,
             "RX callback ran on the producer thread");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     const auto s_idle_service_calls =
         s_capture.service_calls.load(std::memory_order_relaxed);
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -364,153 +390,21 @@ void testLatestLanesCoalesceWithoutCrossMessageLoss() {
             "latest lanes unexpectedly overflowed");
 }
 
-struct ForwardSink {
-    WirelinkExecutor* target{};
-
-    static wl_sink_result_t sink(void* s_user_data, wl_io_token_t,
-                                 const std::uint8_t* s_data,
-                                 std::size_t s_size) noexcept {
-        auto& s_self = *static_cast<ForwardSink*>(s_user_data);
-        std::size_t s_accepted{};
-        const int s_result =
-            s_self.target->feedBytes(s_data, s_size, s_accepted);
-        return s_result == WL_OK && s_accepted == s_size ? WL_SINK_SENT
-                                                         : WL_SINK_FAILED;
-    }
-};
-
-struct CompletionCapture {
-    std::mutex mutex;
-    std::condition_variable cv;
-    std::vector<WirelinkCommandResult> completions;
-    std::size_t rx_events{};
-    std::thread::id completion_thread{};
-
-    static void onCompletion(void* s_user_data,
-                             const WirelinkCommandResult& s_result) noexcept {
-        auto& s_self = *static_cast<CompletionCapture*>(s_user_data);
-        std::lock_guard<std::mutex> s_lock(s_self.mutex);
-        s_self.completion_thread = std::this_thread::get_id();
-        s_self.completions.push_back(s_result);
-        s_self.cv.notify_all();
-    }
-
-    static void onEvent(void* s_user_data, wl_ctx_t& s_context,
-                        const wl_event_t& s_event) noexcept {
-        auto& s_self = *static_cast<CompletionCapture*>(s_user_data);
-        {
-            std::lock_guard<std::mutex> s_lock(s_self.mutex);
-            ++s_self.rx_events;
-            s_self.cv.notify_all();
-        }
-        wl_event_release(&s_context, &s_event);
-    }
-};
-
-void testReliableMpscFifo() {
-    LinkStorage s_left_storage;
-    LinkStorage s_right_storage;
-    WirelinkExecutor s_left;
-    WirelinkExecutor s_right;
-    auto s_left_config =
-        makeConfig(WL_ENVELOPE_COBS_STREAM, UINT64_C(0x4000000000000004));
-    auto s_right_config =
-        makeConfig(WL_ENVELOPE_COBS_STREAM, UINT64_C(0x5000000000000005));
-    const auto s_left_descriptor = s_left_storage.descriptor();
-    const auto s_right_descriptor = s_right_storage.descriptor();
-    require(s_left.initialize(s_left_config, s_left_descriptor) == WL_OK,
-            "left initialization failed");
-    require(s_right.initialize(s_right_config, s_right_descriptor) == WL_OK,
-            "right initialization failed");
-
-    ForwardSink s_left_sink{.target = &s_right};
-    ForwardSink s_right_sink{.target = &s_left};
-    CompletionCapture s_left_capture;
-    CompletionCapture s_right_capture;
-    WirelinkExecutorHooks s_left_hooks{};
-    s_left_hooks.m_user_data = &s_left_capture;
-    s_left_hooks.m_on_completion = CompletionCapture::onCompletion;
-    WirelinkExecutorHooks s_right_hooks{};
-    s_right_hooks.m_user_data = &s_right_capture;
-    s_right_hooks.m_on_event = CompletionCapture::onEvent;
-    require(s_left.setHooks(s_left_hooks) == WL_OK, "left hooks failed");
-    require(s_right.setHooks(s_right_hooks) == WL_OK, "right hooks failed");
-    require(s_left.setSink(ForwardSink::sink, &s_left_sink) == WL_OK,
-            "left sink failed");
-    require(s_right.setSink(ForwardSink::sink, &s_right_sink) == WL_OK,
-            "right sink failed");
-    require(s_right.start() == WL_OK, "right start failed");
-    require(s_left.start() == WL_OK, "left start failed");
-
-    constexpr std::size_t s_kProducerCount = 4;
-    constexpr std::size_t s_kCommandsPerProducer = 2;
-    std::array<std::thread, s_kProducerCount> s_producers;
-    std::array<std::array<std::uint64_t, s_kCommandsPerProducer>,
-               s_kProducerCount>
-        s_tickets{};
-    std::array<std::array<int, s_kCommandsPerProducer>, s_kProducerCount>
-        s_results{};
-
-    for (std::size_t s_producer = 0; s_producer < s_kProducerCount;
-         ++s_producer) {
-        s_producers[s_producer] = std::thread([&, s_producer] {
-            for (std::size_t s_index = 0; s_index < s_kCommandsPerProducer;
-                 ++s_index) {
-                const std::uint8_t s_payload = static_cast<std::uint8_t>(
-                    s_producer * s_kCommandsPerProducer + s_index);
-                s_results[s_producer][s_index] = s_left.submitReliable(
-                    0x51, &s_payload, 1, s_tickets[s_producer][s_index]);
-            }
-        });
-    }
-    for (auto& s_producer : s_producers) s_producer.join();
-    for (const auto& s_producer_results : s_results) {
-        for (const int s_result : s_producer_results) {
-            require(s_result == WL_OK, "MPSC reliable submit failed");
-        }
-    }
-
-    constexpr std::size_t s_kTotal =
-        s_kProducerCount * s_kCommandsPerProducer;
-    waitFor(s_left_capture.cv, s_left_capture.mutex,
-            [&] { return s_left_capture.completions.size() == s_kTotal; },
-            "reliable commands did not complete");
-    waitFor(s_right_capture.cv, s_right_capture.mutex,
-            [&] { return s_right_capture.rx_events == s_kTotal; },
-            "right endpoint did not receive every reliable command");
-
-    s_left.stop();
-    s_right.stop();
-    std::uint64_t s_previous_ticket{};
-    for (const auto& s_result : s_left_capture.completions) {
-        require(s_result.m_state == WL_TX_STATE_SUCCESS &&
-                    s_result.m_result == WL_OK,
-                "reliable command failed");
-        require(s_result.m_ticket > s_previous_ticket,
-                "reliable FIFO completion order changed");
-        s_previous_ticket = s_result.m_ticket;
-    }
-    const auto s_stats = s_left.stats();
-    require(s_stats.m_reliable_submitted == s_kTotal &&
-                s_stats.m_reliable_dispatched == s_kTotal &&
-                s_stats.m_reliable_completed == s_kTotal,
-            "reliable counters mismatch");
-}
-
 struct ShutdownCapture {
+    WirelinkExecutor* executor{};
     std::mutex mutex;
     std::condition_variable cv;
-    std::vector<WirelinkCommandResult> completions;
     std::size_t sink_calls{};
-    std::size_t service_calls_after_sink{};
+    wl_io_token_t token{};
     std::thread::id sink_thread{};
     std::thread::id quiesce_thread{};
 
-    static wl_sink_result_t sink(void* s_user_data, wl_io_token_t,
+    static wl_sink_result_t sink(void* s_user_data, wl_io_token_t s_token,
                                  const std::uint8_t*, std::size_t) noexcept {
         auto& s_self = *static_cast<ShutdownCapture*>(s_user_data);
         std::lock_guard<std::mutex> s_lock(s_self.mutex);
         ++s_self.sink_calls;
+        s_self.token = s_token;
         s_self.sink_thread = std::this_thread::get_id();
         s_self.cv.notify_all();
         return WL_SINK_STARTED;
@@ -518,30 +412,20 @@ struct ShutdownCapture {
 
     static void quiesce(void* s_user_data) noexcept {
         auto& s_self = *static_cast<ShutdownCapture*>(s_user_data);
-        std::lock_guard<std::mutex> s_lock(s_self.mutex);
-        s_self.quiesce_thread = std::this_thread::get_id();
-    }
-
-    static int service(void* s_user_data) noexcept {
-        auto& s_self = *static_cast<ShutdownCapture*>(s_user_data);
-        std::lock_guard<std::mutex> s_lock(s_self.mutex);
-        if (s_self.sink_calls != 0) {
-            ++s_self.service_calls_after_sink;
-            s_self.cv.notify_all();
+        wl_io_token_t s_token{};
+        {
+            std::lock_guard<std::mutex> s_lock(s_self.mutex);
+            s_self.quiesce_thread = std::this_thread::get_id();
+            s_token = s_self.token;
+            s_self.token = 0;
         }
-        return WL_ERR_NO_DATA;
-    }
-
-    static void onCompletion(void* s_user_data,
-                             const WirelinkCommandResult& s_result) noexcept {
-        auto& s_self = *static_cast<ShutdownCapture*>(s_user_data);
-        std::lock_guard<std::mutex> s_lock(s_self.mutex);
-        s_self.completions.push_back(s_result);
-        s_self.cv.notify_all();
+        if (s_token != 0) {
+            (void)wl_tx_complete(&s_self.executor->context(), s_token, WL_OK);
+        }
     }
 };
 
-void testBoundedFifoAndDeterministicShutdown() {
+void testBoundedLatestAndDeterministicShutdown() {
     LinkStorage s_storage;
     WirelinkExecutor s_executor;
     const auto s_config = makeConfig(WL_ENVELOPE_NATIVE_PACKET,
@@ -551,33 +435,29 @@ void testBoundedFifoAndDeterministicShutdown() {
             "shutdown executor initialization failed");
 
     ShutdownCapture s_capture;
+    s_capture.executor = &s_executor;
     WirelinkExecutorHooks s_hooks{};
     s_hooks.m_user_data = &s_capture;
-    s_hooks.m_service = ShutdownCapture::service;
     s_hooks.m_quiesce = ShutdownCapture::quiesce;
-    s_hooks.m_on_completion = ShutdownCapture::onCompletion;
     require(s_executor.setHooks(s_hooks) == WL_OK, "shutdown hooks failed");
     require(s_executor.setSink(ShutdownCapture::sink, &s_capture) == WL_OK,
             "shutdown sink failed");
     require(s_executor.start() == WL_OK, "shutdown executor start failed");
 
     const std::uint8_t s_payload = 0x7f;
-    std::uint64_t s_ticket{};
-    require(s_executor.submitReliable(0x61, &s_payload, 1, s_ticket) == WL_OK,
-            "active reliable submit failed");
+    require(s_executor.submitLatest(0x61, &s_payload, 1) == WL_OK,
+            "active latest submit failed");
     waitFor(s_capture.cv, s_capture.mutex,
-            [&] { return s_capture.service_calls_after_sink != 0; },
-            "reliable command never became active and left the FIFO");
-
-    for (std::size_t s_index = 0;
-         s_index < WirelinkExecutor::s_kReliableQueueCapacity; ++s_index) {
-        require(s_executor.submitReliable(0x61, &s_payload, 1, s_ticket) ==
-                    WL_OK,
-                "bounded FIFO filled too early");
+            [&] { return s_capture.sink_calls == 1; },
+            "latest command never entered the async sink");
+    const auto s_dispatch_deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (s_executor.stats().m_latest_dispatched != 1 &&
+           std::chrono::steady_clock::now() < s_dispatch_deadline) {
+        std::this_thread::yield();
     }
-    require(s_executor.submitReliable(0x61, &s_payload, 1, s_ticket) ==
-                WL_ERR_QUEUE_FULL,
-            "bounded FIFO accepted an overflow command");
+    require(s_executor.stats().m_latest_dispatched == 1,
+            "active latest command did not leave its coalescing lane");
 
     for (std::size_t s_index = 0;
          s_index < WirelinkExecutor::s_kLatestLaneCapacity; ++s_index) {
@@ -593,81 +473,15 @@ void testBoundedFifoAndDeterministicShutdown() {
     s_executor.stop();
     const auto s_elapsed = std::chrono::steady_clock::now() - s_before;
     require(s_elapsed < std::chrono::seconds(1),
-            "shutdown waited for the reliable timeout");
+            "shutdown waited for the async sink timeout");
     require(s_capture.quiesce_thread == s_capture.sink_thread,
             "shutdown hook did not run on the owner thread");
-    require(s_capture.completions.size() ==
-                WirelinkExecutor::s_kReliableQueueCapacity + 1,
-            "shutdown did not complete every accepted reliable command");
-    require(std::all_of(s_capture.completions.begin(),
-                        s_capture.completions.end(), [](const auto& s_result) {
-                            return s_result.m_state == WL_TX_STATE_CANCELLED &&
-                                   s_result.m_result == WL_ERR_CANCELLED;
-                        }),
-            "shutdown completion was not cancellation");
 
     const auto s_stats = s_executor.stats();
-    require(s_stats.m_reliable_queue_full == 1 &&
-                s_stats.m_reliable_cancelled ==
-                    WirelinkExecutor::s_kReliableQueueCapacity + 1,
-            "shutdown counters mismatch");
     require(s_stats.m_latest_queue_full == 1 &&
                 s_stats.m_latest_cancelled ==
                     WirelinkExecutor::s_kLatestLaneCapacity,
             "latest lane bounds or shutdown counters mismatch");
-}
-
-void testLatestGetsNextGapWithoutStarvingReliable() {
-    LinkStorage s_storage;
-    WirelinkExecutor s_executor;
-    auto s_config = makeConfig(WL_ENVELOPE_NATIVE_PACKET,
-                               UINT64_C(0x7000000000000007), 5);
-    s_config.max_retries = 0;
-    const auto s_descriptor = s_storage.descriptor();
-    require(s_executor.initialize(s_config, s_descriptor) == WL_OK,
-            "fairness executor initialization failed");
-
-    AsyncSink s_sink;
-    s_sink.executor = &s_executor;
-    WirelinkExecutorHooks s_hooks{};
-    s_hooks.m_user_data = &s_sink;
-    s_hooks.m_service = AsyncSink::service;
-    require(s_executor.setHooks(s_hooks) == WL_OK, "fairness hooks failed");
-    require(s_executor.setSink(AsyncSink::sink, &s_sink) == WL_OK,
-            "fairness sink failed");
-    require(s_executor.start() == WL_OK, "fairness executor start failed");
-
-    constexpr std::uint8_t s_first_payload = 1;
-    constexpr std::uint8_t s_second_payload = 2;
-    constexpr std::uint8_t s_latest_payload = 3;
-    std::uint64_t s_ticket{};
-    require(s_executor.submitReliable(0x80, &s_first_payload, 1, s_ticket) ==
-                WL_OK,
-            "first reliable fairness submit failed");
-    waitFor(s_sink.cv, s_sink.mutex,
-            [&] { return s_sink.payloads.size() == 1; },
-            "first reliable fairness command was not dispatched");
-    require(s_executor.submitReliable(0x81, &s_second_payload, 1, s_ticket) ==
-                WL_OK,
-            "second reliable fairness submit failed");
-    require(s_executor.submitLatest(0x82, &s_latest_payload, 1) == WL_OK,
-            "latest fairness submit failed");
-
-    {
-        std::lock_guard<std::mutex> s_lock(s_sink.mutex);
-        s_sink.release_requested = true;
-    }
-    s_executor.notify();
-    waitFor(s_sink.cv, s_sink.mutex,
-            [&] { return s_sink.message_ids.size() >= 3; },
-            "queued traffic did not reach the next two TX gaps");
-    s_executor.stop();
-
-    require(s_sink.message_ids.size() == 3 &&
-                s_sink.message_ids[0] == 0x80 &&
-                s_sink.message_ids[1] == 0x82 &&
-                s_sink.message_ids[2] == 0x81,
-            "reliable FIFO starved LATEST at the next free TX gap");
 }
 
 struct SchedulerCapture {
@@ -835,12 +649,8 @@ int main() {
         std::puts("PASS: RX producer only feeds and wakes the owner");
         testLatestLanesCoalesceWithoutCrossMessageLoss();
         std::puts("PASS: keyed latest lanes coalesce without cross-message loss");
-        testReliableMpscFifo();
-        std::puts("PASS: reliable configuration uses an ordered MPSC FIFO");
-        testBoundedFifoAndDeterministicShutdown();
-        std::puts("PASS: FIFO is bounded and shutdown is deterministic");
-        testLatestGetsNextGapWithoutStarvingReliable();
-        std::puts("PASS: latest control gets a bounded-fair TX gap");
+        testBoundedLatestAndDeterministicShutdown();
+        std::puts("PASS: latest lanes are bounded and shutdown is deterministic");
         testApplicationAndAdapterDeadlineScheduling();
         std::puts("PASS: scheduler merges application and adapter deadlines");
         return 0;

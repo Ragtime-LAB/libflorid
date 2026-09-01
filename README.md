@@ -10,7 +10,7 @@
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
 - **Compile-time dynamics**: `Model<WillowTraits>` / `Model<PantheraTraits>` provides FK, pose, zero/body Jacobian, mass matrix, Coriolis, and gravity — generated from URDF by `scripts/urdf2traits.py`, resolved at compile time with no runtime allocation.
 - **Motor registers**: read/write control-loop gains and protection parameters per joint (1–6 arm, 7 gripper), store to flash, and set zero point.
-- **Device management**: fetch/update `DeviceInfo` and `DeviceSettings`, read `ArmDiagnostics`, configure the reconnect policy, recover errors, home the arm, and operate motor registers.
+- **Device management**: fetch/update `DeviceInfo` and `DeviceSettings`, read `ArmDiagnostics`, recover errors, home the arm, and operate motor registers.
 - **Optional MPC**: `florid::CartesianMPCSolver<WillowMPCTraits>` over the acados solver (build with `-DBUILD_MPC=ON`).
 - **Python bindings**: install `pyflorid` via pip (pybind11), expose the same API with snake_case names.
 
@@ -154,7 +154,7 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 | `ActiveControl<T>` | Manual read/write polling handle returned by `start*Control()`. Reads `ArmState` with `readOnce()`, sends commands with `writeOnce()`. |
 | `Gripper` | `arm->gripper()`; same control modes and `ActiveControl` polling for the gripper motor (joint_id 7). |
 | `Model<Traits>` | Stateless computation delegating to generated `Traits` (`fk`, `pose`, Jacobians, `mass`, `coriolis`, `gravity`). Switch arm models by changing the template parameter. |
-| `detail::Transport` | Abstract byte transport (`send`/`setReceiveCallback`/`poll`). The I/O callback only feeds bytes and wakes the endpoint executor. |
+| `detail::Transport` | Abstract push-driven byte transport (`send`/`setReceiveCallback`). The Wirelink owner thread is the sole sender; the I/O callback only feeds bytes and wakes the endpoint executor. |
 | `FciWirelinkEndpoint` | Single-owner host runtime generated from `protocol/schema/wirelink/arm/*.wl`. Telemetry is copied from borrowed LATEST views, realtime commands use message-ID keyed coalescing lanes, and configuration uses typed reliable RPCs plus a renewable control lease. |
 
 ## Build Options

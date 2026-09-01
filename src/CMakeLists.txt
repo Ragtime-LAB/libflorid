@@ -17,8 +17,6 @@ target_link_libraries(florid_wirelink_host
 )
 
 add_library(florid
-    tick_std.cpp
-    timestamp_std.cpp
     AstrialUSBTransport.cpp
     UdpTransport.cpp
     ArmImpl.cpp

@@ -40,7 +40,6 @@ sdist.include = [
   "src/**",
   "protocol/**",
   "3rdparty/astrial/**",
-  "3rdparty/readerwriterqueue/**",
   "generated/**",
   "pyflorid/**",
 ]

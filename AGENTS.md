@@ -29,7 +29,6 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 |---|---|
 | `protocol/` | FCI `.wl` schemas, WLC profiles, and generated Wirelink component targets |
 | `3rdparty/astrial/` | Cross-platform serial library (ASIO, io_uring on Linux) |
-| `3rdparty/readerwriterqueue/` | Lock-free SPSC queue |
 | `3rdparty/acados/` | MPC solver; needs `--recurse-submodules` (blasfeo, hpipm nested) |
 
 ## Key targets
@@ -48,7 +47,6 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 **URI** formats passed to `Arm::create()`:
 - `usb:///dev/ttyACM0` — `usb://` prefix mandatory
 - `udp://<ip>:<port>` — binds a fixed local UDP endpoint (e.g. `udp://192.168.1.200:5080`), learns the device source endpoint from the first received datagram, and carries the same Wirelink COBS stream over UDP (best-effort)
-- `mock://` — test only (transparent to `ArmImpl`)
 
 **Control loops** (two APIs):
 1. **Callback**: `arm.control([](const ArmState&, ArmControl&) -> ControlCmd { ... })` — blocking, internal thread. Return type is one of `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`.

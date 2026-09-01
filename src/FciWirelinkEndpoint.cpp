@@ -426,11 +426,16 @@ FciEndpointStatus FciWirelinkEndpoint::start() noexcept {
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if (!m_initialized || m_running) return FciEndpointStatus::kNotReady;
+        // Publish the running state before creating the owner thread so
+        // setup-only callback pointers cannot change underneath it.
+        m_running = true;
     }
     const int s_result = m_executor.start();
-    if (s_result != WL_OK) return s_endpointStatus(s_result);
-    std::lock_guard<std::mutex> s_lock(m_mutex);
-    m_running = true;
+    if (s_result != WL_OK) {
+        std::lock_guard<std::mutex> s_lock(m_mutex);
+        m_running = false;
+        return s_endpointStatus(s_result);
+    }
     return FciEndpointStatus::kOk;
 }
 
@@ -438,9 +443,10 @@ void FciWirelinkEndpoint::stop() noexcept {
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if (!m_initialized) return;
-        m_running = false;
     }
     m_executor.stop();
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    m_running = false;
 }
 
 FciEndpointStatus FciWirelinkEndpoint::feedBytes(
@@ -817,24 +823,6 @@ FciEndpointStatus FciWirelinkEndpoint::takeMotorRegister(
 FciControlLeaseSnapshot FciWirelinkEndpoint::controlLease() const noexcept {
     std::lock_guard<std::mutex> s_lock(m_mutex);
     return m_lease;
-}
-
-FciEndpointStatus FciWirelinkEndpoint::latestArmStatus(
-    FciArmStatusSnapshot& s_status) const noexcept {
-    std::lock_guard<std::mutex> s_lock(m_mutex);
-    if (m_latest_arm_status.m_generation == 0) {
-        return FciEndpointStatus::kNoData;
-    }
-    s_status = m_latest_arm_status;
-    return FciEndpointStatus::kOk;
-}
-
-FciEndpointStatus FciWirelinkEndpoint::latestDiagnostics(
-    ArmDiagnostics& s_diagnostics) const noexcept {
-    std::lock_guard<std::mutex> s_lock(m_mutex);
-    if (m_diagnostics_generation == 0) return FciEndpointStatus::kNoData;
-    s_diagnostics = m_latest_diagnostics;
-    return FciEndpointStatus::kOk;
 }
 
 FciEndpointStatus FciWirelinkEndpoint::sendJointMit(
@@ -1387,14 +1375,8 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
         if (s_arm_view.value != nullptr && s_validArmStatus(*s_arm_view.value)) {
             const auto s_snapshot =
                 s_armStatusFromWire(*s_arm_view.value, s_arm_view.generation);
-            ArmStatusCallback s_callback{};
-            void* s_user_data{};
-            {
-                std::lock_guard<std::mutex> s_lock(m_mutex);
-                m_latest_arm_status = s_snapshot;
-                s_callback = m_arm_status_callback;
-                s_user_data = m_callback_user_data;
-            }
+            const auto s_callback = m_arm_status_callback;
+            void* const s_user_data = m_callback_user_data;
             if (s_callback != nullptr) s_callback(s_user_data, s_snapshot);
         }
         if (fci_arm_arm_status_latest_release(&m_runtime_instance.runtime,
@@ -1413,15 +1395,8 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
         ArmDiagnostics s_domain{};
         if (s_diagnostics_view.value != nullptr &&
             s_diagnosticsFromWire(*s_diagnostics_view.value, s_domain)) {
-            DiagnosticsCallback s_callback{};
-            void* s_user_data{};
-            {
-                std::lock_guard<std::mutex> s_lock(m_mutex);
-                m_latest_diagnostics = s_domain;
-                m_diagnostics_generation = s_diagnostics_view.generation;
-                s_callback = m_diagnostics_callback;
-                s_user_data = m_callback_user_data;
-            }
+            const auto s_callback = m_diagnostics_callback;
+            void* const s_user_data = m_callback_user_data;
             if (s_callback != nullptr) s_callback(s_user_data, s_domain);
         }
         if (fci_arm_arm_diagnostics_latest_release(

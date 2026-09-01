@@ -1,5 +1,7 @@
 #include "florid/detail/UdpTransport.hpp"
 
+#include "florid/detail/ReceiveCallbackGate.hpp"
+
 #include <asio.hpp>
 
 #include <array>
@@ -45,15 +47,12 @@ struct UdpTransport::Impl {
     // Learned device endpoint (from first received datagram).
     std::mutex m_peer_mutex;
     asio::ip::udp::endpoint m_peer;
-    bool m_peer_known{false};
+    std::atomic<bool> m_peer_known{false};
     std::condition_variable m_peer_cv;
 
     // Receive callback (installed by ArmImpl).
-    std::mutex m_callback_mutex;
-    ReceiveFunctor m_recv_callback{nullptr};
-    void* m_recv_context{nullptr};
+    detail::ReceiveCallbackGate m_receive_callback;
 
-    std::mutex m_write_mutex;
     std::atomic<bool> m_closed{false};
 
     Impl(const std::string& s_bind_ip, std::uint16_t s_bind_port)
@@ -67,7 +66,8 @@ struct UdpTransport::Impl {
     }
 
     void close() {
-        m_closed.store(true, std::memory_order_release);
+        m_receive_callback.clear();
+        if (m_closed.exchange(true, std::memory_order_acq_rel)) return;
         asio::error_code s_ec;
         m_socket.close(s_ec);
         m_ctx.stop();
@@ -88,24 +88,19 @@ struct UdpTransport::Impl {
                         return;
                     }
 
-                    {
+                    bool s_peer_published = false;
+                    if (!m_peer_known.load(std::memory_order_acquire)) {
                         std::lock_guard<std::mutex> s_lock(m_peer_mutex);
-                        if (!m_peer_known) {
+                        if (!m_peer_known.load(std::memory_order_relaxed)) {
                             m_peer = m_remote_endpoint;
-                            m_peer_known = true;
+                            m_peer_known.store(true, std::memory_order_release);
+                            s_peer_published = true;
                         }
                     }
-                    m_peer_cv.notify_all();
+                    if (s_peer_published) m_peer_cv.notify_one();
 
-                    ReceiveFunctor s_cb = nullptr;
-                    void* s_ctx = nullptr;
-                    {
-                        std::lock_guard<std::mutex> s_lock(m_callback_mutex);
-                        s_cb = m_recv_callback;
-                        s_ctx = m_recv_context;
-                    }
-                    if (s_cb && s_bytes > 0) {
-                        s_cb(s_ctx, m_rx_buffer.data(), s_bytes);
+                    if (s_bytes > 0) {
+                        m_receive_callback.invoke(m_rx_buffer.data(), s_bytes);
                     }
 
                     if (!m_closed.load(std::memory_order_acquire)) {
@@ -145,7 +140,11 @@ UdpTransport::UdpTransport(const std::string& s_bind_ip, std::uint16_t s_bind_po
     // that ArmImpl's handshake sends go to the correct peer.
     std::unique_lock<std::mutex> s_lock(s_impl.m_peer_mutex);
     if (!s_impl.m_peer_cv.wait_for(s_lock, s_first_datagram_timeout,
-                                   [&s_impl] { return s_impl.m_peer_known; })) {
+                                   [&s_impl] {
+                                       return s_impl.m_peer_known.load(
+                                           std::memory_order_acquire);
+                                   })) {
+        s_lock.unlock();
         s_impl.close();
         throw std::runtime_error("UdpTransport: no datagram received from device within "
                                  + std::to_string(s_first_datagram_timeout.count()) + " ms at "
@@ -159,44 +158,18 @@ UdpTransport::~UdpTransport() {
     }
 }
 
-UdpTransport::UdpTransport(UdpTransport&&) noexcept = default;
-UdpTransport& UdpTransport::operator=(UdpTransport&& s_other) noexcept {
-    if (this != &s_other) {
-        if (m_impl) m_impl->close();
-        m_impl = std::move(s_other.m_impl);
-    }
-    return *this;
-}
-
 bool UdpTransport::send(const std::uint8_t* s_data, std::size_t s_size) {
     if (!m_impl || s_size == 0) return false;
 
-    asio::ip::udp::endpoint s_peer;
-    {
-        std::lock_guard<std::mutex> s_lock(m_impl->m_peer_mutex);
-        if (!m_impl->m_peer_known) return false;
-        s_peer = m_impl->m_peer;
-    }
-
-    std::lock_guard<std::mutex> s_lock(m_impl->m_write_mutex);
     asio::error_code s_ec;
-    std::size_t s_sent = m_impl->m_socket.send_to(asio::buffer(s_data, s_size), s_peer, 0, s_ec);
+    std::size_t s_sent = m_impl->m_socket.send_to(
+        asio::buffer(s_data, s_size), m_impl->m_peer, 0, s_ec);
     return !s_ec && s_sent == s_size;
 }
 
 void UdpTransport::setReceiveCallback(ReceiveFunctor s_callback, void* s_context) {
     if (!m_impl) return;
-    std::lock_guard<std::mutex> s_lock(m_impl->m_callback_mutex);
-    m_impl->m_recv_callback = s_callback;
-    m_impl->m_recv_context = s_context;
-}
-
-void UdpTransport::poll() {
-    // ASIO io_context runs on its own background thread; nothing to poll.
-}
-
-bool UdpTransport::isConnected() const {
-    return m_impl && !m_impl->m_closed.load(std::memory_order_acquire);
+    m_impl->m_receive_callback.set(s_callback, s_context);
 }
 
 } // namespace florid

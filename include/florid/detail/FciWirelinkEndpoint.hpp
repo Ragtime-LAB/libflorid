@@ -216,10 +216,6 @@ public:
                                         float& s_value) noexcept;
 
     FciControlLeaseSnapshot controlLease() const noexcept;
-    FciEndpointStatus latestArmStatus(
-        FciArmStatusSnapshot& s_status) const noexcept;
-    FciEndpointStatus latestDiagnostics(
-        ArmDiagnostics& s_diagnostics) const noexcept;
 
     FciEndpointStatus sendJointMit(const JointMIT& s_command,
                                    std::uint32_t s_dt_us,
@@ -407,9 +403,6 @@ private:
     wl_time_ms_t m_lease_renew_at_ms{};
     wl_time_ms_t m_lease_expire_at_ms{};
     std::uint32_t m_lease_requested_timeout_ms{};
-    FciArmStatusSnapshot m_latest_arm_status{};
-    ArmDiagnostics m_latest_diagnostics{};
-    std::uint64_t m_diagnostics_generation{};
     ArmStatusCallback m_arm_status_callback{};
     DiagnosticsCallback m_diagnostics_callback{};
     void* m_callback_user_data{};

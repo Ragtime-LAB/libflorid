@@ -62,11 +62,7 @@ double ArmControl::receiveJitterUs() const {
 double ArmControl::receiveHz() const {
     if (!m_impl) return 0.0;
     std::lock_guard<std::mutex> s_lock(m_impl->m_latency_mutex);
-    return m_impl->m_latency.receiveHz(detail::s_nowUs());
-}
-
-bool ArmControl::isReconnecting() const {
-    return m_impl ? m_impl->m_reconnecting.load() : false;
+    return m_impl->m_latency.receiveHz();
 }
 
 void ArmControl::finishMotion() {
@@ -125,7 +121,6 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
             "AcquireControlLease");
         s_fetchDeviceInfo();
         s_fetchDeviceSettings();
-        m_connected.store(true, std::memory_order_release);
     } catch (...) {
         m_transport->setReceiveCallback(nullptr, nullptr);
         m_endpoint.stop();
@@ -134,7 +129,6 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
 }
 
 ArmImpl::~ArmImpl() {
-    m_connected.store(false, std::memory_order_release);
     stop();
 
     const auto s_lease = m_endpoint.controlLease();
@@ -317,8 +311,6 @@ void ArmImpl::s_requireCommand(detail::FciEndpointStatus s_status,
     if (s_status != detail::FciEndpointStatus::kOk) {
         throw CommandException(s_operationError(s_operation, s_status));
     }
-    std::lock_guard<std::mutex> s_lock(m_latency_mutex);
-    m_latency.markSent(detail::s_nowUs());
 }
 
 void ArmImpl::s_requestPcMode() {
@@ -361,18 +353,15 @@ bool ArmImpl::s_takeLatestState(ArmState& s_state) noexcept {
     return true;
 }
 
+#ifdef FLORID_HAS_MPC
 JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_command,
                                      const ArmState& s_state) {
-#ifdef FLORID_HAS_MPC
     if (m_mpc) {
         return m_mpc->solve(s_state.m_q, s_state.m_dq, s_command.m_T);
     }
-#else
-    (void)s_command;
-    (void)s_state;
-#endif
     return JointPVT{};
 }
+#endif
 
 void ArmImpl::s_sendCommand(const JointMIT& s_command) {
     const auto s_now = detail::s_nowUs();
@@ -402,14 +391,10 @@ void ArmImpl::s_sendCommand(const CartesianPose& s_command) {
 #ifdef FLORID_HAS_MPC
     s_sendCommand(s_convertCartesian(s_command, s_latestState()));
 #else
-    if (s_supportsCartesian()) {
-        const auto s_now = detail::s_nowUs();
-        s_requireCommand(
-            m_endpoint.sendCartesianPose(s_command, m_fw_dt_us, s_now),
-            "CartesianPoseCommand");
-    } else {
-        s_sendCommand(s_convertCartesian(s_command, s_latestState()));
-    }
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(
+        m_endpoint.sendCartesianPose(s_command, m_fw_dt_us, s_now),
+        "CartesianPoseCommand");
 #endif
 }
 

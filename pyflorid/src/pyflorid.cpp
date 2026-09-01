@@ -31,10 +31,6 @@ PYBIND11_MODULE(_pyflorid, m) {
     py::register_exception<florid::RealtimeException>(m, "RealtimeException", PyExc_RuntimeError);
 
     // ── Enums ───────────────────────────────────────
-    py::enum_<florid::ReconnectPolicy>(m, "ReconnectPolicy")
-        .value("Throw", florid::ReconnectPolicy::kThrow)
-        .value("Wait",  florid::ReconnectPolicy::kWait);
-
     py::enum_<florid::ControllerMode>(m, "ControllerMode")
         .value("JointImpedance",    florid::ControllerMode::JointImpedance)
         .value("CartesianImpedance", florid::ControllerMode::CartesianImpedance);
@@ -168,7 +164,6 @@ PYBIND11_MODULE(_pyflorid, m) {
         .def("estimated_latency", &florid::ArmControl::estimatedLatency)
         .def("receive_jitter_us", &florid::ArmControl::receiveJitterUs)
         .def("receive_hz",      &florid::ArmControl::receiveHz)
-        .def("is_reconnecting", &florid::ArmControl::isReconnecting)
         .def("finish_motion",   &florid::ArmControl::finishMotion)
         .def("stop_control",    &florid::ArmControl::stopControl);
 
@@ -182,9 +177,6 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def("disable",           &florid::Arm::disable);
     arm.def("read_once",         &florid::Arm::readOnce);
     arm.def("firmware_period_us", &florid::Arm::firmwarePeriodUs);
-    arm.def("reconnect_policy",  &florid::Arm::reconnectPolicy);
-    arm.def("set_reconnect_policy", &florid::Arm::setReconnectPolicy);
-    arm.def("is_connected",      &florid::Arm::isConnected);
     arm.def("stop",              &florid::Arm::stop);
     arm.def("automatic_error_recovery", &florid::Arm::automaticErrorRecovery);
     arm.def("gripper", &florid::Arm::gripper, py::return_value_policy::reference);

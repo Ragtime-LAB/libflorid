@@ -116,12 +116,6 @@ public:
     bool storeParameters(std::uint8_t s_joint_id);
     bool setZeroPoint(std::uint8_t s_joint_id);
 
-    bool isConnected() const { return m_connected.load(); }
-    ReconnectPolicy reconnectPolicy() const { return m_reconnect_policy; }
-    void setReconnectPolicy(ReconnectPolicy s_policy) {
-        m_reconnect_policy = s_policy;
-    }
-
     template <typename CommandType>
     void s_prepareControl() {
         s_requestPcMode();
@@ -146,12 +140,12 @@ public:
     void s_sendGripperCommand(const JointVel& s_command);
     void s_sendGripperCommand(const JointPVT& s_command);
 
-protected:
-    virtual bool s_supportsCartesian() const { return true; }
-    virtual JointPVT s_convertCartesian(const CartesianPose& s_command,
-                                        const ArmState& s_state);
-
 private:
+#ifdef FLORID_HAS_MPC
+    JointPVT s_convertCartesian(const CartesianPose& s_command,
+                                const ArmState& s_state);
+#endif
+
     static wl_sink_result_t s_wireSink(void* s_context,
                                         wl_io_token_t s_token,
                                         const std::uint8_t* s_data,
@@ -218,16 +212,13 @@ private:
     DeviceSettings m_device_settings{};
     std::uint32_t m_fw_dt_us{2000};
 
-    std::atomic<bool> m_connected{false};
     std::atomic<bool> m_running{false};
-    ReconnectPolicy m_reconnect_policy{ReconnectPolicy::kThrow};
 
     ArmControl m_arm_control;
 #ifdef FLORID_HAS_MPC
     std::unique_ptr<CartesianMPCSolver<WillowMPCTraits>> m_mpc;
 #endif
     std::mutex m_control_mutex;
-    std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};
     std::optional<detail::FciMotorControlMode> m_current_mode;
     std::optional<detail::FciMotorControlMode> m_current_gripper_mode;

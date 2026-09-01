@@ -13,14 +13,6 @@
 
 namespace florid::detail {
 
-struct WirelinkCommandResult {
-    std::uint64_t m_ticket{};
-    std::uint16_t m_message_id{};
-    wl_tx_state_t m_state{WL_TX_STATE_IDLE};
-    int m_result{WL_OK};
-    std::uint16_t m_retries_used{};
-};
-
 struct WirelinkExecutorHooks {
     using ServiceFn = int (*)(void* s_user_data) noexcept;
     using QuiesceFn = void (*)(void* s_user_data) noexcept;
@@ -40,9 +32,6 @@ struct WirelinkExecutorHooks {
     // executor releases RX events itself.
     using EventFn = void (*)(void* s_user_data, wl_ctx_t& s_context,
                              const wl_event_t& s_event) noexcept;
-    using CompletionFn = void (*)(void* s_user_data,
-                                  const WirelinkCommandResult& s_result) noexcept;
-
     void* m_user_data{};
     // Owner-pass order is adapter service, core event dispatch, application
     // progress, and queued TX dispatch. Deadline hints are queried only after a
@@ -55,7 +44,6 @@ struct WirelinkExecutorHooks {
     DeadlineHintFn m_application_deadline_hint{};
     DeadlineHintFn m_adapter_deadline_hint{};
     EventFn m_on_event{};
-    CompletionFn m_on_completion{};
 };
 
 struct WirelinkExecutorStats {
@@ -71,19 +59,12 @@ struct WirelinkExecutorStats {
     std::uint64_t m_latest_dispatched{};
     std::uint64_t m_latest_failed{};
     std::uint64_t m_latest_cancelled{};
-    std::uint64_t m_reliable_submitted{};
-    std::uint64_t m_reliable_queue_full{};
-    std::uint64_t m_reliable_dispatched{};
-    std::uint64_t m_reliable_completed{};
-    std::uint64_t m_reliable_failed{};
-    std::uint64_t m_reliable_cancelled{};
 };
 
 class WirelinkExecutor {
 public:
     static constexpr std::size_t s_kMaximumCommandPayload = 512;
     static constexpr std::size_t s_kLatestLaneCapacity = 8;
-    static constexpr std::size_t s_kReliableQueueCapacity = 16;
 
     enum class State : std::uint8_t {
         kUninitialized,
@@ -129,20 +110,11 @@ public:
     int submitLatest(std::uint16_t s_message_id, const std::uint8_t* s_payload,
                      std::size_t s_payload_size) noexcept;
 
-    // Bounded MPSC FIFO for reliable RPC/configuration traffic. Completion is
-    // reported exactly once through m_on_completion, including cancellation at
-    // shutdown.
-    int submitReliable(std::uint16_t s_message_id,
-                       const std::uint8_t* s_payload,
-                       std::size_t s_payload_size,
-                       std::uint64_t& s_ticket) noexcept;
-
     State state() const noexcept { return m_state.load(std::memory_order_acquire); }
     WirelinkExecutorStats stats() const noexcept;
 
 private:
     struct Command {
-        std::uint64_t m_ticket{};
         std::uint64_t m_generation{};
         std::uint16_t m_message_id{};
         std::uint16_t m_payload_size{};
@@ -162,12 +134,6 @@ private:
         std::atomic<std::uint64_t> m_latest_dispatched{};
         std::atomic<std::uint64_t> m_latest_failed{};
         std::atomic<std::uint64_t> m_latest_cancelled{};
-        std::atomic<std::uint64_t> m_reliable_submitted{};
-        std::atomic<std::uint64_t> m_reliable_queue_full{};
-        std::atomic<std::uint64_t> m_reliable_dispatched{};
-        std::atomic<std::uint64_t> m_reliable_completed{};
-        std::atomic<std::uint64_t> m_reliable_failed{};
-        std::atomic<std::uint64_t> m_reliable_cancelled{};
     };
 
     struct LatestLane {
@@ -180,11 +146,7 @@ private:
     bool s_pollEvents(wl_time_ms_t s_now_ms) noexcept;
     bool s_dispatchOne() noexcept;
     void s_handleEvent(const wl_event_t& s_event) noexcept;
-    void s_complete(const Command& s_command, wl_tx_state_t s_state,
-                    int s_result, std::uint16_t s_retries) noexcept;
     void s_shutdownOnOwner() noexcept;
-    bool s_peekReliable(Command& s_command) noexcept;
-    void s_popReliable(std::uint64_t s_ticket) noexcept;
     bool s_peekLatest(Command& s_command) noexcept;
     void s_removeLatest(std::uint64_t s_generation) noexcept;
     wl_ctx_t m_context{};
@@ -195,19 +157,9 @@ private:
     std::thread m_thread;
 
     std::mutex m_command_mutex;
-    std::array<Command, s_kReliableQueueCapacity> m_reliable_queue{};
-    std::size_t m_reliable_head{};
-    std::size_t m_reliable_tail{};
-    std::size_t m_reliable_count{};
     std::array<LatestLane, s_kLatestLaneCapacity> m_latest_lanes{};
     std::size_t m_latest_cursor{};
-    std::uint64_t m_next_ticket{1};
     std::uint64_t m_next_generation{1};
-
-    Command m_active_reliable{};
-    wl_tx_handle_t m_active_handle{};
-    bool m_active_reliable_valid{};
-    bool m_latest_had_last_turn{};
 
     std::atomic<std::uint64_t> m_wake_generation{};
     std::counting_semaphore<> m_wake{0};

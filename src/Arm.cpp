@@ -11,7 +11,7 @@
 namespace florid {
 
 std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
-    // "usb:///dev/ttyACM0" or "usb://COM3" or "tcp://host:port"
+    // "usb:///dev/ttyACM0" or "usb://COM3"
     // "udp://192.168.1.200:5080" — bind fixed local endpoint, device streams datagrams to it
     //
     // All connection failures are normalized to returning nullptr (with an
@@ -41,9 +41,6 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
                 return nullptr;
             }
             s_transport = std::make_unique<UdpTransport>(s_host, s_port);
-        } else if (s_uri.starts_with("mock://")) {
-            // Mock transport for testing — created externally via Arm(std::shared_ptr<ArmImpl>)
-            return nullptr;
         } else {
             std::fprintf(stderr, "Arm::create: unknown URI scheme '%s'\n", s_uri.c_str());
             return nullptr;
@@ -187,9 +184,6 @@ bool Arm::setZeroPoint(std::uint8_t s_joint_id) {
 }
 
 std::uint32_t Arm::firmwarePeriodUs() const { return m_impl->firmwarePeriodUs(); }
-ReconnectPolicy Arm::reconnectPolicy() const { return m_impl->reconnectPolicy(); }
-void Arm::setReconnectPolicy(ReconnectPolicy s_p) { m_impl->setReconnectPolicy(s_p); }
-bool Arm::isConnected() const { return m_impl->isConnected(); }
 const DeviceInfo& Arm::deviceInfo() const { return m_impl->getDeviceInfo(); }
 const DeviceSettings& Arm::deviceSettings() const {
     return m_impl->getDeviceSettings();
