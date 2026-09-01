@@ -27,22 +27,23 @@ target_include_directories(florid
 
 target_compile_features(florid PUBLIC cxx_std_20)
 
-if(FLORID_BUILD_WIRELINK_HOST)
-    add_library(florid_wirelink_host WirelinkExecutor.cpp)
-    add_library(florid::wirelink_host ALIAS florid_wirelink_host)
+add_library(florid_wirelink_host
+    WirelinkExecutor.cpp
+    FciWirelinkEndpoint.cpp
+)
+add_library(florid::wirelink_host ALIAS florid_wirelink_host)
 
-    target_include_directories(florid_wirelink_host
-        PUBLIC
-            "${PROJECT_SOURCE_DIR}/include"
-    )
-    target_compile_features(florid_wirelink_host PUBLIC cxx_std_20)
-    target_link_libraries(florid_wirelink_host
-        PUBLIC
-            Wirelink::wirelink
-        PRIVATE
-            Threads::Threads
-    )
-endif()
+target_include_directories(florid_wirelink_host
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+target_compile_features(florid_wirelink_host PUBLIC cxx_std_20)
+target_link_libraries(florid_wirelink_host
+    PUBLIC
+        fci_protocol::wirelink
+    PRIVATE
+        Threads::Threads
+)
 
 if(BUILD_MPC)
     target_include_directories(florid PUBLIC

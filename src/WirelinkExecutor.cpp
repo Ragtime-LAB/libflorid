@@ -412,7 +412,21 @@ void WirelinkExecutor::s_handleEvent(const wl_event_t& s_event) noexcept {
         s_event.type != WL_EVT_TX_FAILED) {
         return;
     }
+
+    // Internal control-unit sends (for example a reliable RX ACK) have no
+    // user-visible handle and therefore belong to neither a generated RPC
+    // client nor an executor command.
+    if (s_event.handle == 0) return;
+
+    // Generated RPC runtimes must see terminal TX events before the handle is
+    // taken. They use the handle to move LINK_PENDING requests forward.
+    if (m_hooks.m_on_event != nullptr) {
+        m_hooks.m_on_event(m_hooks.m_user_data, m_context, s_event);
+    }
+
     if (!m_active_reliable_valid || s_event.handle != m_active_handle) {
+        wl_tx_result_t s_ignored{};
+        (void)wl_tx_take(&m_context, s_event.handle, &s_ignored);
         return;
     }
 
