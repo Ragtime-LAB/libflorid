@@ -59,18 +59,23 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
     }
 }
 
-Arm::Arm(Arm&& s_other) noexcept : m_impl(std::move(s_other.m_impl)) {}
+Arm::Arm(Arm&& s_other) noexcept
+    : m_impl(std::move(s_other.m_impl)),
+      m_gripper(std::move(s_other.m_gripper)) {}
 
 Arm& Arm::operator=(Arm&& s_other) noexcept {
-    if (this != &s_other) m_impl = std::move(s_other.m_impl);
+    if (this != &s_other) {
+        m_impl = std::move(s_other.m_impl);
+        m_gripper = std::move(s_other.m_gripper);
+    }
     return *this;
 }
 
 Arm::~Arm() = default;
 
 Gripper& Arm::gripper() {
-    static Gripper s_gripper(*this);
-    return s_gripper;
+    if (!m_gripper) m_gripper = std::make_unique<Gripper>(*this);
+    return *m_gripper;
 }
 
 // ── Control loops ──

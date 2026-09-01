@@ -28,16 +28,18 @@ if(BUILD_MPC)
     add_compile_definitions(FLORID_HAS_MPC)
 endif()
 
-set(FCI_PROTOCOL_ENABLE_WIRELINK ON CACHE BOOL
-    "Generate the FCI Wirelink schema bindings" FORCE)
 set(FCI_PROTOCOL_WIRELINK_ROLE host CACHE STRING
     "Generate the host-side FCI Wirelink runtime" FORCE)
+set(FCI_PROTOCOL_GENERATED_BASE_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/wirelink" CACHE PATH
+    "Build-tree location for generated FCI Wirelink artifacts" FORCE)
 if(NOT WIRELINK_SOURCE_DIR STREQUAL "")
     set(FCI_PROTOCOL_WIRELINK_SOURCE_DIR "${WIRELINK_SOURCE_DIR}" CACHE PATH
         "Wirelink source tree used by fci_protocol" FORCE)
 endif()
 
-add_subdirectory(protocol)
+include("${CMAKE_CURRENT_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake")
+fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
 add_subdirectory(3rdparty/astrial)
 find_package(Threads REQUIRED)
 

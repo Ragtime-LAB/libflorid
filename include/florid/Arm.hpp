@@ -105,6 +105,7 @@ public:
 private:
     Arm() = default;
     std::shared_ptr<ArmImpl> m_impl;
+    std::unique_ptr<Gripper> m_gripper;
     friend class Gripper;
 };
 

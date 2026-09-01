@@ -4,122 +4,103 @@
 #include "florid/ArmControl.hpp"
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
-#include "florid/Duration.hpp"
 #include "florid/DeviceTypes.hpp"
-#include "florid/core/ArmCore.hpp"
-#include "florid/core/traits.hpp"
-#include "florid/detail/Transport.hpp"
-#include "florid/detail/TickProvider.hpp"
+#include "florid/Duration.hpp"
+#include "florid/detail/FciWirelinkEndpoint.hpp"
 #include "florid/detail/LatencyEstimator.hpp"
-
-#include "fci_protocol/session/arm_control_session.hpp"
-#include "fci_protocol/transport/byte_stream_transport.hpp"
-#include "fci_protocol/arm/packets.hpp"
-#include "fci_protocol/arm/constants.hpp"
-
-#include "readerwriterqueue.h"
+#include "florid/detail/Transport.hpp"
 
 #ifdef FLORID_HAS_MPC
 #include "florid/mpc/CartesianMPC.hpp"
 #include "WillowMPCTraits.hpp"
 #endif
 
+#include <array>
 #include <atomic>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <semaphore>
-#include <chrono>
-#include <mutex>
-#include <thread>
+#include <type_traits>
+#include <utility>
+
 namespace florid {
 
 class ArmImpl {
-
 public:
-    using SendFunc = std::function<void(const std::uint8_t*, std::size_t)>;
-    using Session = fci::session::ArmControlSession<detail::MonotonicTickProvider, SendFunc>;
-
     explicit ArmImpl(std::unique_ptr<Transport> s_transport);
     ~ArmImpl();
 
     ArmImpl(const ArmImpl&) = delete;
     ArmImpl& operator=(const ArmImpl&) = delete;
 
-    // ── Receive pipeline ──
-    static void s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size);
+    static void s_onPhysData(void* s_context, const std::uint8_t* s_data,
+                             std::size_t s_size) noexcept;
 
-    // ── Device info / settings ──
     const DeviceInfo& getDeviceInfo() const { return m_device_info; }
-    const DeviceSettings& getDeviceSettings() const { return m_device_settings; }
+    const DeviceSettings& getDeviceSettings() const {
+        return m_device_settings;
+    }
     std::uint32_t firmwarePeriodUs() const { return m_fw_dt_us; }
     FirmwareType firmwareType() const { return m_device_info.m_firmware_type; }
     bool setDeviceSettings(const DeviceSettings& s_settings);
 
-    // ── Arm state ──
     ArmState readOnce();
     ArmDiagnostics readDiagnostics();
     ArmControl& controlHandle() { return m_arm_control; }
 
-    // ── Control loop (template, called from Arm) ──
     template <typename Callback>
     void s_controlLoop(Callback s_cb) {
-        using ReturnType = std::decay_t<decltype(s_cb(std::declval<const ArmState&>(),
-                                                      std::declval<ArmControl&>()))>;
+        using ReturnType = std::decay_t<decltype(s_cb(
+            std::declval<const ArmState&>(), std::declval<ArmControl&>()))>;
 
         m_running = true;
         m_stop_flag = false;
-
         s_requestPcMode();
         s_ensureMode(s_controlModeFor<ReturnType>());
 
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
+            if (!m_running || m_stop_flag) break;
 
-            fci::arm::ArmStatus s_raw;
-            if (!m_rx_queue.try_dequeue(s_raw)) continue;
-
-            ArmState s_state = s_convertStatus(s_raw);
-
-            auto s_cmd = s_cb(s_state, m_arm_control);
-            s_sendCommand(s_cmd);
-
-            if (s_cmd.m_motion_finished) break;
+            ArmState s_state{};
+            if (!m_rx_queue.tryPop(s_state)) continue;
+            auto s_command = s_cb(s_state, m_arm_control);
+            s_sendCommand(s_command);
+            if (s_command.m_motion_finished) break;
         }
 
         m_running = false;
     }
 
-    // ── Gripper control loop (no arm mode switch, packs externally) ──
-    template <typename Callback, typename Packer>
-    void s_gripperLoop(Callback s_cb, Packer s_packer) {
-        using ReturnType = std::decay_t<decltype(s_cb(std::declval<const ArmState&>(),
-                                                      std::declval<ArmControl&>()))>;
+    template <typename Callback>
+    void s_gripperLoop(Callback s_cb) {
+        using ReturnType = std::decay_t<decltype(s_cb(
+            std::declval<const ArmState&>(), std::declval<ArmControl&>()))>;
 
         m_running = true;
         m_stop_flag = false;
-
         s_requestPcMode();
+        s_ensureGripperMode(s_controlModeFor<ReturnType>());
 
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
+            if (!m_running || m_stop_flag) break;
 
-            fci::arm::ArmStatus s_raw;
-            if (!m_rx_queue.try_dequeue(s_raw)) continue;
-
-            ArmState s_state = s_convertStatus(s_raw);
-
-            auto s_cmd = s_cb(s_state, m_arm_control);
-            s_packer(s_cmd);
-
-            if (s_cmd.m_motion_finished) break;
+            ArmState s_state{};
+            if (!m_rx_queue.tryPop(s_state)) continue;
+            auto s_command = s_cb(s_state, m_arm_control);
+            s_sendGripperCommand(s_command);
+            if (s_command.m_motion_finished) break;
         }
 
         m_running = false;
     }
 
-    // ── Configuration ──
     void home();
     void enable();
     void drag();
@@ -127,11 +108,11 @@ public:
     void setJointImpedance(const float (&s_K)[6]);
     void setCartesianImpedance(const float (&s_K)[6]);
     void setEEFrame(const float (&s_T)[16]);
-    void setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]);
+    void setLoad(float s_mass, const float (&s_com)[3],
+                 const float (&s_inertia)[9]);
     void automaticErrorRecovery();
     void stop();
 
-    // ── Motor register access (joint_id: 1–7, 1–6 = arm joints, 7 = gripper) ──
     std::optional<float> readMotorRegister(std::uint8_t s_joint_id,
                                            MotorRegister s_rid);
     bool writeMotorRegister(std::uint8_t s_joint_id, MotorRegister s_rid,
@@ -139,93 +120,137 @@ public:
     bool storeParameters(std::uint8_t s_joint_id);
     bool setZeroPoint(std::uint8_t s_joint_id);
 
-    // ── Connection ──
     bool isConnected() const { return m_connected.load(); }
     ReconnectPolicy reconnectPolicy() const { return m_reconnect_policy; }
-    void setReconnectPolicy(ReconnectPolicy s_p) { m_reconnect_policy = s_p; }
+    void setReconnectPolicy(ReconnectPolicy s_policy) {
+        m_reconnect_policy = s_policy;
+    }
 
-    // ── Prepare control mode (used by Arm::start*Control) ──
     template <typename CommandType>
     void s_prepareControl() {
         s_requestPcMode();
         s_ensureMode(s_controlModeFor<CommandType>());
     }
 
-    // ── Send (public, used by ActiveControl lambdas) ──
     template <typename CommandType>
-    void s_sendCommand(const CommandType& s_cmd) {
-        auto s_pkt = m_arm_core.s_pack(s_cmd);
-        s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_session.notify(s_pkt);
+    void s_prepareGripperControl() {
+        s_requestPcMode();
+        s_ensureGripperMode(s_controlModeFor<CommandType>());
     }
 
-    void s_sendCommand(const CartesianPose& s_cmd);
-    void s_sendCommand(const CartesianVelocities& s_cmd);
+    void s_sendCommand(const JointMIT& s_command);
+    void s_sendCommand(const JointPosVel& s_command);
+    void s_sendCommand(const JointVel& s_command);
+    void s_sendCommand(const JointPVT& s_command);
+    void s_sendCommand(const CartesianPose& s_command);
+    void s_sendCommand(const CartesianVelocities& s_command);
 
-    // ── Generic notify (used by Gripper to send through shared session) ──
-    template <typename ProtoPacket>
-    void s_notify(const ProtoPacket& s_pkt) {
-        m_session.notify(s_pkt);
-    }
+    void s_sendGripperCommand(const JointMIT& s_command);
+    void s_sendGripperCommand(const JointPosVel& s_command);
+    void s_sendGripperCommand(const JointVel& s_command);
+    void s_sendGripperCommand(const JointPVT& s_command);
 
 protected:
     virtual bool s_supportsCartesian() const { return true; }
-    virtual JointPVT s_convertCartesian(const CartesianPose& s_cmd, const ArmState& s_state);
-
-    ArmCore m_arm_core;
-    Session m_session;
+    virtual JointPVT s_convertCartesian(const CartesianPose& s_command,
+                                        const ArmState& s_state);
 
 private:
-    void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size);
+    class StateQueue {
+    public:
+        static constexpr std::size_t s_kCapacity = 64;
+
+        bool tryPush(const ArmState& s_state) noexcept {
+            const std::size_t s_head = m_head.load(std::memory_order_relaxed);
+            const std::size_t s_tail = m_tail.load(std::memory_order_acquire);
+            if (s_head - s_tail >= s_kCapacity) return false;
+            m_values[s_head % s_kCapacity] = s_state;
+            m_head.store(s_head + 1, std::memory_order_release);
+            return true;
+        }
+
+        bool tryPop(ArmState& s_state) noexcept {
+            const std::size_t s_tail = m_tail.load(std::memory_order_relaxed);
+            const std::size_t s_head = m_head.load(std::memory_order_acquire);
+            if (s_tail == s_head) return false;
+            s_state = m_values[s_tail % s_kCapacity];
+            m_tail.store(s_tail + 1, std::memory_order_release);
+            return true;
+        }
+
+    private:
+        std::array<ArmState, s_kCapacity> m_values{};
+        alignas(64) std::atomic<std::size_t> m_head{};
+        alignas(64) std::atomic<std::size_t> m_tail{};
+    };
+
+    static wl_sink_result_t s_wireSink(void* s_context,
+                                        wl_io_token_t s_token,
+                                        const std::uint8_t* s_data,
+                                        std::size_t s_size) noexcept;
+    static void s_onArmStatus(
+        void* s_context,
+        const detail::FciArmStatusSnapshot& s_status) noexcept;
+    static void s_onDiagnostics(
+        void* s_context, const ArmDiagnostics& s_diagnostics) noexcept;
+
+    void s_feedBytes(const std::uint8_t* s_data, std::size_t s_size) noexcept;
     void s_fetchDeviceInfo();
     void s_fetchDeviceSettings();
-    void s_ensureMode(fci::arm::MotorControlMode s_mode);
+    void s_ensureMode(detail::FciMotorControlMode s_mode);
+    void s_ensureGripperMode(detail::FciMotorControlMode s_mode);
     void s_requestPcMode();
+    void s_requireOperation(detail::FciSubmitResult s_submit,
+                            std::chrono::milliseconds s_wait,
+                            const char* s_operation);
+    bool s_operationSucceeded(detail::FciSubmitResult s_submit,
+                              std::chrono::milliseconds s_wait) noexcept;
+    void s_requireCommand(detail::FciEndpointStatus s_status,
+                          const char* s_operation);
+    ArmState s_latestState() const;
 
-    ArmState s_convertStatus(const fci::arm::ArmStatus& s_raw);
+    static bool s_validJointId(std::uint8_t s_joint_id) noexcept;
+    static std::uint8_t s_wireJointId(std::uint8_t s_joint_id) noexcept;
 
-    // ── Control mode helpers ──
-    template <typename CmdType>
-    static constexpr fci::arm::MotorControlMode s_controlModeFor() {
-        if constexpr (std::is_same_v<CmdType, JointMIT>)               return fci::arm::MotorControlMode::MIT;
-        if constexpr (std::is_same_v<CmdType, JointPosVel>)            return fci::arm::MotorControlMode::PosVel;
-        if constexpr (std::is_same_v<CmdType, JointVel>)               return fci::arm::MotorControlMode::Vel;
-        if constexpr (std::is_same_v<CmdType, JointPVT>)               return fci::arm::MotorControlMode::PVT;
-        if constexpr (std::is_same_v<CmdType, CartesianPose>) {
+    template <typename CommandType>
+    static constexpr detail::FciMotorControlMode s_controlModeFor() {
+        if constexpr (std::is_same_v<CommandType, JointPosVel>) {
+            return detail::FciMotorControlMode::kPositionVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointVel>) {
+            return detail::FciMotorControlMode::kVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointPVT>) {
+            return detail::FciMotorControlMode::kPvt;
+        } else if constexpr (std::is_same_v<CommandType, CartesianPose>) {
 #ifdef FLORID_HAS_MPC
-            return fci::arm::MotorControlMode::PVT;
+            return detail::FciMotorControlMode::kPvt;
 #else
-            return fci::arm::MotorControlMode::MIT;
+            return detail::FciMotorControlMode::kMit;
 #endif
+        } else {
+            return detail::FciMotorControlMode::kMit;
         }
-        if constexpr (std::is_same_v<CmdType, CartesianVelocities>)     return fci::arm::MotorControlMode::MIT;
-        return fci::arm::MotorControlMode::MIT;
     }
 
-    // ── Physical transport ──
+    // Transport outlives the endpoint. The destructor first detaches receive,
+    // then stops the endpoint owner thread before either member is destroyed.
     std::unique_ptr<Transport> m_transport;
+    detail::FciWirelinkEndpoint m_endpoint;
 
-    // ── SPSC queue ──
-    moodycamel::ReaderWriterQueue<fci::arm::ArmStatus> m_rx_queue{64};
+    StateQueue m_rx_queue;
     std::counting_semaphore<65536> m_data_ready{0};
-    std::uint32_t m_last_status_seq{0};
 
-    // ── Diagnostics (latest snapshot) ──
-    ArmDiagnostics m_last_diag{};
-    std::uint32_t m_last_diag_tick{0};
+    mutable std::mutex m_snapshot_mutex;
+    ArmState m_latest_state{};
+    ArmDiagnostics m_last_diagnostics{};
 
-    // ── Cached DeviceInfo / DeviceSettings ──
     DeviceInfo m_device_info{};
     DeviceSettings m_device_settings{};
     std::uint32_t m_fw_dt_us{2000};
 
-    // ── Connection ──
     std::atomic<bool> m_connected{false};
     std::atomic<bool> m_running{false};
     ReconnectPolicy m_reconnect_policy{ReconnectPolicy::kThrow};
-    std::chrono::milliseconds m_recv_timeout{50};
 
-    // ── Control ──
     ArmControl m_arm_control;
 #ifdef FLORID_HAS_MPC
     std::unique_ptr<CartesianMPCSolver<WillowMPCTraits>> m_mpc;
@@ -233,8 +258,9 @@ private:
     std::mutex m_control_mutex;
     std::atomic<bool> m_reconnecting{false};
     std::atomic<bool> m_stop_flag{false};
-    double m_max_frequency_hz{500.0};
-    fci::arm::MotorControlMode m_current_mode{static_cast<fci::arm::MotorControlMode>(0xFF)};
+    std::optional<detail::FciMotorControlMode> m_current_mode;
+    std::optional<detail::FciMotorControlMode> m_current_gripper_mode;
+    mutable std::mutex m_latency_mutex;
     detail::LatencyEstimator m_latency;
 
     friend class ArmControl;

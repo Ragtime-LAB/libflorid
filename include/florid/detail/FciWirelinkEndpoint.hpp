@@ -333,9 +333,10 @@ private:
         std::atomic<std::uint64_t> m_rpc_cancelled{};
     };
 
-    // The rev4 host profile requires 4,048 bytes for eight 256-byte RPC
-    // response slots and three retained telemetry values. Initialization
-    // verifies the generated requirements so schema growth fails explicitly.
+    // The current ABI7 arm-host profile requires 4,048 bytes for eight
+    // 256-byte RPC response slots and three retained telemetry values.
+    // Initialization verifies generated requirements so schema growth fails
+    // explicitly instead of silently exhausting storage.
     static constexpr std::size_t s_kRuntimeStorageSize = 4096;
     static constexpr std::size_t s_kTxPayloadSize = 256;
     static constexpr std::size_t s_kTxUnitSize = 320;
