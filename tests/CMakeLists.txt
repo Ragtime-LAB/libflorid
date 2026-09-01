@@ -3,6 +3,7 @@ add_executable(test_transport_pipeline test_transport_pipeline.cpp)
 target_link_libraries(test_transport_pipeline
     PRIVATE
         florid
+        florid::wirelink_host
         asio_standalone
 )
 

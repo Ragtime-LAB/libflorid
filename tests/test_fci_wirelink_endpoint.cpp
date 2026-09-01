@@ -861,7 +861,10 @@ void testTypedEndpointLifecycle() {
             "coalesced JointMIT did not reach the peer");
     require(s_device.m_joint_commands <= 3,
             "LATEST leaked more than one already-staged value");
-    require(s_host.executorStats().m_latest_coalesced >= 18,
+    // One value may already be staged in the core while the sink reports
+    // BUSY; the remaining fixed lane must still coalesce at least 17 of the
+    // 19 replacements regardless of owner-thread scheduling.
+    require(s_host.executorStats().m_latest_coalesced >= 17,
             "LATEST replacement was not recorded");
 
     require(s_device.sendArmStatus(41, 4.25F) == WL_OK,
