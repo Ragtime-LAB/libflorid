@@ -20,7 +20,7 @@
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | 兼容 ABI 7 的版本 |
+| Wirelink + `wlc` | 兼容 ABI 8 的版本 |
 | 构建系统 | Ninja（推荐）或 Make |
 | 操作系统 | Linux（经 `3rdparty/astrial` 使用 USB 串口） |
 

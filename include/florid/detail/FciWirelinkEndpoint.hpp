@@ -104,7 +104,10 @@ struct FciArmStatusSnapshot {
 };
 
 struct FciWirelinkEndpointConfig {
-    std::uint64_t m_session_id{1};
+    // Zero selects a fresh process-local session. Tests and applications that
+    // need deterministic wire images may still provide an explicit non-zero
+    // session identifier.
+    std::uint64_t m_session_id{};
     std::uint16_t m_max_retries{2};
     std::uint32_t m_ack_timeout_ms{20};
 };
@@ -333,9 +336,8 @@ private:
         std::atomic<std::uint64_t> m_rpc_cancelled{};
     };
 
-    // The current ABI7 arm-host profile requires 4,048 bytes for eight
-    // 256-byte RPC response slots and three retained telemetry values.
-    // Initialization verifies generated requirements so schema growth fails
+    // Keep headroom for generated runtime layout changes. Initialization
+    // validates the exact ABI-specific requirement so schema growth fails
     // explicitly instead of silently exhausting storage.
     static constexpr std::size_t s_kRuntimeStorageSize = 4096;
     static constexpr std::size_t s_kTxPayloadSize = 256;

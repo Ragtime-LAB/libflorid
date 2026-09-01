@@ -37,7 +37,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 | Target | Path | Links |
 |---|---|---|
 | `florid` (lib) | `src/*.cpp` | `fci_protocol` + `astrial` |
-| `fci_protocol::arm` | `protocol/` | Generated ABI-7 host endpoint linked with Wirelink |
+| `fci_protocol::arm` | `protocol/` | Generated ABI-8 host endpoint linked with Wirelink |
 | `astrial` | `3rdparty/astrial/` | Static lib, vendored ASIO |
 | `florid_example_*` | `examples/` | `florid` |
 | `test_transport_pipeline` | `tests/` | `MockTransport`, no hardware |

@@ -62,6 +62,7 @@ class DevicePeer;
 class LoopbackTransport final : public Transport {
 public:
     explicit LoopbackTransport(DevicePeer& s_peer) : m_peer(s_peer) {}
+    ~LoopbackTransport() override;
 
     bool send(const std::uint8_t* s_data, std::size_t s_size) override;
 
@@ -115,8 +116,20 @@ public:
     }
 
     int attach(LoopbackTransport& s_transport) {
+        std::lock_guard<std::mutex> s_lock(m_transport_mutex);
+        if (m_transport != nullptr) return WL_ERR_BUSY;
+        if (!m_sink_attached) {
+            const int s_result = m_executor.setSink(s_sink, this);
+            if (s_result != WL_OK) return s_result;
+            m_sink_attached = true;
+        }
         m_transport = &s_transport;
-        return m_executor.setSink(s_sink, this);
+        return WL_OK;
+    }
+
+    void detach(LoopbackTransport& s_transport) noexcept {
+        std::lock_guard<std::mutex> s_lock(m_transport_mutex);
+        if (m_transport == &s_transport) m_transport = nullptr;
     }
 
     int start() { return m_executor.start(); }
@@ -199,6 +212,15 @@ public:
     std::size_t releaseCount() const noexcept {
         return m_release_count.load(std::memory_order_relaxed);
     }
+    std::size_t newLeaseCount() const noexcept {
+        return m_new_lease_count.load(std::memory_order_relaxed);
+    }
+    std::uint32_t firstNewLeaseOperationId() const noexcept {
+        return m_first_new_lease_operation_id.load(std::memory_order_relaxed);
+    }
+    std::uint32_t lastNewLeaseOperationId() const noexcept {
+        return m_last_new_lease_operation_id.load(std::memory_order_relaxed);
+    }
     std::uint8_t lastRegisterJoint() const noexcept {
         return m_last_register_joint.load(std::memory_order_relaxed);
     }
@@ -213,6 +235,7 @@ private:
                                    const std::uint8_t* s_data,
                                    std::size_t s_size) noexcept {
         auto& s_self = *static_cast<DevicePeer*>(s_user_data);
+        std::lock_guard<std::mutex> s_lock(s_self.m_transport_mutex);
         return s_self.m_transport != nullptr &&
                        s_self.m_transport->deliver(s_data, s_size)
                    ? WL_SINK_SENT
@@ -363,6 +386,14 @@ private:
             return;
         }
         m_acquire_count.fetch_add(1, std::memory_order_relaxed);
+        if (!s_request.has_current_token) {
+            m_new_lease_count.fetch_add(1, std::memory_order_relaxed);
+            std::uint32_t s_unset{};
+            (void)m_first_new_lease_operation_id.compare_exchange_strong(
+                s_unset, s_request.operation_id, std::memory_order_relaxed);
+            m_last_new_lease_operation_id.store(s_request.operation_id,
+                                                std::memory_order_relaxed);
+        }
         acquire_control_lease_response_t s_response{};
         acquire_control_lease_response_clear(&s_response);
         s_response.has_operation_id = true;
@@ -544,14 +575,21 @@ private:
         UINT64_C(0x1020304050607080);
     PeerStorage m_storage;
     WirelinkExecutor m_executor;
+    std::mutex m_transport_mutex;
     LoopbackTransport* m_transport{};
+    bool m_sink_attached{};
     mutable std::mutex m_mutex;
     std::condition_variable m_changed;
     std::vector<std::uint16_t> m_commands;
     std::atomic<std::size_t> m_acquire_count{};
     std::atomic<std::size_t> m_release_count{};
+    std::atomic<std::size_t> m_new_lease_count{};
+    std::atomic<std::uint32_t> m_first_new_lease_operation_id{};
+    std::atomic<std::uint32_t> m_last_new_lease_operation_id{};
     std::atomic<std::uint8_t> m_last_register_joint{0xff};
 };
+
+LoopbackTransport::~LoopbackTransport() { m_peer.detach(*this); }
 
 bool LoopbackTransport::send(const std::uint8_t* s_data,
                              std::size_t s_size) {
@@ -644,6 +682,22 @@ void testArmImplWirelinkPipeline() {
 
     require(s_peer.releaseCount() == 1,
             "ArmImpl shutdown did not release the lease exactly once");
+
+    auto s_second_transport = std::make_unique<LoopbackTransport>(s_peer);
+    require(s_peer.attach(*s_second_transport) == WL_OK,
+            "second peer sink attachment failed");
+    {
+        ArmImpl s_second(std::move(s_second_transport));
+        require(s_second.isConnected(),
+                "immediate second ArmImpl did not complete handshake");
+    }
+    require(s_peer.newLeaseCount() == 2 && s_peer.releaseCount() == 2,
+            "consecutive ArmImpl sessions did not own distinct leases");
+    require(s_peer.firstNewLeaseOperationId() != 0 &&
+                s_peer.lastNewLeaseOperationId() != 0 &&
+                s_peer.firstNewLeaseOperationId() !=
+                    s_peer.lastNewLeaseOperationId(),
+            "consecutive sessions reused the RPC operation-id sequence");
     s_peer.stop();
 }
 

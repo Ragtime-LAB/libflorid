@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <random>
 
 namespace florid::detail {
 
@@ -12,6 +13,46 @@ namespace {
 
 constexpr std::size_t s_kNoSlot = FciWirelinkEndpoint::s_kOperationCapacity;
 constexpr std::uint32_t s_kMaximumRelativeTimeout = UINT32_C(0x7fffffff);
+
+std::uint64_t s_mixSessionEntropy(std::uint64_t s_value) noexcept {
+    s_value += UINT64_C(0x9e3779b97f4a7c15);
+    s_value = (s_value ^ (s_value >> 30U)) *
+              UINT64_C(0xbf58476d1ce4e5b9);
+    s_value = (s_value ^ (s_value >> 27U)) *
+              UINT64_C(0x94d049bb133111eb);
+    return s_value ^ (s_value >> 31U);
+}
+
+std::uint64_t s_makeSessionId(const void* s_instance) noexcept {
+    static std::atomic<std::uint64_t> s_counter{1};
+    const auto s_wall_count = static_cast<std::uint64_t>(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    const auto s_steady_count = static_cast<std::uint64_t>(
+        std::chrono::steady_clock::now().time_since_epoch().count());
+    std::uint64_t s_entropy =
+        s_wall_count ^ s_steady_count ^
+        static_cast<std::uint64_t>(
+            reinterpret_cast<std::uintptr_t>(s_instance)) ^
+        s_counter.fetch_add(1, std::memory_order_relaxed);
+    try {
+        std::random_device s_random;
+        s_entropy ^= static_cast<std::uint64_t>(s_random()) << 32U;
+        s_entropy ^= static_cast<std::uint64_t>(s_random());
+    } catch (...) {
+        // Independent clocks, ASLR, and the process-local counter remain a
+        // useful fallback on platforms without a usable random_device.
+    }
+    const std::uint64_t s_session_id = s_mixSessionEntropy(s_entropy);
+    return s_session_id == 0U ? UINT64_C(1) : s_session_id;
+}
+
+std::uint32_t s_rpcOperationSeed(std::uint64_t s_session_id) noexcept {
+    const std::uint64_t s_mixed = s_mixSessionEntropy(
+        s_session_id ^ UINT64_C(0x5250432d4f504944));
+    const std::uint32_t s_seed = static_cast<std::uint32_t>(s_mixed) ^
+                                 static_cast<std::uint32_t>(s_mixed >> 32U);
+    return s_seed == 0U ? UINT32_C(1) : s_seed;
+}
 
 template <typename Range>
 bool s_allFinite(const Range& s_values) noexcept {
@@ -283,7 +324,7 @@ FciWirelinkEndpoint::~FciWirelinkEndpoint() {
 
 FciEndpointStatus FciWirelinkEndpoint::initialize(
     const FciWirelinkEndpointConfig& s_config) {
-    if (s_config.m_session_id == 0 || s_config.m_ack_timeout_ms == 0 ||
+    if (s_config.m_ack_timeout_ms == 0 ||
         s_config.m_ack_timeout_ms >= s_kMaximumRelativeTimeout) {
         return FciEndpointStatus::kInvalidArgument;
     }
@@ -292,6 +333,10 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         if (m_initialized) return FciEndpointStatus::kBusy;
     }
 
+    const std::uint64_t s_session_id =
+        s_config.m_session_id == 0U ? s_makeSessionId(this)
+                                    : s_config.m_session_id;
+
     fci_arm_runtime_config_t s_runtime_config{};
     s_runtime_config.arm_status_latest_initial_generation = 1;
     s_runtime_config.motor_feedback_latest_initial_generation = 1;
@@ -299,7 +344,8 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
     s_runtime_config.rpc_client_enabled = 1;
     s_runtime_config.rpc_client_slot_count = s_kOperationCapacity;
     s_runtime_config.rpc_client_response_capacity = s_kTxPayloadSize;
-    s_runtime_config.rpc_client_next_operation_id = 1;
+    s_runtime_config.rpc_client_next_operation_id =
+        s_rpcOperationSeed(s_session_id);
 
     fci_arm_runtime_requirements_t s_requirements{};
     int s_result =
@@ -323,7 +369,7 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         .max_payload_len = s_kTxPayloadSize,
         .envelope = WL_ENVELOPE_COBS_STREAM,
         .integrity = WL_INTEGRITY_NONE,
-        .session_id = s_config.m_session_id,
+        .session_id = s_session_id,
         .max_retries = s_config.m_max_retries,
         .ack_timeout_ms = s_config.m_ack_timeout_ms,
         .max_transmission_unit = s_kTxUnitSize,
