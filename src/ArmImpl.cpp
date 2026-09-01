@@ -178,13 +178,15 @@ void ArmImpl::s_onArmStatus(
     {
         std::lock_guard<std::mutex> s_lock(s_self.m_snapshot_mutex);
         s_self.m_latest_state = s_status.m_state;
+        s_self.m_latest_state_generation = s_status.m_generation;
     }
     {
         std::lock_guard<std::mutex> s_lock(s_self.m_latency_mutex);
         s_self.m_latency.markReceived(s_status.m_last_sdk_timestamp_us,
                                       detail::s_nowUs());
     }
-    if (s_self.m_rx_queue.tryPush(s_status.m_state)) {
+    if (!s_self.m_state_wake_pending.exchange(
+            true, std::memory_order_acq_rel)) {
         s_self.m_data_ready.release();
     }
 }
@@ -267,7 +269,7 @@ bool ArmImpl::setDeviceSettings(const DeviceSettings& s_settings) {
 
 ArmState ArmImpl::readOnce() {
     ArmState s_state{};
-    (void)m_rx_queue.tryPop(s_state);
+    (void)s_takeLatestState(s_state);
     return s_state;
 }
 
@@ -346,6 +348,17 @@ void ArmImpl::s_ensureGripperMode(detail::FciMotorControlMode s_mode) {
 ArmState ArmImpl::s_latestState() const {
     std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
     return m_latest_state;
+}
+
+bool ArmImpl::s_takeLatestState(ArmState& s_state) noexcept {
+    std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
+    if (m_latest_state_generation == 0 ||
+        m_latest_state_generation == m_consumed_state_generation) {
+        return false;
+    }
+    s_state = m_latest_state;
+    m_consumed_state_generation = m_latest_state_generation;
+    return true;
 }
 
 JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_command,

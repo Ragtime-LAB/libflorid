@@ -589,6 +589,16 @@ void testArmImplWirelinkPipeline() {
                     s_state.m_gripper_q == 0.25F,
                 "borrowed ArmStatus was not copied into a stable snapshot");
 
+        require(s_peer.sendArmStatus(43, 2.0F) == WL_OK,
+                "first replacement telemetry submit failed");
+        std::this_thread::sleep_for(20ms);
+        require(s_peer.sendArmStatus(44, 3.0F) == WL_OK,
+                "second replacement telemetry submit failed");
+        std::this_thread::sleep_for(20ms);
+        s_state = s_impl.readOnce();
+        require(s_state.m_seq == 44 && s_state.m_q[0] == 3.0F,
+                "ArmImpl queued stale telemetry instead of exposing LATEST");
+
         s_impl.enable();
         s_impl.drag();
         s_impl.disable();

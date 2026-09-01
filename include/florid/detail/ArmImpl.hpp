@@ -15,7 +15,6 @@
 #include "WillowMPCTraits.hpp"
 #endif
 
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
@@ -65,10 +64,11 @@ public:
 
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
+            m_state_wake_pending.store(false, std::memory_order_release);
             if (!m_running || m_stop_flag) break;
 
             ArmState s_state{};
-            if (!m_rx_queue.tryPop(s_state)) continue;
+            if (!s_takeLatestState(s_state)) continue;
             auto s_command = s_cb(s_state, m_arm_control);
             s_sendCommand(s_command);
             if (s_command.m_motion_finished) break;
@@ -89,10 +89,11 @@ public:
 
         while (m_running && !m_stop_flag) {
             m_data_ready.acquire();
+            m_state_wake_pending.store(false, std::memory_order_release);
             if (!m_running || m_stop_flag) break;
 
             ArmState s_state{};
-            if (!m_rx_queue.tryPop(s_state)) continue;
+            if (!s_takeLatestState(s_state)) continue;
             auto s_command = s_cb(s_state, m_arm_control);
             s_sendGripperCommand(s_command);
             if (s_command.m_motion_finished) break;
@@ -156,34 +157,6 @@ protected:
                                         const ArmState& s_state);
 
 private:
-    class StateQueue {
-    public:
-        static constexpr std::size_t s_kCapacity = 64;
-
-        bool tryPush(const ArmState& s_state) noexcept {
-            const std::size_t s_head = m_head.load(std::memory_order_relaxed);
-            const std::size_t s_tail = m_tail.load(std::memory_order_acquire);
-            if (s_head - s_tail >= s_kCapacity) return false;
-            m_values[s_head % s_kCapacity] = s_state;
-            m_head.store(s_head + 1, std::memory_order_release);
-            return true;
-        }
-
-        bool tryPop(ArmState& s_state) noexcept {
-            const std::size_t s_tail = m_tail.load(std::memory_order_relaxed);
-            const std::size_t s_head = m_head.load(std::memory_order_acquire);
-            if (s_tail == s_head) return false;
-            s_state = m_values[s_tail % s_kCapacity];
-            m_tail.store(s_tail + 1, std::memory_order_release);
-            return true;
-        }
-
-    private:
-        std::array<ArmState, s_kCapacity> m_values{};
-        alignas(64) std::atomic<std::size_t> m_head{};
-        alignas(64) std::atomic<std::size_t> m_tail{};
-    };
-
     static wl_sink_result_t s_wireSink(void* s_context,
                                         wl_io_token_t s_token,
                                         const std::uint8_t* s_data,
@@ -208,6 +181,7 @@ private:
     void s_requireCommand(detail::FciEndpointStatus s_status,
                           const char* s_operation);
     ArmState s_latestState() const;
+    bool s_takeLatestState(ArmState& s_state) noexcept;
 
     static bool s_validJointId(std::uint8_t s_joint_id) noexcept;
     static std::uint8_t s_wireJointId(std::uint8_t s_joint_id) noexcept;
@@ -236,11 +210,13 @@ private:
     std::unique_ptr<Transport> m_transport;
     detail::FciWirelinkEndpoint m_endpoint;
 
-    StateQueue m_rx_queue;
     std::counting_semaphore<65536> m_data_ready{0};
+    std::atomic<bool> m_state_wake_pending{false};
 
     mutable std::mutex m_snapshot_mutex;
     ArmState m_latest_state{};
+    std::uint64_t m_latest_state_generation{};
+    std::uint64_t m_consumed_state_generation{};
     ArmDiagnostics m_last_diagnostics{};
 
     DeviceInfo m_device_info{};
