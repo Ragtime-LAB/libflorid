@@ -1,10 +1,10 @@
 # libflorid — 机械臂控制 SDK
 
-**libflorid** 是用于 Ragtime Usb2Arm / Willow 六自由度机械臂的 C++20 SDK。它通过 USB 使用 `fci_protocol` 线格式（RPL 帧）与臂端控制器通信，提供六种实时控制模式及夹爪控制，并通过 `Model<Traits>` 提供编译期生成的动力学。Python 绑定位于 `pyflorid/`。
+**libflorid** 是用于 Ragtime Usb2Arm / Willow 六自由度机械臂的 C++20 SDK。它通过 USB 或 UDP 使用生成的 FCI Wirelink 绑定与臂端控制器通信，提供六种实时控制模式及夹爪控制，并通过 `Model<Traits>` 提供编译期生成的动力学。Python 绑定位于 `pyflorid/`。
 
 ## 核心特性
 
-- **USB 串口传输**：通过 `Arm::create("usb:///dev/ttyACM0")` 连接。UDP 传输使用 `Arm::create("udp://<ip>:<port>")`，SDK 将固定本地端点绑定（如 `udp://192.168.1.200:5080`），从收到的第一个数据报学习设备源端点，并以尽力而为（无重传）的方式用 UDP 承载相同的 RPL 协议流。`mock://` 返回 `nullptr`。
+- **USB 串口传输**：通过 `Arm::create("usb:///dev/ttyACM0")` 连接。UDP 传输使用 `Arm::create("udp://<ip>:<port>")`，SDK 将固定本地端点绑定（如 `udp://192.168.1.200:5080`），并从收到的第一个数据报学习设备源端点。两种传输都承载由底层传输保证完整性的 Wirelink COBS 字节流。
 - **六种控制模式**：`JointMIT`、`JointPosVel`、`JointVel`、`JointPVT`、`CartesianPose`、`CartesianVelocities`。每个控制帧自带 `kp/kd`、可选固件重力标志以及 `MotionFinished` 标记。
 - **两种控制方式**：阻塞式 `Arm::control(cb)` 在内部线程按固件周期运行回调；或 `Arm::start*Control()` 返回轮询式 `ActiveControl<T>`，提供 `readOnce()`/`writeOnce()`（Python 绑定使用这种方式）。
 - **夹爪控制**：`arm->gripper()` 支持各关节控制模式（电机 joint_id 为 7），状态见 `GripperState` / `ArmState`。
@@ -20,6 +20,7 @@
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
 | CMake | 3.20+ |
+| Wirelink + `wlc` | 兼容 ABI 7 的版本 |
 | 构建系统 | Ninja（推荐）或 Make |
 | 操作系统 | Linux（经 `3rdparty/astrial` 使用 USB 串口） |
 
@@ -37,9 +38,8 @@
 git submodule update --init --recursive
 ```
 
-- `protocol/` → `fci_protocol`（臂端包 / 会话 / 传输，包含 `<fci_protocol/protocol.hpp>`）
+- `protocol/` → FCI `.wl` schema 与 host/firmware binding profile
 - `3rdparty/astrial`（USB 串口；内部以普通目录方式附带 asio / tl-expected / readerwriterqueue）
-- `3rdparty/readerwriterqueue`
 - `3rdparty/acados` — 仅在 `-DBUILD_MPC=ON` 时需要
 
 ## 构建与测试
@@ -51,6 +51,10 @@ ctest --test-dir build
 ```
 
 默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`。
+
+如果 Wirelink 未安装为 CMake package，请传入
+`-DWIRELINK_SOURCE_DIR=/path/to/wirelink`；若 `wlc` 不在 `PATH`，再传入
+`-DWLC_EXECUTABLE=/path/to/wlc`。FCI host 源码只生成到构建目录，不提交生成物。
 
 ## 快速开始
 
@@ -128,15 +132,14 @@ C++ 中以 `s_` 前缀命名的方法绑定为 snake_case 名称（`firmware_per
 │   Arm::create("usb://...")   Model<Traits>   Gripper  │
 ├──────────────────────────────────────────────────────┤
 │  include/florid/     公开 API（Arm, Model, types）     │
-│    core/    ActiveControl, ArmCore, GripperCore       │
-│    detail/  Transport, AstrialUSBTransport, ArmImpl,  │
-│             Seqlock, tick/timestamp, LatencyEstimator │
+│    core/    ActiveControl                              │
+│    detail/  Transport, ArmImpl, FciWirelinkEndpoint,  │
+│             WirelinkExecutor, LatencyEstimator        │
 │    traits/  WillowTraits, PantheraTraits（生成）      │
 │    mpc/     CartesianMPC                               │
 ├──────────────────────────────────────────────────────┤
 │  src/                 实现（Arm/ArmImpl/...）          │
-│  protocol/            fci_protocol（RPL 帧，          │
-│                       request/ack + 实时包）           │
+│  protocol/            FCI .wl schema + binding profile│
 │  3rdparty/            astrial（USB 串口）, acados      │
 │  generated/           acados 求解器 + WillowMPCTraits  │
 │  pyflorid/            Python 绑定（pybind11）          │
@@ -150,8 +153,8 @@ C++ 中以 `s_` 前缀命名的方法绑定为 snake_case 名称（`firmware_per
 | `ActiveControl<T>` | `start*Control()` 返回的读写轮询句柄。用 `readOnce()` 读取 `ArmState`，用 `writeOnce()` 发送指令。 |
 | `Gripper` | `arm->gripper()`；为夹爪电机（joint_id 7）提供相同的控制模式与 `ActiveControl` 轮询。 |
 | `Model<Traits>` | 无状态计算类，委托给生成的 `Traits`（`fk`、`pose`、雅可比、`mass`、`coriolis`、`gravity`）。更换模板参数即可切换臂型。 |
-| `detail::Transport` | 抽象传输（`send`/`setReceiveCallback`/`poll`）。`AstrialUSBTransport` 为 USB 实现；测试套件使用 `MockTransport`。 |
-| `fci_protocol` | 仅头文件的线上协议：RPL 帧（`0xA5`）、遥测通知（`ArmStatus` …）、实时 fire-and-forget 指令（`JointMITCommand` 0x6301 …）以及可靠的 request/ack 包（设备信息/设置、电机寄存器）。 |
+| `detail::Transport` | 抽象字节传输（`send`/`setReceiveCallback`/`poll`）。I/O callback 只 feed 字节并唤醒 endpoint executor。 |
+| `FciWirelinkEndpoint` | 从 `protocol/schema/wirelink/arm/*.wl` 生成的单 owner host runtime。遥测从 borrowed LATEST view 复制为稳定快照，实时指令按 message ID 合并最新值，配置操作使用 typed reliable RPC 和可续租 control lease。 |
 
 ## 构建选项
 
@@ -209,11 +212,12 @@ cmake --build build
 ctest --test-dir build
 ```
 
-唯一的测试二进制 `tests/test_transport_pipeline` 通过 `MockTransport` 驱动 `ArmImpl`（无需硬件），覆盖：
+测试无需硬件。`tests/test_transport_pipeline` 通过碎片化 Wirelink device peer 驱动 `ArmImpl`，覆盖：
 
-- `ArmStatus` 在传输管线中的往返
-- 多帧顺序接收与垃圾数据鲁棒性
-- 控制循环从回调发送指令
+- 带 lease 的连接与确定性释放
+- typed 设备设置、元数据和电机寄存器 RPC
+- borrowed payload 释放后的稳定 `ArmStatus` 快照
+- arm/gripper 指令在碎片化 COBS 字节流上的编码
 
 ## 许可证
 
@@ -221,7 +225,6 @@ libflorid 采用 ISC 许可证。
 
 第三方代码：
 
-- `protocol/` → `fci_protocol`（RPL 线上协议定义）
+- `protocol/` → FCI Wirelink schema 与 binding profile
 - `3rdparty/astrial`（USB 串口；附带 asio、tl-expected、readerwriterqueue）
-- `3rdparty/readerwriterqueue`
 - `3rdparty/acados`（MPC，仅在 `-DBUILD_MPC=ON` 时）

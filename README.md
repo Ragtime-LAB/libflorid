@@ -1,10 +1,10 @@
 # libflorid — Arm Control SDK
 
-**libflorid** is a C++20 SDK for the Ragtime Usb2Arm / Willow 6-DOF robotic arm. It talks to the arm controller over USB using the `fci_protocol` wire format (RPL framing), exposes six real-time control modes plus gripper control, and ships compile-time generated dynamics via `Model<Traits>`. Python bindings live in `pyflorid/`.
+**libflorid** is a C++20 SDK for the Ragtime Usb2Arm / Willow 6-DOF robotic arm. It talks to the arm controller over USB or UDP using generated FCI Wirelink bindings, exposes six real-time control modes plus gripper control, and ships compile-time generated dynamics via `Model<Traits>`. Python bindings live in `pyflorid/`.
 
 ## Key Features
 
-- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. UDP transport via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint (e.g. `udp://192.168.1.200:5080`), learns the device's source endpoint from the first received datagram, and streams the same RPL protocol over UDP (best-effort, no retransmission). `mock://` returns `nullptr`.
+- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. UDP transport via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint (e.g. `udp://192.168.1.200:5080`) and learns the device's source endpoint from the first datagram. Both carry Wirelink COBS streams with transport-provided integrity.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
 - **Two control styles**: blocking `Arm::control(cb)` runs your callback on an internal thread at the firmware rate, or `Arm::start*Control()` returns a polling `ActiveControl<T>` with `readOnce()`/`writeOnce()` (this is what the Python bindings use).
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
@@ -20,6 +20,7 @@
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.20+ |
+| Wirelink + `wlc` | ABI 7-compatible release |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux (USB serial via `3rdparty/astrial`) |
 
@@ -37,9 +38,8 @@ Optional build-time tools:
 git submodule update --init --recursive
 ```
 
-- `protocol/` → `fci_protocol` (arm packets / session / transport, include `<fci_protocol/protocol.hpp>`)
+- `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
 - `3rdparty/astrial` (USB serial; itself vendors asio / tl-expected / readerwriterqueue as plain dirs)
-- `3rdparty/readerwriterqueue`
 - `3rdparty/acados` — only needed when `-DBUILD_MPC=ON`
 
 ## Build & Test
@@ -51,6 +51,11 @@ ctest --test-dir build
 ```
 
 Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_MPC=OFF`.
+
+If Wirelink is not installed as a CMake package, pass
+`-DWIRELINK_SOURCE_DIR=/path/to/wirelink`. Set `-DWLC_EXECUTABLE=/path/to/wlc`
+when `wlc` is not on `PATH`. The FCI host sources are generated in the build
+tree; generated files are never committed.
 
 ## Quick Start
 
@@ -128,15 +133,14 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 │   Arm::create("usb://...")   Model<Traits>   Gripper  │
 ├──────────────────────────────────────────────────────┤
 │  include/florid/     public API (Arm, Model, types)   │
-│    core/    ActiveControl, ArmCore, GripperCore       │
-│    detail/  Transport, AstrialUSBTransport, ArmImpl,  │
-│             Seqlock, tick/timestamp, LatencyEstimator │
+│    core/    ActiveControl                              │
+│    detail/  Transport, ArmImpl, FciWirelinkEndpoint,  │
+│             WirelinkExecutor, LatencyEstimator        │
 │    traits/  WillowTraits, PantheraTraits (generated)  │
 │    mpc/     CartesianMPC                               │
 ├──────────────────────────────────────────────────────┤
 │  src/                implementation (Arm/ArmImpl/...)  │
-│  protocol/           fci_protocol (RPL framing,       │
-│                      request/ack + real-time packets) │
+│  protocol/           FCI .wl schemas + binding profiles│
 │  3rdparty/           astrial (USB serial), acados     │
 │  generated/          acados solver + WillowMPCTraits  │
 │  pyflorid/           Python bindings (pybind11)       │
@@ -150,8 +154,8 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 | `ActiveControl<T>` | Manual read/write polling handle returned by `start*Control()`. Reads `ArmState` with `readOnce()`, sends commands with `writeOnce()`. |
 | `Gripper` | `arm->gripper()`; same control modes and `ActiveControl` polling for the gripper motor (joint_id 7). |
 | `Model<Traits>` | Stateless computation delegating to generated `Traits` (`fk`, `pose`, Jacobians, `mass`, `coriolis`, `gravity`). Switch arm models by changing the template parameter. |
-| `detail::Transport` | Abstract transport (`send`/`setReceiveCallback`/`poll`). `AstrialUSBTransport` is the USB implementation; the test suite uses a `MockTransport`. |
-| `fci_protocol` | Header-only wire protocol: RPL framing (`0xA5`), telemetry notifications (`ArmStatus` …), real-time fire-and-forget commands (`JointMITCommand` 0x6301 …), and reliable request/ack packets (device info/settings, motor registers). |
+| `detail::Transport` | Abstract byte transport (`send`/`setReceiveCallback`/`poll`). The I/O callback only feeds bytes and wakes the endpoint executor. |
+| `FciWirelinkEndpoint` | Single-owner host runtime generated from `protocol/schema/wirelink/arm/*.wl`. Telemetry is copied from borrowed LATEST views, realtime commands use message-ID keyed coalescing lanes, and configuration uses typed reliable RPCs plus a renewable control lease. |
 
 ## Build Options
 
@@ -209,11 +213,13 @@ cmake --build build
 ctest --test-dir build
 ```
 
-The single test binary `tests/test_transport_pipeline` drives `ArmImpl` against a `MockTransport` (no hardware required) and covers:
+The tests run without hardware. `test_transport_pipeline` drives `ArmImpl`
+against a fragmented Wirelink device peer and covers:
 
-- `ArmStatus` round-trip through the transport pipeline
-- Multiple sequential frames and garbage-data robustness
-- The control loop sending commands from a callback
+- lease-backed connection and deterministic release
+- typed device settings, metadata, and motor-register RPCs
+- stable `ArmStatus` snapshots after borrowed payload release
+- arm/gripper command encoding over fragmented COBS streams
 
 ## License
 
@@ -221,7 +227,6 @@ libflorid is released under the ISC License.
 
 Third-party code:
 
-- `protocol/` → `fci_protocol` (RPL wire protocol definitions)
+- `protocol/` → FCI Wirelink schemas and binding profiles
 - `3rdparty/astrial` (USB serial; vendors asio, tl-expected, readerwriterqueue)
-- `3rdparty/readerwriterqueue`
 - `3rdparty/acados` (MPC, only when `-DBUILD_MPC=ON`)

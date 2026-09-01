@@ -14,8 +14,8 @@ namespace florid {
 //
 // Binds a fixed local endpoint (ip:port) and learns the device's source
 // endpoint from the first received datagram. All outgoing commands are sent
-// back to that learned endpoint. The device is expected to stream the same
-// RPL-framed protocol data as over USB, one or more frames per datagram.
+// back to that learned endpoint. UDP and USB both carry Wirelink v1
+// COBS_STREAM + NONE bytes; datagram boundaries have no protocol meaning.
 class UdpTransport : public Transport {
 public:
     explicit UdpTransport(const std::string& s_bind_ip, std::uint16_t s_bind_port,
