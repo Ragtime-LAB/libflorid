@@ -1,0 +1,202 @@
+#ifndef FLORID_DETAIL_WIRELINK_EXECUTOR_HPP
+#define FLORID_DETAIL_WIRELINK_EXECUTOR_HPP
+
+#include "wirelink/wirelink.h"
+
+#include <array>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <semaphore>
+#include <thread>
+
+namespace florid::detail {
+
+struct WirelinkCommandResult {
+    std::uint64_t m_ticket{};
+    std::uint16_t m_message_id{};
+    wl_tx_state_t m_state{WL_TX_STATE_IDLE};
+    int m_result{WL_OK};
+    std::uint16_t m_retries_used{};
+};
+
+struct WirelinkExecutorHooks {
+    using ServiceFn = int (*)(void* s_user_data) noexcept;
+    using QuiesceFn = void (*)(void* s_user_data) noexcept;
+    // Terminal RX owner. The hook must dispatch the borrowed event and call
+    // wl_event_release() exactly once before returning. Generated WLC runtime
+    // dispatchers naturally satisfy this contract. With no hook installed, the
+    // executor releases RX events itself.
+    using EventFn = void (*)(void* s_user_data, wl_ctx_t& s_context,
+                             const wl_event_t& s_event) noexcept;
+    using CompletionFn = void (*)(void* s_user_data,
+                                  const WirelinkCommandResult& s_result) noexcept;
+
+    void* m_user_data{};
+    ServiceFn m_service{};
+    QuiesceFn m_quiesce{};
+    EventFn m_on_event{};
+    CompletionFn m_on_completion{};
+};
+
+struct WirelinkExecutorStats {
+    std::uint64_t m_feed_calls{};
+    std::uint64_t m_feed_bytes{};
+    std::uint64_t m_feed_backpressure{};
+    std::uint64_t m_rx_events{};
+    std::uint64_t m_poll_errors{};
+    std::uint64_t m_service_errors{};
+    std::uint64_t m_latest_submitted{};
+    std::uint64_t m_latest_coalesced{};
+    std::uint64_t m_latest_queue_full{};
+    std::uint64_t m_latest_dispatched{};
+    std::uint64_t m_latest_failed{};
+    std::uint64_t m_latest_cancelled{};
+    std::uint64_t m_reliable_submitted{};
+    std::uint64_t m_reliable_queue_full{};
+    std::uint64_t m_reliable_dispatched{};
+    std::uint64_t m_reliable_completed{};
+    std::uint64_t m_reliable_failed{};
+    std::uint64_t m_reliable_cancelled{};
+};
+
+class WirelinkExecutor {
+public:
+    static constexpr std::size_t s_kMaximumCommandPayload = 512;
+    static constexpr std::size_t s_kLatestLaneCapacity = 8;
+    static constexpr std::size_t s_kReliableQueueCapacity = 16;
+
+    enum class State : std::uint8_t {
+        kUninitialized,
+        kReady,
+        kRunning,
+        kStopping,
+        kStopped,
+    };
+
+    WirelinkExecutor() = default;
+    ~WirelinkExecutor();
+
+    WirelinkExecutor(const WirelinkExecutor&) = delete;
+    WirelinkExecutor& operator=(const WirelinkExecutor&) = delete;
+    WirelinkExecutor(WirelinkExecutor&&) = delete;
+    WirelinkExecutor& operator=(WirelinkExecutor&&) = delete;
+
+    // The caller owns every buffer in storage until this executor is destroyed.
+    // initialize(), setHooks(), setSink(), and context() are setup-only APIs and
+    // must be used before start(). Runtime Wirelink access belongs to the owner
+    // thread; transports feed RX through feedBytes() and signal deferred adapter
+    // work through notify().
+    int initialize(const wl_config_t& s_config, const wl_storage_t& s_storage);
+    int setHooks(const WirelinkExecutorHooks& s_hooks);
+    int setSink(wl_sink_fn s_sink, void* s_user_data);
+    wl_ctx_t& context() noexcept { return m_context; }
+
+    int start();
+    void requestStop() noexcept;
+    void stop() noexcept;
+
+    // SPSC producer entry point. No parsing, dispatch, ACK, or user callback is
+    // executed on the caller's thread.
+    int feedBytes(const std::uint8_t* s_data, std::size_t s_size,
+                  std::size_t& s_accepted) noexcept;
+
+    // Wake the owner after adapter-side async completion or direct RX commit.
+    void notify() noexcept;
+
+    // Replaces an unsent real-time command in the same message-id lane. Distinct
+    // IDs retain independent newest values up to s_kLatestLaneCapacity; a new ID
+    // beyond that bound returns WL_ERR_QUEUE_FULL.
+    int submitLatest(std::uint16_t s_message_id, const std::uint8_t* s_payload,
+                     std::size_t s_payload_size) noexcept;
+
+    // Bounded MPSC FIFO for reliable RPC/configuration traffic. Completion is
+    // reported exactly once through m_on_completion, including cancellation at
+    // shutdown.
+    int submitReliable(std::uint16_t s_message_id,
+                       const std::uint8_t* s_payload,
+                       std::size_t s_payload_size,
+                       std::uint64_t& s_ticket) noexcept;
+
+    State state() const noexcept { return m_state.load(std::memory_order_acquire); }
+    WirelinkExecutorStats stats() const noexcept;
+
+private:
+    struct Command {
+        std::uint64_t m_ticket{};
+        std::uint64_t m_generation{};
+        std::uint16_t m_message_id{};
+        std::uint16_t m_payload_size{};
+        std::array<std::uint8_t, s_kMaximumCommandPayload> m_payload{};
+    };
+
+    struct AtomicStats {
+        std::atomic<std::uint64_t> m_feed_calls{};
+        std::atomic<std::uint64_t> m_feed_bytes{};
+        std::atomic<std::uint64_t> m_feed_backpressure{};
+        std::atomic<std::uint64_t> m_rx_events{};
+        std::atomic<std::uint64_t> m_poll_errors{};
+        std::atomic<std::uint64_t> m_service_errors{};
+        std::atomic<std::uint64_t> m_latest_submitted{};
+        std::atomic<std::uint64_t> m_latest_coalesced{};
+        std::atomic<std::uint64_t> m_latest_queue_full{};
+        std::atomic<std::uint64_t> m_latest_dispatched{};
+        std::atomic<std::uint64_t> m_latest_failed{};
+        std::atomic<std::uint64_t> m_latest_cancelled{};
+        std::atomic<std::uint64_t> m_reliable_submitted{};
+        std::atomic<std::uint64_t> m_reliable_queue_full{};
+        std::atomic<std::uint64_t> m_reliable_dispatched{};
+        std::atomic<std::uint64_t> m_reliable_completed{};
+        std::atomic<std::uint64_t> m_reliable_failed{};
+        std::atomic<std::uint64_t> m_reliable_cancelled{};
+    };
+
+    struct LatestLane {
+        Command m_command{};
+        bool m_valid{};
+    };
+
+    static wl_time_ms_t s_nowMs() noexcept;
+    void s_run() noexcept;
+    bool s_pollEvents(wl_time_ms_t s_now_ms) noexcept;
+    bool s_dispatchOne() noexcept;
+    void s_handleEvent(const wl_event_t& s_event) noexcept;
+    void s_complete(const Command& s_command, wl_tx_state_t s_state,
+                    int s_result, std::uint16_t s_retries) noexcept;
+    void s_shutdownOnOwner() noexcept;
+    bool s_peekReliable(Command& s_command) noexcept;
+    void s_popReliable(std::uint64_t s_ticket) noexcept;
+    bool s_peekLatest(Command& s_command) noexcept;
+    void s_removeLatest(std::uint64_t s_generation) noexcept;
+    wl_ctx_t m_context{};
+    WirelinkExecutorHooks m_hooks{};
+    std::atomic<State> m_state{State::kUninitialized};
+    std::atomic<bool> m_accepting{false};
+    std::atomic<bool> m_stop_requested{false};
+    std::thread m_thread;
+
+    std::mutex m_command_mutex;
+    std::array<Command, s_kReliableQueueCapacity> m_reliable_queue{};
+    std::size_t m_reliable_head{};
+    std::size_t m_reliable_tail{};
+    std::size_t m_reliable_count{};
+    std::array<LatestLane, s_kLatestLaneCapacity> m_latest_lanes{};
+    std::size_t m_latest_cursor{};
+    std::uint64_t m_next_ticket{1};
+    std::uint64_t m_next_generation{1};
+
+    Command m_active_reliable{};
+    wl_tx_handle_t m_active_handle{};
+    bool m_active_reliable_valid{};
+    bool m_latest_had_last_turn{};
+
+    std::atomic<std::uint64_t> m_wake_generation{};
+    std::counting_semaphore<> m_wake{0};
+    std::atomic<std::uint32_t> m_producers_in_flight{};
+    AtomicStats m_stats{};
+};
+
+} // namespace florid::detail
+
+#endif // FLORID_DETAIL_WIRELINK_EXECUTOR_HPP
