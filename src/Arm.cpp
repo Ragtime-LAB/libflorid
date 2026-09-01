@@ -166,12 +166,6 @@ void Arm::home() { m_impl->home(); }
 void Arm::enable() { m_impl->enable(); }
 void Arm::drag() { m_impl->drag(); }
 void Arm::disable() { m_impl->disable(); }
-void Arm::setJointImpedance(const float (&s_K)[6]) { m_impl->setJointImpedance(s_K); }
-void Arm::setCartesianImpedance(const float (&s_K)[6]) { m_impl->setCartesianImpedance(s_K); }
-void Arm::setEEFrame(const float (&s_T)[16]) { m_impl->setEEFrame(s_T); }
-void Arm::setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]) {
-    m_impl->setLoad(s_mass, s_com, s_inertia);
-}
 void Arm::automaticErrorRecovery() { m_impl->automaticErrorRecovery(); }
 void Arm::stop() { m_impl->stop(); }
 

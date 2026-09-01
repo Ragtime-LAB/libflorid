@@ -485,23 +485,6 @@ void ArmImpl::disable() {
         750ms, "Disable");
 }
 
-void ArmImpl::setJointImpedance(const float (&)[6]) {
-    // Not present in the current FCI Wirelink schema. Deliberately no legacy
-    // fallback: this remains an explicit compatibility stub until modeled.
-}
-
-void ArmImpl::setCartesianImpedance(const float (&)[6]) {
-    // Not present in the current FCI Wirelink schema.
-}
-
-void ArmImpl::setEEFrame(const float (&)[16]) {
-    // Not present in the current FCI Wirelink schema.
-}
-
-void ArmImpl::setLoad(float, const float (&)[3], const float (&)[9]) {
-    // Not present in the current FCI Wirelink schema.
-}
-
 void ArmImpl::automaticErrorRecovery() {
     s_requireOperation(m_endpoint.clearFaults(s_kDefaultRpcTimeoutMs), 750ms,
                        "ClearFaults");

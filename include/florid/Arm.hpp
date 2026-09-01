@@ -77,10 +77,6 @@ public:
     void enable();
     void drag();
     void disable();
-    void setJointImpedance(const float (&s_K)[6]);
-    void setCartesianImpedance(const float (&s_K)[6]);
-    void setEEFrame(const float (&s_T)[16]);
-    void setLoad(float s_mass, const float (&s_com)[3], const float (&s_inertia)[9]);
     void automaticErrorRecovery();
     void stop();
 
