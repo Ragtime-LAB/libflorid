@@ -33,20 +33,24 @@ AstrialUSBTransport::~AstrialUSBTransport() {
 
 AstrialUSBTransport::AstrialUSBTransport(AstrialUSBTransport &&s_other) noexcept
     : m_serial(std::move(s_other.m_serial)),
-      m_recv_callback(s_other.m_recv_callback),
-      m_recv_context(s_other.m_recv_context) {
-  s_other.m_recv_callback = nullptr;
-  s_other.m_recv_context = nullptr;
+      m_recv_callback(s_other.m_recv_callback.exchange(nullptr)),
+      m_recv_context(s_other.m_recv_context.exchange(nullptr)) {
+  if (m_recv_callback.load(std::memory_order_acquire)) {
+    s_installReceiveHandler();
+  }
 }
 
 AstrialUSBTransport &
 AstrialUSBTransport::operator=(AstrialUSBTransport &&s_other) noexcept {
   if (this != &s_other) {
     m_serial = std::move(s_other.m_serial);
-    m_recv_callback = s_other.m_recv_callback;
-    m_recv_context = s_other.m_recv_context;
-    s_other.m_recv_callback = nullptr;
-    s_other.m_recv_context = nullptr;
+    m_recv_callback.store(s_other.m_recv_callback.exchange(nullptr),
+                          std::memory_order_release);
+    m_recv_context.store(s_other.m_recv_context.exchange(nullptr),
+                         std::memory_order_release);
+    if (m_recv_callback.load(std::memory_order_acquire)) {
+      s_installReceiveHandler();
+    }
   }
   return *this;
 }
@@ -61,17 +65,22 @@ bool AstrialUSBTransport::send(const std::uint8_t *s_data, std::size_t s_size) {
 
 void AstrialUSBTransport::setReceiveCallback(ReceiveFunctor s_callback,
                                              void *s_context) {
-  m_recv_callback = s_callback;
-  m_recv_context = s_context;
+  m_recv_context.store(s_context, std::memory_order_relaxed);
+  m_recv_callback.store(s_callback, std::memory_order_release);
 
-  if (m_recv_callback && m_serial) {
-    m_serial->on_data([this](std::span<const std::uint8_t> s_data) {
-      if (m_recv_callback) {
-        m_recv_callback(m_recv_context, s_data.data(), s_data.size());
-      }
-    });
-
+  if (s_callback && m_serial) {
+    s_installReceiveHandler();
   }
+}
+
+void AstrialUSBTransport::s_installReceiveHandler() {
+  m_serial->on_data([this](std::span<const std::uint8_t> s_data) {
+    const auto s_callback = m_recv_callback.load(std::memory_order_acquire);
+    if (s_callback) {
+      s_callback(m_recv_context.load(std::memory_order_relaxed), s_data.data(),
+                 s_data.size());
+    }
+  });
 }
 
 void AstrialUSBTransport::poll() {

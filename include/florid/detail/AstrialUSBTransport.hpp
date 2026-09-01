@@ -3,6 +3,7 @@
 
 #include "florid/detail/Transport.hpp"
 
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -43,9 +44,11 @@ public:
   static std::vector<UsbDeviceInfo> listDevices();
 
 private:
+  void s_installReceiveHandler();
+
   std::unique_ptr<Serial> m_serial;
-  ReceiveFunctor m_recv_callback{nullptr};
-  void *m_recv_context{nullptr};
+  std::atomic<ReceiveFunctor> m_recv_callback{nullptr};
+  std::atomic<void *> m_recv_context{nullptr};
   std::mutex m_write_mutex;
   // TODO: remove this mutex for performance
 };
