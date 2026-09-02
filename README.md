@@ -57,6 +57,30 @@ If Wirelink is not installed as a CMake package, pass
 when `wlc` is not on `PATH`. The FCI host sources are generated in the build
 tree; generated files are never committed.
 
+### Windows (MSVC + vcpkg)
+
+The repository manifest declares the product's native USB dependency. From a
+Developer PowerShell, point CMake at vcpkg and the Wirelink source tree; the
+configure step installs the pinned libusb version into the build tree:
+
+```powershell
+git submodule update --init --recursive
+$env:VCPKG_ROOT = "C:\src\vcpkg"
+
+cmake -S . -B build-windows `
+  -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
+  -DVCPKG_TARGET_TRIPLET=x64-windows `
+  -DWIRELINK_SOURCE_DIR=C:\src\wirelink `
+  -DBUILD_TESTS=ON
+cmake --build build-windows --config Release --parallel
+ctest --test-dir build-windows -C Release --output-on-failure
+```
+
+No separate `vcpkg install` command is required. The default dynamic triplet
+also performs app-local deployment of `libusb-1.0.dll` for built tests and
+examples. Use `x64-windows-static` only when static runtime distribution is an
+explicit product choice.
+
 ## Quick Start
 
 ```cpp
