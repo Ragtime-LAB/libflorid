@@ -1,5 +1,4 @@
 add_library(florid_wirelink_host
-    WirelinkExecutor.cpp
     FciWirelinkEndpoint.cpp
 )
 add_library(florid::wirelink_host ALIAS florid_wirelink_host)
@@ -12,6 +11,7 @@ target_compile_features(florid_wirelink_host PUBLIC cxx_std_20)
 target_link_libraries(florid_wirelink_host
     PUBLIC
         fci_protocol::arm
+        Wirelink::host
     PRIVATE
         Threads::Threads
 )
