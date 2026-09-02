@@ -93,10 +93,19 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
             s_operationError("Wirelink endpoint initialization",
                              s_initialized));
     }
-    const auto s_sink = m_endpoint.setSink(s_wireSink, this);
-    if (s_sink != detail::FciEndpointStatus::kOk) {
-        throw ProtocolException(
-            s_operationError("Wirelink transport sink setup", s_sink));
+    if (m_transport->usesDirectWirelink()) {
+        const auto s_attached =
+            m_endpoint.attachDirectTransport(*m_transport);
+        if (s_attached != detail::FciEndpointStatus::kOk) {
+            throw ProtocolException(s_operationError(
+                "Wirelink direct transport setup", s_attached));
+        }
+    } else {
+        const auto s_sink = m_endpoint.setSink(s_wireSink, this);
+        if (s_sink != detail::FciEndpointStatus::kOk) {
+            throw ProtocolException(
+                s_operationError("Wirelink transport sink setup", s_sink));
+        }
     }
     const auto s_callbacks =
         m_endpoint.setCallbacks(s_onArmStatus, s_onDiagnostics, this);
@@ -105,10 +114,14 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
             s_operationError("Wirelink callback setup", s_callbacks));
     }
 
-    m_transport->setReceiveCallback(s_onPhysData, this);
+    if (!m_transport->usesDirectWirelink()) {
+        m_transport->setReceiveCallback(s_onPhysData, this);
+    }
     const auto s_started = m_endpoint.start();
     if (s_started != detail::FciEndpointStatus::kOk) {
-        m_transport->setReceiveCallback(nullptr, nullptr);
+        if (!m_transport->usesDirectWirelink()) {
+            m_transport->setReceiveCallback(nullptr, nullptr);
+        }
         throw ProtocolException(
             s_operationError("Wirelink endpoint start", s_started));
     }
@@ -122,7 +135,9 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
         s_fetchDeviceInfo();
         s_fetchDeviceSettings();
     } catch (...) {
-        m_transport->setReceiveCallback(nullptr, nullptr);
+        if (!m_transport->usesDirectWirelink()) {
+            m_transport->setReceiveCallback(nullptr, nullptr);
+        }
         m_endpoint.stop();
         throw;
     }
@@ -137,7 +152,7 @@ ArmImpl::~ArmImpl() {
         (void)s_operationSucceeded(s_submit, 250ms);
     }
 
-    if (m_transport) {
+    if (m_transport && !m_transport->usesDirectWirelink()) {
         m_transport->setReceiveCallback(nullptr, nullptr);
     }
     m_endpoint.stop();

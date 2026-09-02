@@ -13,15 +13,14 @@ static std::atomic<bool> g_running{true};
 void s_signalHandler(int) { g_running = false; }
 
 void s_printUsage(const char* s_prog) {
-    fprintf(stderr, "Usage: %s <usb_device>\n", s_prog);
+    fprintf(stderr, "Usage: %s <uri>\n", s_prog);
     exit(1);
 }
 
 int main(int s_argc, char** s_argv) {
     if (s_argc < 2) s_printUsage(s_argv[0]);
 
-    std::string s_uri = "usb://";
-    s_uri += s_argv[1];
+    std::string s_uri = s_argv[1];
 
     signal(SIGINT, s_signalHandler);
     signal(SIGTERM, s_signalHandler);

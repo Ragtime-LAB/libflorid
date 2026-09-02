@@ -4,7 +4,7 @@
 
 ## Key Features
 
-- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. UDP transport via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint (e.g. `udp://192.168.1.200:5080`) and learns the device's source endpoint from the first datagram. Both carry Wirelink COBS streams with transport-provided integrity.
+- **Native USB Bulk transport**: connect with `Arm::create("usb://")`, `Arm::create("usb://2fe3:574c")`, or append `/SERIAL` when multiple devices share a VID/PID. `serial://<port>` remains available for legacy CDC/debug firmware. UDP via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint and learns the device's source endpoint from the first datagram.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
 - **Two control styles**: blocking `Arm::control(cb)` runs your callback on an internal thread at the firmware rate, or `Arm::start*Control()` returns a polling `ActiveControl<T>` with `readOnce()`/`writeOnce()` (this is what the Python bindings use).
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
@@ -22,7 +22,7 @@
 | CMake | 3.20+ |
 | Wirelink + `wlc` | ABI 8-compatible release |
 | Build system | Ninja (recommended) or Make |
-| OS | Linux (USB serial via `3rdparty/astrial`) |
+| OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
 Optional build-time tools:
 
@@ -39,7 +39,7 @@ git submodule update --init --recursive
 ```
 
 - `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
-- `3rdparty/astrial` (USB serial; itself vendors asio / tl-expected / readerwriterqueue as plain dirs)
+- `3rdparty/astrial` (cross-platform serial and native USB Bulk backend)
 - `3rdparty/acados` — only needed when `-DBUILD_MPC=ON`
 
 ## Build & Test
@@ -66,7 +66,7 @@ tree; generated files are never committed.
 
 int main() {
     // One-line connection over USB
-    auto arm = florid::Arm::create("usb:///dev/ttyACM0");
+    auto arm = florid::Arm::create("usb://2fe3:574c");
     if (!arm) return 1;
 
     arm->home();
@@ -107,7 +107,7 @@ pip install .                 # or: pip install -e .
 import numpy as np
 from pyflorid import Arm, JointMIT
 
-arm = Arm.create("usb:///dev/ttyACM0")
+arm = Arm.create("usb://2fe3:574c")
 ctrl = arm.start_joint_mit_control()
 
 state = ctrl.read_once()
@@ -141,7 +141,7 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 ├──────────────────────────────────────────────────────┤
 │  src/                implementation (Arm/ArmImpl/...)  │
 │  protocol/           FCI .wl schemas + binding profiles│
-│  3rdparty/           astrial (USB serial), acados     │
+│  3rdparty/           astrial (USB Bulk/serial), acados│
 │  generated/          acados solver + WillowMPCTraits  │
 │  pyflorid/           Python bindings (pybind11)       │
 └──────────────────────────────────────────────────────┘
@@ -154,7 +154,7 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 | `ActiveControl<T>` | Manual read/write polling handle returned by `start*Control()`. Reads `ArmState` with `readOnce()`, sends commands with `writeOnce()`. |
 | `Gripper` | `arm->gripper()`; same control modes and `ActiveControl` polling for the gripper motor (joint_id 7). |
 | `Model<Traits>` | Stateless computation delegating to generated `Traits` (`fk`, `pose`, Jacobians, `mass`, `coriolis`, `gravity`). Switch arm models by changing the template parameter. |
-| `detail::Transport` | Abstract push-driven byte transport (`send`/`setReceiveCallback`). The Wirelink owner thread is the sole sender; the I/O callback only feeds bytes and wakes the endpoint executor. |
+| `detail::Transport` | Transport lifecycle abstraction. Native USB Bulk claims Wirelink RX storage directly and only wakes the endpoint owner from I/O callbacks; serial/UDP retain the push-driven byte path. |
 | `FciWirelinkEndpoint` | Single-owner host runtime generated from `protocol/schema/wirelink/arm/*.wl`. Telemetry is copied from borrowed LATEST views, realtime commands use message-ID keyed coalescing lanes, and configuration uses typed reliable RPCs plus a renewable control lease. |
 
 ## Build Options
@@ -170,10 +170,10 @@ cmake -S . -B build \
 
 ## Examples
 
-Run from the `examples/` source tree; each binary takes a USB device path, e.g.:
+Run from the `examples/` source tree; each binary takes a complete transport URI, e.g.:
 
 ```bash
-./build/examples/florid_example_00_echo_arm_state /dev/ttyACM0
+./build/examples/florid_example_00_echo_arm_state usb://2fe3:574c
 ```
 
 | Example | Demonstrates |

@@ -3,7 +3,7 @@
 #include <cstdio>
 
 int main() {
-    auto arm = florid::Arm::create("usb:///dev/ttyACM0");
+    auto arm = florid::Arm::create("usb://2fe3:574c");
     arm->drag();
 
     float T_target[16]{};

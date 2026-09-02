@@ -4,11 +4,14 @@
 #include <cstdint>
 #include <cstddef>
 
+#include <wirelink/wirelink.h>
+
 namespace florid {
 
 class Transport {
 public:
     using ReceiveFunctor = void (*)(void* s_context, const std::uint8_t* s_data, std::size_t s_size);
+    using WakeFunctor = void (*)(void* s_context) noexcept;
 
     virtual ~Transport() = default;
 
@@ -20,6 +23,17 @@ public:
     // previously installed callback is still running or can start running.
     // It must not be called recursively from inside the receive callback.
     virtual void setReceiveCallback(ReceiveFunctor s_callback, void* s_context) = 0;
+
+    // A direct transport owns Wirelink's physical RX claims and sink. This is
+    // setup-only and is used by USB Bulk to avoid the callback + FIFO copy
+    // required by byte-stream transports. All service calls still run on the
+    // endpoint's single owner thread.
+    virtual bool usesDirectWirelink() const noexcept { return false; }
+    virtual int attachWirelink(wl_ctx_t&, WakeFunctor, void*) noexcept {
+        return WL_ERR_NOT_SUPPORTED;
+    }
+    virtual int serviceWirelink() noexcept { return WL_ERR_NOT_SUPPORTED; }
+    virtual void quiesceWirelink() noexcept {}
 };
 
 } // namespace florid

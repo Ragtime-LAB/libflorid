@@ -16,6 +16,13 @@ set(WIRELINK_SOURCE_DIR "" CACHE PATH
 set(WLC_EXECUTABLE "" CACHE FILEPATH
     "Host wlc executable used to generate the FCI Wirelink bindings")
 
+# USB is the product transport. Build Astrial's libusb backend before adding
+# Wirelink so its zero-copy adapter can bind to the existing Astrial targets.
+set(BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(ASTRIAL_BUILD_USB ON CACHE BOOL "" FORCE)
+add_subdirectory(3rdparty/astrial)
+set(WIRELINK_BUILD_ASTRIAL_USB_ADAPTER ON CACHE BOOL "" FORCE)
+
 if(BUILD_MPC)
     set(ACADOS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/acados" CACHE PATH "acados source directory")
     set(ACADOS_INSTALL_DIR "${ACADOS_SOURCE_DIR}" CACHE PATH "acados install directory")
@@ -36,8 +43,6 @@ endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake")
 fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
-set(BUILD_EXAMPLE OFF)
-add_subdirectory(3rdparty/astrial)
 find_package(Threads REQUIRED)
 
 add_subdirectory(src)

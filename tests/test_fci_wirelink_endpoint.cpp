@@ -104,6 +104,45 @@ struct FragmentSink {
     }
 };
 
+class DirectTransportProbe final : public florid::Transport {
+public:
+    bool send(const std::uint8_t*, std::size_t) override { return false; }
+    void setReceiveCallback(ReceiveFunctor, void*) override {}
+    bool usesDirectWirelink() const noexcept override { return true; }
+
+    int attachWirelink(wl_ctx_t& s_link, WakeFunctor s_wake,
+                       void* s_context) noexcept override {
+        m_wake = s_wake;
+        m_wake_context = s_context;
+        return wl_set_sink(&s_link, s_sink, this);
+    }
+
+    int serviceWirelink() noexcept override {
+        m_service_calls.fetch_add(1, std::memory_order_relaxed);
+        return WL_OK;
+    }
+
+    void quiesceWirelink() noexcept override {
+        m_quiesced.store(true, std::memory_order_release);
+    }
+
+    void notify() noexcept {
+        if (m_wake != nullptr) m_wake(m_wake_context);
+    }
+
+    std::atomic<std::uint64_t> m_service_calls{};
+    std::atomic<bool> m_quiesced{};
+
+private:
+    static wl_sink_result_t s_sink(void*, wl_io_token_t, const std::uint8_t*,
+                                   std::size_t) noexcept {
+        return WL_SINK_SENT;
+    }
+
+    WakeFunctor m_wake{};
+    void* m_wake_context{};
+};
+
 class DevicePeer {
 public:
     int initialize(std::uint64_t s_session_id) {
@@ -973,11 +1012,49 @@ void testTypedEndpointLifecycle() {
             "fragmented COBS link failed");
 }
 
+void testDirectTransportLifecycle() {
+    DirectTransportProbe s_transport;
+    FciWirelinkEndpoint s_endpoint;
+    FciWirelinkEndpointConfig s_config{};
+    s_config.m_session_id = UINT64_C(0x445566778899aabb);
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kOk,
+            "direct endpoint initialization failed");
+    require(s_endpoint.attachDirectTransport(s_transport) ==
+                FciEndpointStatus::kOk,
+            "direct transport attach failed");
+    require(s_endpoint.start() == FciEndpointStatus::kOk,
+            "direct endpoint start failed");
+
+    const auto s_deadline = std::chrono::steady_clock::now() + 1s;
+    while (s_transport.m_service_calls.load(std::memory_order_acquire) == 0 &&
+           std::chrono::steady_clock::now() < s_deadline) {
+        std::this_thread::yield();
+    }
+    const auto s_before =
+        s_transport.m_service_calls.load(std::memory_order_acquire);
+    require(s_before != 0, "direct transport was not serviced by the owner");
+    s_transport.notify();
+    const auto s_wake_deadline = std::chrono::steady_clock::now() + 1s;
+    while (s_transport.m_service_calls.load(std::memory_order_acquire) ==
+               s_before &&
+           std::chrono::steady_clock::now() < s_wake_deadline) {
+        std::this_thread::yield();
+    }
+    require(s_transport.m_service_calls.load(std::memory_order_acquire) >
+                s_before,
+            "direct transport activity did not wake the owner");
+
+    s_endpoint.stop();
+    require(s_transport.m_quiesced.load(std::memory_order_acquire),
+            "direct transport was not quiesced on the owner");
+}
+
 } // namespace
 
 int main() {
     try {
         testTypedEndpointLifecycle();
+        testDirectTransportLifecycle();
         std::puts("PASS: typed FCI endpoint owns runtime, RPC, LATEST, and shutdown");
         return 0;
     } catch (const std::exception& s_error) {

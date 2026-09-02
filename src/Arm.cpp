@@ -1,8 +1,10 @@
 #include "florid/Arm.hpp"
 #include "florid/detail/ArmImpl.hpp"
+#include "florid/detail/AstrialBulkTransport.hpp"
 #include "florid/detail/AstrialUSBTransport.hpp"
 #include "florid/detail/UdpTransport.hpp"
 
+#include <charconv>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
@@ -10,8 +12,51 @@
 
 namespace florid {
 
+namespace {
+
+bool s_parseHex16(std::string_view s_text, std::uint16_t& s_value) {
+    if (s_text.starts_with("0x") || s_text.starts_with("0X")) {
+        s_text.remove_prefix(2);
+    }
+    if (s_text.empty()) return false;
+    unsigned int s_parsed{};
+    const auto [s_end, s_error] = std::from_chars(
+        s_text.data(), s_text.data() + s_text.size(), s_parsed, 16);
+    if (s_error != std::errc{} || s_end != s_text.data() + s_text.size() ||
+        s_parsed == 0 || s_parsed > UINT16_MAX) {
+        return false;
+    }
+    s_value = static_cast<std::uint16_t>(s_parsed);
+    return true;
+}
+
+std::unique_ptr<Transport> s_makeUsbBulkTransport(std::string_view s_selector) {
+    std::uint16_t s_vendor = AstrialBulkTransport::s_kDefaultVendorId;
+    std::uint16_t s_product = AstrialBulkTransport::s_kDefaultProductId;
+    std::string s_serial;
+    if (!s_selector.empty()) {
+        const auto s_slash = s_selector.find('/');
+        const auto s_ids = s_selector.substr(0, s_slash);
+        const auto s_colon = s_ids.find(':');
+        if (s_colon == std::string_view::npos ||
+            !s_parseHex16(s_ids.substr(0, s_colon), s_vendor) ||
+            !s_parseHex16(s_ids.substr(s_colon + 1), s_product)) {
+            return nullptr;
+        }
+        if (s_slash != std::string_view::npos) {
+            s_serial = s_selector.substr(s_slash + 1);
+            if (s_serial.empty()) return nullptr;
+        }
+    }
+    return std::make_unique<AstrialBulkTransport>(s_vendor, s_product,
+                                                   std::move(s_serial));
+}
+
+} // namespace
+
 std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
-    // "usb:///dev/ttyACM0" or "usb://COM3"
+    // "usb://2fe3:574c" or "usb://2fe3:574c/SERIAL" (Vendor Bulk)
+    // "serial:///dev/ttyACM0" or "serial://COM3" (legacy CDC/debug)
     // "udp://192.168.1.200:5080" — bind fixed local endpoint, device streams datagrams to it
     //
     // All connection failures are normalized to returning nullptr (with an
@@ -21,7 +66,20 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
         std::unique_ptr<Transport> s_transport;
 
         if (s_uri.starts_with("usb://")) {
-            std::string s_path = s_uri.substr(6); // strip "usb://"
+            s_transport = s_makeUsbBulkTransport(
+                std::string_view{s_uri}.substr(6));
+            if (!s_transport) {
+                std::fprintf(stderr,
+                             "Arm::create: invalid USB Bulk selector '%s'\n",
+                             s_uri.c_str());
+                return nullptr;
+            }
+        } else if (s_uri.starts_with("serial://")) {
+            std::string s_path = s_uri.substr(9);
+            if (s_path.empty()) {
+                std::fprintf(stderr, "Arm::create: empty serial path\n");
+                return nullptr;
+            }
             s_transport = std::make_unique<AstrialUSBTransport>(s_path);
         } else if (s_uri.starts_with("udp://")) {
             std::string s_host = s_uri.substr(6); // strip "udp://"

@@ -5,6 +5,7 @@
 #include "florid/ControlTypes.hpp"
 #include "florid/DeviceTypes.hpp"
 #include "florid/detail/WirelinkExecutor.hpp"
+#include "florid/detail/Transport.hpp"
 
 #include "fci_arm_runtime.h"
 
@@ -147,6 +148,7 @@ public:
     FciEndpointStatus initialize(
         const FciWirelinkEndpointConfig& s_config = {});
     FciEndpointStatus setSink(wl_sink_fn s_sink, void* s_user_data) noexcept;
+    FciEndpointStatus attachDirectTransport(Transport& s_transport) noexcept;
     FciEndpointStatus setCallbacks(ArmStatusCallback s_arm_status,
                                    DiagnosticsCallback s_diagnostics,
                                    void* s_user_data) noexcept;
@@ -344,6 +346,8 @@ private:
 
     static void s_onEvent(void* s_user_data, wl_ctx_t& s_context,
                           const wl_event_t& s_event) noexcept;
+    static int s_transportService(void* s_user_data) noexcept;
+    static void s_transportWake(void* s_user_data) noexcept;
     static bool s_applicationProgress(void* s_user_data, wl_ctx_t& s_context,
                                       wl_time_ms_t s_now_ms) noexcept;
     static std::uint32_t s_applicationDeadline(
@@ -384,6 +388,7 @@ private:
     FciOperationResult s_result(const OperationSlot& s_slot) const noexcept;
 
     WirelinkExecutor m_executor;
+    Transport* m_direct_transport{};
     fci_arm_runtime_instance_t m_runtime_instance{};
     alignas(std::max_align_t)
         std::array<std::byte, s_kRuntimeStorageSize> m_runtime_storage{};

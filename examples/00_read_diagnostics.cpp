@@ -1,5 +1,5 @@
 #include "florid/Arm.hpp"
-#include "florid/detail/AstrialUSBTransport.hpp"
+#include "florid/detail/AstrialBulkTransport.hpp"
 
 #include <atomic>
 #include <csignal>
@@ -15,25 +15,24 @@ void s_signalHandler(int) {
 }
 
 void s_printUsage(const char* s_prog) {
-    fprintf(stderr, "Usage: %s <usb_device>  (e.g. %s /dev/ttyACM0)\n", s_prog, s_prog);
+    fprintf(stderr, "Usage: %s <uri>  (e.g. %s usb://2fe3:574c)\n", s_prog, s_prog);
     exit(1);
 }
 
 int main(int s_argc, char** s_argv) {
     if (s_argc < 2) s_printUsage(s_argv[0]);
 
-    std::string s_uri = "usb://";
-    s_uri += s_argv[1];
+    std::string s_uri = s_argv[1];
 
     signal(SIGINT, s_signalHandler);
     signal(SIGTERM, s_signalHandler);
 
     printf("=== USB Devices ===\n");
-    auto s_devices = florid::AstrialUSBTransport::listDevices();
+    auto s_devices = florid::AstrialBulkTransport::listDevices();
     for (const auto& s_d : s_devices) {
-        printf("  %-20s %04X:%04X  %s\n",
-               s_d.m_port_name.c_str(), s_d.m_vendor_id, s_d.m_product_id,
-               s_d.m_description.c_str());
+        printf("  %04X:%04X  %-20s %s\n", s_d.m_vendor_id,
+               s_d.m_product_id, s_d.m_serial_number.c_str(),
+               s_d.m_product.c_str());
     }
     printf("\n");
 

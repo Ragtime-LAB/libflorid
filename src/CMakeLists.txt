@@ -17,6 +17,7 @@ target_link_libraries(florid_wirelink_host
 )
 
 add_library(florid
+    AstrialBulkTransport.cpp
     AstrialUSBTransport.cpp
     UdpTransport.cpp
     ArmImpl.cpp
@@ -28,6 +29,7 @@ add_library(florid
 target_link_libraries(florid
     PUBLIC
         astrial
+        wirelink::astrial_usb
     PRIVATE
         asio_standalone
         florid_wirelink_host

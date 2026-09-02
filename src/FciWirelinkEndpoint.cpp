@@ -391,6 +391,7 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
 
     WirelinkExecutorHooks s_hooks{};
     s_hooks.m_user_data = this;
+    s_hooks.m_service = s_transportService;
     s_hooks.m_application_progress = s_applicationProgress;
     s_hooks.m_application_deadline_hint = s_applicationDeadline;
     s_hooks.m_on_event = s_onEvent;
@@ -409,6 +410,25 @@ FciEndpointStatus FciWirelinkEndpoint::setSink(wl_sink_fn s_sink,
         return FciEndpointStatus::kInvalidArgument;
     }
     return s_endpointStatus(m_executor.setSink(s_sink, s_user_data));
+}
+
+FciEndpointStatus FciWirelinkEndpoint::attachDirectTransport(
+    Transport& s_transport) noexcept {
+    {
+        std::lock_guard<std::mutex> s_lock(m_mutex);
+        if (!m_initialized || m_running || m_direct_transport != nullptr ||
+            !s_transport.usesDirectWirelink()) {
+            return FciEndpointStatus::kNotReady;
+        }
+    }
+
+    const int s_result = s_transport.attachWirelink(
+        m_executor.context(), s_transportWake, this);
+    if (s_result != WL_OK) return s_endpointStatus(s_result);
+
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    m_direct_transport = &s_transport;
+    return FciEndpointStatus::kOk;
 }
 
 FciEndpointStatus FciWirelinkEndpoint::setCallbacks(
@@ -1250,7 +1270,24 @@ std::uint32_t FciWirelinkEndpoint::s_applicationDeadline(
 }
 
 void FciWirelinkEndpoint::s_quiesce(void* s_user_data) noexcept {
-    static_cast<FciWirelinkEndpoint*>(s_user_data)->s_stopOnOwner();
+    auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
+    if (s_self.m_direct_transport != nullptr) {
+        s_self.m_direct_transport->quiesceWirelink();
+    }
+    s_self.s_stopOnOwner();
+}
+
+int FciWirelinkEndpoint::s_transportService(void* s_user_data) noexcept {
+    auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
+    return s_self.m_direct_transport == nullptr
+               ? WL_OK
+               : s_self.m_direct_transport->serviceWirelink();
+}
+
+void FciWirelinkEndpoint::s_transportWake(void* s_user_data) noexcept {
+    if (s_user_data != nullptr) {
+        static_cast<FciWirelinkEndpoint*>(s_user_data)->notify();
+    }
 }
 
 wl_time_ms_t FciWirelinkEndpoint::s_nowMs() noexcept {
