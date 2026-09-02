@@ -64,25 +64,24 @@ FCI host sources are generated in the build tree and are never committed.
 ### Windows (MSVC + vcpkg)
 
 The repository manifest declares the product's native USB dependency. From a
-Developer PowerShell, point CMake at vcpkg and the Wirelink source tree; the
-configure step installs the pinned libusb version into the build tree:
+Developer PowerShell, set the vcpkg root and use the checked-in multi-config
+preset; the configure step installs the pinned libusb version into the build
+tree and downloads the pinned WLC host compiler when necessary:
 
 ```powershell
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 $env:VCPKG_ROOT = "C:\src\vcpkg"
-
-cmake -S . -B build-windows `
-  -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-  -DVCPKG_TARGET_TRIPLET=x64-windows `
-  -DBUILD_TESTS=ON
-cmake --build build-windows --config Release --parallel
-ctest --test-dir build-windows -C Release --output-on-failure
+cmake --preset windows-msvc-vcpkg
+cmake --build --preset windows-release --parallel
+ctest --preset windows-release
 ```
 
 No separate `vcpkg install` command is required. The default dynamic triplet
 also performs app-local deployment of `libusb-1.0.dll` for built tests and
-examples. Use `x64-windows-static` only when static runtime distribution is an
-explicit product choice.
+examples. The same configure tree supports `windows-debug`; use the
+`windows-msvc-vcpkg-static`, `windows-static-release`, and
+`windows-static-debug` presets when static runtime distribution is an explicit
+product choice.
 
 ## Quick Start
 

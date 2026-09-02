@@ -1,0 +1,89 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-msvc-vcpkg",
+      "displayName": "Windows MSVC with dynamic vcpkg dependencies",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/windows-msvc-vcpkg",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "BUILD_TESTS": "ON",
+        "BUILD_EXAMPLES": "ON",
+        "BUILD_MPC": "OFF",
+        "ASTRIAL_IO_URING": "OFF"
+      }
+    },
+    {
+      "name": "windows-msvc-vcpkg-static",
+      "displayName": "Windows MSVC with static vcpkg dependencies",
+      "inherits": "windows-msvc-vcpkg",
+      "binaryDir": "${sourceDir}/build/windows-msvc-vcpkg-static",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-msvc-vcpkg",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-msvc-vcpkg",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-static-release",
+      "configurePreset": "windows-msvc-vcpkg-static",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-static-debug",
+      "configurePreset": "windows-msvc-vcpkg-static",
+      "configuration": "Debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-msvc-vcpkg",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-msvc-vcpkg",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-static-release",
+      "configurePreset": "windows-msvc-vcpkg-static",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-static-debug",
+      "configurePreset": "windows-msvc-vcpkg-static",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

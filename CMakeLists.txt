@@ -18,7 +18,8 @@ set(WLC_EXECUTABLE "" CACHE FILEPATH
 
 # USB is the product transport. Build Astrial's libusb backend before adding
 # Wirelink so its zero-copy adapter can bind to the existing Astrial targets.
-set(BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(ASTRIAL_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(ASTRIAL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASTRIAL_BUILD_USB ON CACHE BOOL "" FORCE)
 add_subdirectory(3rdparty/astrial)
 set(WIRELINK_BUILD_ASTRIAL_USB_ADAPTER ON CACHE BOOL "" FORCE)
