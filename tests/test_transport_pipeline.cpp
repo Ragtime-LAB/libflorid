@@ -20,6 +20,7 @@
 #include <mutex>
 #include <semaphore>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -225,6 +226,9 @@ public:
     std::uint8_t lastRegisterJoint() const noexcept {
         return m_last_register_joint.load(std::memory_order_relaxed);
     }
+    void rejectSettings(bool s_reject) noexcept {
+        m_reject_settings.store(s_reject, std::memory_order_relaxed);
+    }
 
 private:
     static fci_arm_encode_scratch_t s_scratch(
@@ -261,16 +265,14 @@ private:
             case GET_DEVICE_INFO_REQUEST_MESSAGE_ID:
                 s_self.s_deviceInfo(s_context, s_event);
                 break;
+            case SET_DEVICE_INFO_REQUEST_MESSAGE_ID:
+                s_self.s_setDeviceInfo(s_context, s_event);
+                break;
             case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
                 s_self.s_deviceSettings(s_context, s_event);
                 break;
             case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_device_settings_request_t,
-                                        set_device_settings_response_t>(
-                    s_context, s_event, set_device_settings_request_decode,
-                    set_device_settings_response_clear,
-                    fci_arm_set_device_settings_response_send_reliable,
-                    DEVICE_SETTINGS_OK);
+                s_self.s_setDeviceSettings(s_context, s_event);
                 break;
             case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_arm_control_mode_request_t,
@@ -441,7 +443,7 @@ private:
             return;
         }
         constexpr char s_board[] = "loopback";
-        constexpr char s_name[] = "test-arm";
+        constexpr char s_serial[] = "323738373233511200260036";
         get_device_info_response_t s_response{};
         get_device_info_response_clear(&s_response);
         s_response.has_operation_id = true;
@@ -467,11 +469,39 @@ private:
         s_info.has_board_name = true;
         s_info.board_name = {s_board, sizeof(s_board) - 1};
         s_info.has_custom_name = true;
-        s_info.custom_name = {s_name, sizeof(s_name) - 1};
+        s_info.custom_name = {m_custom_name.data(), m_custom_name.size()};
         s_info.has_firmware_type = true;
         s_info.firmware_type = FIRMWARE_STANDARD_ARM;
+        s_info.has_serial = true;
+        s_info.serial = {s_serial, sizeof(s_serial) - 1};
         std::array<std::uint8_t, 256> s_encode{};
         (void)fci_arm_get_device_info_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_setDeviceInfo(wl_ctx_t& s_context,
+                         const wl_event_t& s_event) noexcept {
+        set_device_info_request_t s_request{};
+        if (set_device_info_request_decode(s_event.payload,
+                                           s_event.payload_len,
+                                           &s_request) != WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_custom_name) {
+            return;
+        }
+        if (s_request.custom_name.length == 0) {
+            m_custom_name.clear();
+        } else {
+            m_custom_name.assign(s_request.custom_name.data,
+                                 s_request.custom_name.length);
+        }
+        set_device_info_response_t s_response{};
+        set_device_info_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = DEVICE_INFO_OK;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_set_device_info_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode));
     }
 
@@ -514,6 +544,35 @@ private:
         }
         std::array<std::uint8_t, 256> s_encode{};
         (void)fci_arm_get_device_settings_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_setDeviceSettings(wl_ctx_t& s_context,
+                             const wl_event_t& s_event) noexcept {
+        set_device_settings_request_t s_request{};
+        if (set_device_settings_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_settings) {
+            return;
+        }
+        set_device_settings_response_t s_response{};
+        set_device_settings_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        const bool s_reject =
+            m_reject_settings.load(std::memory_order_relaxed);
+        s_response.status = s_reject ? DEVICE_SETTINGS_STORAGE_FAILED
+                                     : DEVICE_SETTINGS_OK;
+        if (!s_reject) {
+            s_response.has_settings = true;
+            s_response.settings = s_request.settings;
+            // Model firmware clamping the requested period.
+            s_response.settings.firmware_dt_us = 2250;
+        }
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_set_device_settings_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode));
     }
 
@@ -588,6 +647,8 @@ private:
     std::atomic<std::uint32_t> m_first_new_lease_operation_id{};
     std::atomic<std::uint32_t> m_last_new_lease_operation_id{};
     std::atomic<std::uint8_t> m_last_register_joint{0xff};
+    std::atomic<bool> m_reject_settings{};
+    std::string m_custom_name{"test-arm"};
 };
 
 LoopbackTransport::~LoopbackTransport() {
@@ -759,7 +820,9 @@ void testArmImplWirelinkPipeline() {
         ArmImpl s_impl(std::move(s_transport));
         require(s_peer.acquireCount() >= 1, "lease request was not observed");
         require(s_impl.getDeviceInfo().m_board_name == "loopback" &&
-                    s_impl.getDeviceInfo().m_firmware_version.m_patch == 4,
+                    s_impl.getDeviceInfo().m_firmware_version.m_patch == 4 &&
+                    s_impl.getDeviceInfo().m_serial_number ==
+                        "323738373233511200260036",
                 "typed device information was not cached");
         require(s_impl.firmwarePeriodUs() == 1000,
                 "typed device settings were not cached");
@@ -793,12 +856,37 @@ void testArmImplWirelinkPipeline() {
         s_impl.disable();
         s_impl.home();
 
+        require(s_impl.setCustomName("operator-arm") &&
+                    s_impl.getDeviceInfo().m_custom_name == "operator-arm" &&
+                    s_impl.getDeviceInfo().m_firmware_type ==
+                        florid::FirmwareType::kStandardArm &&
+                    s_impl.getDeviceInfo().m_serial_number ==
+                        "323738373233511200260036",
+                "custom-name refresh changed immutable device identity");
+
         DeviceSettings s_settings = s_impl.getDeviceSettings();
         s_settings.m_firmware_period_us = 2000;
         require(s_impl.setDeviceSettings(s_settings),
                 "SetDeviceSettings failed");
-        require(s_impl.firmwarePeriodUs() == 2000,
-                "settings cache was not updated after RPC success");
+        require(s_impl.firmwarePeriodUs() == 2250 &&
+                    s_impl.getDeviceSettings().m_firmware_period_us == 2250,
+                "device-normalized settings were not cached");
+
+        s_peer.rejectSettings(true);
+        auto s_rejected = s_settings;
+        s_rejected.m_firmware_period_us = 3000;
+        require(!s_impl.setDeviceSettings(s_rejected) &&
+                    s_impl.firmwarePeriodUs() == 2250 &&
+                    s_impl.getDeviceSettings().m_firmware_period_us == 2250,
+                "rejected settings mutated the host cache");
+        s_peer.rejectSettings(false);
+
+        auto s_equal_limits = s_settings;
+        s_equal_limits.m_joint_limits[0].m_min = 1.0F;
+        s_equal_limits.m_joint_limits[0].m_max = 1.0F;
+        require(!s_impl.setDeviceSettings(s_equal_limits) &&
+                    s_impl.firmwarePeriodUs() == 2250,
+                "equal joint limits were accepted or mutated the cache");
 
         const auto s_register =
             s_impl.readMotorRegister(3, MotorRegister::GearEfficiency);

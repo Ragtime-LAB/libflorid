@@ -24,6 +24,7 @@
 #include <mutex>
 #include <optional>
 #include <semaphore>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -46,6 +47,7 @@ public:
     }
     std::uint32_t firmwarePeriodUs() const { return m_fw_dt_us; }
     FirmwareType firmwareType() const { return m_device_info.m_firmware_type; }
+    bool setCustomName(std::string_view s_custom_name);
     bool setDeviceSettings(const DeviceSettings& s_settings);
 
     ArmState readOnce();

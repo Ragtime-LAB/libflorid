@@ -71,6 +71,9 @@ struct DeviceInfo {
     std::string m_board_name;
     std::string m_custom_name;
     FirmwareType m_firmware_type{FirmwareType::kUnknown};
+    // Immutable full product serial reported by firmware. This is distinct
+    // from the user-editable custom name.
+    std::string m_serial_number;
 };
 
 struct TorqueFoldParameters {

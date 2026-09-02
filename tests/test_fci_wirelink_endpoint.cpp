@@ -228,6 +228,9 @@ public:
     std::array<std::size_t, 9> m_control_messages{};
     joint_mit_command_t m_last_joint{};
     std::atomic<bool> m_drop_device_info{};
+    // 0: OK with normalized settings, 1: malformed OK without settings,
+    // 2: domain rejection without settings.
+    std::atomic<int> m_set_settings_mode{};
     std::atomic<std::uint64_t> m_send_failures{};
 
 private:
@@ -261,12 +264,7 @@ private:
                 s_self.s_deviceSettings(s_context, s_event);
                 break;
             case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_device_settings_request_t,
-                                        set_device_settings_response_t>(
-                    s_context, s_event, set_device_settings_request_decode,
-                    set_device_settings_response_clear,
-                    fci_arm_set_device_settings_response_send_reliable,
-                    DEVICE_SETTINGS_OK);
+                s_self.s_setDeviceSettings(s_context, s_event);
                 break;
             case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_arm_control_mode_request_t,
@@ -536,6 +534,7 @@ private:
 
         constexpr char s_board[] = "ESP32-S3";
         constexpr char s_custom[] = "arm-\xE4\xB8\x80";
+        constexpr char s_serial[] = "323738373233511200260036";
         get_device_info_response_t s_response{};
         get_device_info_response_clear(&s_response);
         s_response.has_operation_id = true;
@@ -564,6 +563,8 @@ private:
         s_info.custom_name = {s_custom, sizeof(s_custom) - 1};
         s_info.has_firmware_type = true;
         s_info.firmware_type = FIRMWARE_COBOT_ARM;
+        s_info.has_serial = true;
+        s_info.serial = {s_serial, sizeof(s_serial) - 1};
         std::array<std::uint8_t, 256> s_encode{};
         s_recordSend(fci_arm_get_device_info_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode)));
@@ -612,6 +613,39 @@ private:
         }
         std::array<std::uint8_t, 256> s_encode{};
         s_recordSend(fci_arm_get_device_settings_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode)));
+        m_cv.notify_all();
+    }
+
+    void s_setDeviceSettings(wl_ctx_t& s_context,
+                             const wl_event_t& s_event) noexcept {
+        set_device_settings_request_t s_request{};
+        if (set_device_settings_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_settings) {
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            ++m_other_rpc_requests;
+        }
+        const int s_mode = m_set_settings_mode.load(std::memory_order_relaxed);
+        set_device_settings_response_t s_response{};
+        set_device_settings_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = s_mode == 2 ? DEVICE_SETTINGS_INVALID_ARGUMENT
+                                        : DEVICE_SETTINGS_OK;
+        if (s_mode == 0) {
+            s_response.has_settings = true;
+            s_response.settings = s_request.settings;
+            // Exercise host consumption of a device-normalized value.
+            s_response.settings.firmware_dt_us = 1250;
+        }
+        std::array<std::uint8_t, 256> s_encode{};
+        s_recordSend(fci_arm_set_device_settings_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode)));
         m_cv.notify_all();
     }
@@ -746,7 +780,8 @@ void testTypedEndpointLifecycle() {
                 s_info.m_firmware_version.m_patch == 6 &&
                 s_info.m_board_name == "ESP32-S3" &&
                 s_info.m_custom_name == "arm-\xE4\xB8\x80" &&
-                s_info.m_firmware_type == florid::FirmwareType::kCobotArm,
+                s_info.m_firmware_type == florid::FirmwareType::kCobotArm &&
+                s_info.m_serial_number == "323738373233511200260036",
             "GetDeviceInfo wire-to-domain conversion failed");
 
     const auto s_acquire = s_host.acquireControlLease(5000, 250);
@@ -773,8 +808,8 @@ void testTypedEndpointLifecycle() {
                 s_message);
     };
 
-    s_expect_rpc(s_host.setDeviceInfo("\xE6\x9C\xBA\xE6\xA2\xB0\xE8\x87\x82",
-                                      florid::FirmwareType::kCobotArm, 250),
+    s_expect_rpc(s_host.setDeviceInfo(
+                     "\xE6\x9C\xBA\xE6\xA2\xB0\xE8\x87\x82", 250),
                  "SetDeviceInfo failed");
     const auto s_get_settings = s_host.getDeviceSettings(250);
     require(s_get_settings.m_status == FciEndpointStatus::kOk &&
@@ -788,8 +823,53 @@ void testTypedEndpointLifecycle() {
                 s_settings.m_firmware_period_us == 1000 &&
                 s_settings.m_torque_fold[6].m_peak_torque == 2.0F,
             "GetDeviceSettings domain result failed");
-    s_expect_rpc(s_host.setDeviceSettings(s_settings, 250),
-                 "SetDeviceSettings failed");
+    const auto s_set_settings = s_host.setDeviceSettings(s_settings, 250);
+    require(s_set_settings.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_set_settings.m_request_id, 1s,
+                                     s_operation) == FciEndpointStatus::kOk,
+            "SetDeviceSettings failed");
+    florid::DeviceSettings s_effective{};
+    require(s_host.takeDeviceSettings(s_set_settings.m_request_id,
+                                      s_operation, s_effective) ==
+                FciEndpointStatus::kOk &&
+                s_effective.m_firmware_period_us == 1250,
+            "SetDeviceSettings did not return device-normalized settings");
+
+    s_device.m_set_settings_mode.store(1, std::memory_order_relaxed);
+    const auto s_missing_settings = s_host.setDeviceSettings(s_settings, 250);
+    require(s_missing_settings.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_missing_settings.m_request_id, 1s,
+                                     s_operation) ==
+                    FciEndpointStatus::kInternalError,
+            "OK response without settings was not a protocol error");
+    florid::DeviceSettings s_unchanged{};
+    s_unchanged.m_firmware_period_us = 777;
+    require(s_host.takeDeviceSettings(s_missing_settings.m_request_id,
+                                      s_operation, s_unchanged) ==
+                FciEndpointStatus::kInternalError &&
+                s_unchanged.m_firmware_period_us == 777,
+            "malformed SetDeviceSettings exposed a value");
+
+    s_device.m_set_settings_mode.store(2, std::memory_order_relaxed);
+    const auto s_rejected_settings = s_host.setDeviceSettings(s_settings, 250);
+    require(s_rejected_settings.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_rejected_settings.m_request_id, 1s,
+                                     s_operation) ==
+                    FciEndpointStatus::kDomainError,
+            "rejected settings did not retain the domain error");
+    require(s_host.takeDeviceSettings(s_rejected_settings.m_request_id,
+                                      s_operation, s_unchanged) ==
+                FciEndpointStatus::kDomainError &&
+                s_unchanged.m_firmware_period_us == 777,
+            "rejected SetDeviceSettings exposed a value");
+    s_device.m_set_settings_mode.store(0, std::memory_order_relaxed);
+
+    auto s_equal_limits = s_settings;
+    s_equal_limits.m_joint_limits[0].m_min = 0.5F;
+    s_equal_limits.m_joint_limits[0].m_max = 0.5F;
+    require(s_host.setDeviceSettings(s_equal_limits, 250).m_status ==
+                FciEndpointStatus::kInvalidArgument,
+            "equal joint limits were accepted");
     s_expect_rpc(s_host.setArmControlMode(
                      florid::detail::FciMotorControlMode::kMit, 250),
                  "SetArmControlMode failed");
@@ -819,7 +899,7 @@ void testTypedEndpointLifecycle() {
     s_expect_rpc(s_host.storeMotorParameters(2, 250),
                  "MotorStoreParameters failed");
     s_expect_rpc(s_host.setMotorZero(2, 250), "MotorSetZero failed");
-    require(s_device.m_other_rpc_requests == 15,
+    require(s_device.m_other_rpc_requests == 17,
             "not every typed RPC reached the peer");
 
     JointMIT s_joint{};

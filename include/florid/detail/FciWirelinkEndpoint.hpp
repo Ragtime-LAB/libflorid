@@ -166,7 +166,6 @@ public:
         std::uint32_t s_rpc_timeout_ms) noexcept;
     FciSubmitResult getDeviceInfo(std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult setDeviceInfo(std::string_view s_custom_name,
-                                  FirmwareType s_firmware_type,
                                   std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult getDeviceSettings(std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult setDeviceSettings(const DeviceSettings& s_settings,
@@ -210,6 +209,7 @@ public:
     FciEndpointStatus takeDeviceInfo(std::uint64_t s_request_id,
                                      FciOperationResult& s_result,
                                      DeviceInfo& s_info) noexcept;
+    // Consumes the authoritative settings returned by either Get or Set.
     FciEndpointStatus takeDeviceSettings(std::uint64_t s_request_id,
                                          FciOperationResult& s_result,
                                          DeviceSettings& s_settings) noexcept;
@@ -282,7 +282,6 @@ private:
         DeviceSettings m_device_settings{};
         std::array<char, s_kMaximumDeviceNameBytes + 1> m_custom_name{};
         std::uint8_t m_custom_name_size{};
-        FirmwareType m_firmware_type{FirmwareType::kUnknown};
         std::uint64_t m_lease_token{};
         std::uint32_t m_requested_lease_timeout_ms{};
         std::uint8_t m_joint_id{};
@@ -297,8 +296,10 @@ private:
         Version m_firmware_version{};
         std::array<char, s_kMaximumDeviceNameBytes + 1> m_board_name{};
         std::array<char, s_kMaximumDeviceNameBytes + 1> m_custom_name{};
+        std::array<char, s_kMaximumDeviceNameBytes + 1> m_serial_number{};
         std::uint8_t m_board_name_size{};
         std::uint8_t m_custom_name_size{};
+        std::uint8_t m_serial_number_size{};
         FirmwareType m_firmware_type{FirmwareType::kUnknown};
         bool m_valid{};
     };

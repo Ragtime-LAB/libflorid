@@ -16,7 +16,12 @@
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
 - **Compile-time dynamics**: `Model<WillowTraits>` / `Model<PantheraTraits>` provides FK, pose, zero/body Jacobian, mass matrix, Coriolis, and gravity — generated from URDF by `scripts/urdf2traits.py`, resolved at compile time with no runtime allocation.
 - **Motor registers**: read/write control-loop gains and protection parameters per joint (1–6 arm, 7 gripper), store to flash, and set zero point.
-- **Device management**: fetch/update `DeviceInfo` and `DeviceSettings`, read `ArmDiagnostics`, recover errors, home the arm, and operate motor registers.
+- **Device management**: `DeviceInfo` exposes the immutable full serial and
+  user-editable custom name; `Arm::setCustomName()` cannot rewrite product
+  identity. `Arm::setDeviceSettings()` caches the settings actually accepted
+  by firmware, including any normalization, and leaves its cache unchanged on
+  rejection. Diagnostics, error recovery, homing, and motor registers share
+  the same typed API.
 - **Optional MPC**: `florid::CartesianMPCSolver<WillowMPCTraits>` over the acados solver (build with `-DBUILD_MPC=ON`).
 - **Python bindings**: install `pyflorid` via pip (pybind11), expose the same API with snake_case names.
 

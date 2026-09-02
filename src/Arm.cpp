@@ -216,6 +216,9 @@ const DeviceInfo& Arm::deviceInfo() const { return m_impl->getDeviceInfo(); }
 const DeviceSettings& Arm::deviceSettings() const {
     return m_impl->getDeviceSettings();
 }
+bool Arm::setCustomName(const std::string& s_custom_name) {
+    return m_impl->setCustomName(s_custom_name);
+}
 bool Arm::setDeviceSettings(const DeviceSettings& s_settings) {
     return m_impl->setDeviceSettings(s_settings);
 }

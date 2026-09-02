@@ -68,6 +68,7 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
     printf("Device info:\n");
     printf("  Board:        %s\n", s_info.m_board_name.c_str());
     printf("  Custom name:  %s\n", s_info.m_custom_name.c_str());
+    printf("  Serial:       %s\n", s_info.m_serial_number.c_str());
     printf("  FW version:   %u.%u.%u\n",
            s_info.m_firmware_version.m_major,
            s_info.m_firmware_version.m_minor,

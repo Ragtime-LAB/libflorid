@@ -266,14 +266,39 @@ void ArmImpl::s_fetchDeviceSettings() {
 }
 
 bool ArmImpl::setDeviceSettings(const DeviceSettings& s_settings) {
+    const auto s_submit =
+        m_endpoint.setDeviceSettings(s_settings, s_kDefaultRpcTimeoutMs);
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) return false;
+
+    detail::FciOperationResult s_result{};
+    const auto s_wait =
+        m_endpoint.waitOperation(s_submit.m_request_id, 750ms, s_result);
+    DeviceSettings s_effective{};
+    const auto s_take = m_endpoint.takeDeviceSettings(
+        s_submit.m_request_id, s_result, s_effective);
+    if (s_wait != detail::FciEndpointStatus::kOk ||
+        s_take != detail::FciEndpointStatus::kOk) {
+        return false;
+    }
+    m_device_settings = s_effective;
+    m_fw_dt_us = s_effective.m_firmware_period_us;
+    return true;
+}
+
+bool ArmImpl::setCustomName(std::string_view s_custom_name) {
     if (!s_operationSucceeded(
-            m_endpoint.setDeviceSettings(s_settings, s_kDefaultRpcTimeoutMs),
+            m_endpoint.setDeviceInfo(s_custom_name, s_kDefaultRpcTimeoutMs),
             750ms)) {
         return false;
     }
-    m_device_settings = s_settings;
-    m_fw_dt_us = s_settings.m_firmware_period_us;
-    return true;
+    try {
+        // SetDeviceInfo acknowledges persistence but does not echo metadata.
+        // Refresh it so immutable firmware type and serial stay authoritative.
+        s_fetchDeviceInfo();
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 ArmState ArmImpl::readOnce() {

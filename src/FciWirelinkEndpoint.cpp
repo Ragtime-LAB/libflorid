@@ -174,24 +174,6 @@ FirmwareType s_firmwareType(firmware_type_t s_type) noexcept {
     }
 }
 
-bool s_firmwareTypeToWire(FirmwareType s_type,
-                          firmware_type_t& s_wire) noexcept {
-    switch (s_type) {
-        case FirmwareType::kStandardArm:
-            s_wire = FIRMWARE_STANDARD_ARM;
-            return true;
-        case FirmwareType::kMobileArm:
-            s_wire = FIRMWARE_MOBILE_ARM;
-            return true;
-        case FirmwareType::kCobotArm:
-            s_wire = FIRMWARE_COBOT_ARM;
-            return true;
-        case FirmwareType::kUnknown:
-            return false;
-    }
-    return false;
-}
-
 arm_mode_t s_armMode(FciArmMode s_mode) noexcept {
     switch (s_mode) {
         case FciArmMode::kPc: return ARM_MODE_PC;
@@ -235,7 +217,7 @@ bool s_validSettings(const DeviceSettings& s_settings) noexcept {
     for (const auto& s_limits : s_settings.m_joint_limits) {
         if (!std::isfinite(s_limits.m_min) ||
             !std::isfinite(s_limits.m_max) ||
-            s_limits.m_min > s_limits.m_max) {
+            s_limits.m_min >= s_limits.m_max) {
             return false;
         }
     }
@@ -543,12 +525,9 @@ FciSubmitResult FciWirelinkEndpoint::getDeviceInfo(
 }
 
 FciSubmitResult FciWirelinkEndpoint::setDeviceInfo(
-    std::string_view s_custom_name, FirmwareType s_firmware_type,
-    std::uint32_t s_timeout_ms) noexcept {
-    firmware_type_t s_wire_type{};
+    std::string_view s_custom_name, std::uint32_t s_timeout_ms) noexcept {
     if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout ||
-        s_custom_name.size() > s_kMaximumDeviceNameBytes ||
-        !s_firmwareTypeToWire(s_firmware_type, s_wire_type)) {
+        s_custom_name.size() > s_kMaximumDeviceNameBytes) {
         return {FciEndpointStatus::kInvalidArgument, 0};
     }
     OperationRequest s_request{};
@@ -558,7 +537,6 @@ FciSubmitResult FciWirelinkEndpoint::setDeviceInfo(
     }
     s_request.m_custom_name_size =
         static_cast<std::uint8_t>(s_custom_name.size());
-    s_request.m_firmware_type = s_firmware_type;
     return s_submit(RpcKind::kSetDeviceInfo, s_timeout_ms, s_request, false);
 }
 
@@ -789,6 +767,9 @@ FciEndpointStatus FciWirelinkEndpoint::takeDeviceInfo(
                 s_slot.m_device_info.m_custom_name.data(),
                 s_slot.m_device_info.m_custom_name_size),
             .m_firmware_type = s_slot.m_device_info.m_firmware_type,
+            .m_serial_number = std::string(
+                s_slot.m_device_info.m_serial_number.data(),
+                s_slot.m_device_info.m_serial_number_size),
         };
     }
     s_slot = OperationSlot{};
@@ -801,7 +782,8 @@ FciEndpointStatus FciWirelinkEndpoint::takeDeviceSettings(
     std::lock_guard<std::mutex> s_lock(m_mutex);
     const std::size_t s_index = s_findSlot(s_request_id);
     if (s_index == s_kNoSlot ||
-        m_operations[s_index].m_kind != RpcKind::kGetDeviceSettings) {
+        (m_operations[s_index].m_kind != RpcKind::kGetDeviceSettings &&
+         m_operations[s_index].m_kind != RpcKind::kSetDeviceSettings)) {
         return FciEndpointStatus::kNoData;
     }
     auto& s_slot = m_operations[s_index];
@@ -1556,11 +1538,6 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_slot.m_request.m_custom_name.data(),
                 s_slot.m_request.m_custom_name_size,
             };
-            s_request.has_firmware_type = true;
-            if (!s_firmwareTypeToWire(s_slot.m_request.m_firmware_type,
-                                      s_request.firmware_type)) {
-                break;
-            }
             s_started = fci_arm_set_device_info_client_start_scratch(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms, s_scratch);
@@ -1919,7 +1896,8 @@ void FciWirelinkEndpoint::s_finalize(
                             s_info.firmware_version.has_minor &&
                             s_info.firmware_version.has_patch &&
                             s_info.has_board_name && s_info.has_custom_name &&
-                            s_info.has_firmware_type;
+                            s_info.has_firmware_type && s_info.has_serial &&
+                            s_info.serial.length != 0;
                         if (s_response_valid) {
                             s_device_info.m_protocol_version = Version{
                                 s_info.protocol_version.major,
@@ -1945,6 +1923,13 @@ void FciWirelinkEndpoint::s_finalize(
                                     s_device_info.m_custom_name.data(),
                                     s_device_info.m_custom_name.size(),
                                     s_device_info.m_custom_name_size);
+                            s_response_valid =
+                                s_response_valid &&
+                                s_copyString(
+                                    s_info.serial,
+                                    s_device_info.m_serial_number.data(),
+                                    s_device_info.m_serial_number.size(),
+                                    s_device_info.m_serial_number_size);
                             s_device_info.m_valid = s_response_valid;
                         }
                     }
@@ -1986,7 +1971,16 @@ void FciWirelinkEndpoint::s_finalize(
                                                                &s_response);
                 s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
                                    s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
+                if (s_response_valid) {
+                    s_domain_status = s_response.status;
+                    if (s_response.status == DEVICE_SETTINGS_OK) {
+                        s_response_valid = s_response.has_settings &&
+                                           s_settingsFromWire(
+                                               s_response.settings,
+                                               s_device_settings);
+                        s_device_settings_valid = s_response_valid;
+                    }
+                }
                 break;
             }
             case RpcKind::kSetArmControlMode: {

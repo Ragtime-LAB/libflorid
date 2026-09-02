@@ -92,6 +92,7 @@ public:
     std::uint32_t firmwarePeriodUs() const;
     const DeviceInfo& deviceInfo() const;
     const DeviceSettings& deviceSettings() const;
+    bool setCustomName(const std::string& s_custom_name);
     bool setDeviceSettings(const DeviceSettings& s_settings);
     ArmDiagnostics readDiagnostics();
 

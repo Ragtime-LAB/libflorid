@@ -96,7 +96,8 @@ PYBIND11_MODULE(_pyflorid, m) {
         .def_readonly("fw_version", &florid::DeviceInfo::m_firmware_version)
         .def_readonly("board_name", &florid::DeviceInfo::m_board_name)
         .def_readonly("custom_name", &florid::DeviceInfo::m_custom_name)
-        .def_readonly("fw_type", &florid::DeviceInfo::m_firmware_type);
+        .def_readonly("fw_type", &florid::DeviceInfo::m_firmware_type)
+        .def_readonly("serial_number", &florid::DeviceInfo::m_serial_number);
 
     py::class_<florid::TorqueFoldParameters>(m, "TorqueFoldParameters")
         .def(py::init<>())
@@ -194,6 +195,7 @@ PYBIND11_MODULE(_pyflorid, m) {
             py::return_value_policy::reference_internal);
     arm.def("device_settings",        &florid::Arm::deviceSettings,
             py::return_value_policy::reference_internal);
+    arm.def("set_custom_name",        &florid::Arm::setCustomName);
     arm.def("set_device_settings",    &florid::Arm::setDeviceSettings);
     arm.def("read_diagnostics",      &florid::Arm::readDiagnostics);
 
