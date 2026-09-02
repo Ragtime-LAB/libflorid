@@ -375,8 +375,7 @@ private:
                     const wl_rpc_client_result_t& s_client,
                     wl_ctx_t& s_context,
                     wl_time_ms_t s_now_ms) noexcept;
-    void s_releaseRuntimeOperation(RpcKind s_kind,
-                                   std::uint32_t s_operation_id) noexcept;
+    void s_releaseRuntimeOperation(std::uint32_t s_operation_id) noexcept;
     FciSubmitResult s_submit(RpcKind s_kind, std::uint32_t s_timeout_ms,
                              const OperationRequest& s_request,
                              bool s_internal) noexcept;

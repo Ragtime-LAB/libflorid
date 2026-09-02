@@ -1469,83 +1469,8 @@ bool FciWirelinkEndpoint::s_finishActive(wl_ctx_t& s_context,
     }
 
     wl_rpc_client_result_t s_client{};
-    wl_rpc_err_t s_inspect = WL_RPC_ERR_NOT_FOUND;
-    switch (s_kind) {
-        case RpcKind::kAcquireLease:
-            s_inspect = fci_arm_acquire_control_lease_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kReleaseLease:
-            s_inspect = fci_arm_release_control_lease_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kGetDeviceInfo:
-            s_inspect = fci_arm_get_device_info_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetDeviceInfo:
-            s_inspect = fci_arm_set_device_info_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kGetDeviceSettings:
-            s_inspect = fci_arm_get_device_settings_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetDeviceSettings:
-            s_inspect = fci_arm_set_device_settings_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetArmControlMode:
-            s_inspect = fci_arm_set_arm_control_mode_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetGripperControlMode:
-            s_inspect = fci_arm_set_gripper_control_mode_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetArmMode:
-            s_inspect = fci_arm_set_arm_mode_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kHome:
-            s_inspect = fci_arm_home_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kSetZero:
-            s_inspect = fci_arm_set_zero_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kClearError:
-            s_inspect = fci_arm_clear_error_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kClearFaults:
-            s_inspect = fci_arm_clear_faults_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kEmergencyStop:
-            s_inspect = fci_arm_emergency_stop_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kMotorRegisterRead:
-            s_inspect = fci_arm_motor_register_read_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kMotorRegisterWrite:
-            s_inspect = fci_arm_motor_register_write_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kMotorStoreParameters:
-            s_inspect = fci_arm_motor_store_parameters_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kMotorSetZero:
-            s_inspect = fci_arm_motor_set_zero_client_inspect(
-                &m_runtime_instance.runtime, s_operation_id, &s_client);
-            break;
-        case RpcKind::kNone:
-            break;
-    }
+    const wl_rpc_err_t s_inspect = wl_rpc_client_get(
+        m_runtime_instance.runtime.rpc_client, s_operation_id, &s_client);
     if (s_inspect != WL_RPC_OK) return false;
 
     const FciOperationState s_state = s_operationState(s_client.state);
@@ -1894,7 +1819,7 @@ void FciWirelinkEndpoint::s_stopOnOwner() noexcept {
                     m_runtime_instance.runtime.rpc_client, s_operation_id);
             }
         }
-        s_releaseRuntimeOperation(s_kind, s_operation_id);
+        s_releaseRuntimeOperation(s_operation_id);
         m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
         m_stats.m_rpc_cancelled.fetch_add(1, std::memory_order_relaxed);
     }
@@ -2232,7 +2157,7 @@ void FciWirelinkEndpoint::s_finalize(
         }
     }
 
-    s_releaseRuntimeOperation(s_kind, s_client.operation_id);
+    s_releaseRuntimeOperation(s_client.operation_id);
     m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
 
     std::lock_guard<std::mutex> s_lock(m_mutex);
@@ -2290,84 +2215,10 @@ void FciWirelinkEndpoint::s_finalize(
 }
 
 void FciWirelinkEndpoint::s_releaseRuntimeOperation(
-    RpcKind s_kind, std::uint32_t s_operation_id) noexcept {
+    std::uint32_t s_operation_id) noexcept {
     if (s_operation_id == 0) return;
-    switch (s_kind) {
-        case RpcKind::kAcquireLease:
-            (void)fci_arm_acquire_control_lease_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kReleaseLease:
-            (void)fci_arm_release_control_lease_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kGetDeviceInfo:
-            (void)fci_arm_get_device_info_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kSetDeviceInfo:
-            (void)fci_arm_set_device_info_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kGetDeviceSettings:
-            (void)fci_arm_get_device_settings_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kSetDeviceSettings:
-            (void)fci_arm_set_device_settings_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kSetArmControlMode:
-            (void)fci_arm_set_arm_control_mode_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kSetGripperControlMode:
-            (void)fci_arm_set_gripper_control_mode_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kSetArmMode:
-            (void)fci_arm_set_arm_mode_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kHome:
-            (void)fci_arm_home_client_release(&m_runtime_instance.runtime,
-                                              s_operation_id);
-            break;
-        case RpcKind::kSetZero:
-            (void)fci_arm_set_zero_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kClearError:
-            (void)fci_arm_clear_error_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kClearFaults:
-            (void)fci_arm_clear_faults_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kEmergencyStop:
-            (void)fci_arm_emergency_stop_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kMotorRegisterRead:
-            (void)fci_arm_motor_register_read_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kMotorRegisterWrite:
-            (void)fci_arm_motor_register_write_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kMotorStoreParameters:
-            (void)fci_arm_motor_store_parameters_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kMotorSetZero:
-            (void)fci_arm_motor_set_zero_client_release(
-                &m_runtime_instance.runtime, s_operation_id);
-            break;
-        case RpcKind::kNone:
-            break;
-    }
+    (void)wl_rpc_client_release(m_runtime_instance.runtime.rpc_client,
+                                s_operation_id);
 }
 
 FciSubmitResult FciWirelinkEndpoint::s_submit(
