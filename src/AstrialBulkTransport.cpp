@@ -74,7 +74,7 @@ AstrialBulkTransportStats AstrialBulkTransport::stats() const noexcept {
     m_adapter->get_common_stats(s_adapter);
     const UsbBulkStats s_usb = m_adapter->device().stats();
     return {
-        .m_rx_units = s_adapter.rx_units,
+        .m_rx_claims = s_adapter.rx_units,
         .m_rx_bytes = s_adapter.rx_bytes,
         .m_rx_pauses = s_adapter.rx_backpressure,
         .m_tx_submissions = s_adapter.tx_units,
