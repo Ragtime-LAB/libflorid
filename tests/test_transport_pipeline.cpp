@@ -684,7 +684,7 @@ void testUdpTransportDetachQuiesces() {
     asio::ip::udp::socket s_peer(
         s_peer_context,
         asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
-    const asio::ip::udp::endpoint s_host(
+    const asio::ip::udp::endpoint s_host_endpoint(
         asio::ip::address_v4::loopback(), s_host_port);
     const std::array<std::uint8_t, 1> s_datagram{0};
     UdpTransport s_transport("127.0.0.1", s_host_port, 2s);
@@ -702,7 +702,7 @@ void testUdpTransportDetachQuiesces() {
 
     // The first source is learned by the reusable adapter. A zero byte is a
     // complete malformed COBS unit, so it cannot leave a partial stream tail.
-    s_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
+    s_peer.send_to(asio::buffer(s_datagram), s_host_endpoint, 0, s_error);
     require(!s_error, "UDP discovery datagram send failed");
     int s_service_result = WL_ERR_NO_DATA;
     for (unsigned int s_attempt = 0;
