@@ -1782,16 +1782,10 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             : 0;
     const bool s_retryable_backpressure =
         s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC &&
-        (s_started.detail.rpc.core_result == WL_ERR_BUSY ||
-         s_started.detail.rpc.core_result == WL_ERR_WOULD_BLOCK ||
-         s_started.detail.rpc.core_result == WL_ERR_NO_SPACE);
-    if (s_retryable_backpressure) {
-        // Generated client_start() allocates an RPC slot before attempting the
-        // Wirelink send, then marks that slot LINK_FAILED when the physical
-        // transport is temporarily occupied. Release that terminal runtime
-        // slot and keep the public request queued for the next transport wake.
-        s_releaseRuntimeOperation(s_slot.m_kind, s_operation_id);
-    }
+        s_operation_id != 0 &&
+        wl_rpc_client_release_deferred_start(
+            m_runtime_instance.runtime.rpc_client, s_operation_id) ==
+            WL_RPC_OK;
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         auto& s_operation = m_operations[s_index];
