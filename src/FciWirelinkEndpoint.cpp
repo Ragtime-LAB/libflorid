@@ -1780,11 +1780,35 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC
             ? s_started.detail.rpc.operation_id
             : 0;
+    const bool s_retryable_backpressure =
+        s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC &&
+        (s_started.detail.rpc.core_result == WL_ERR_BUSY ||
+         s_started.detail.rpc.core_result == WL_ERR_WOULD_BLOCK ||
+         s_started.detail.rpc.core_result == WL_ERR_NO_SPACE);
+    if (s_retryable_backpressure) {
+        // Generated client_start() allocates an RPC slot before attempting the
+        // Wirelink send, then marks that slot LINK_FAILED when the physical
+        // transport is temporarily occupied. Release that terminal runtime
+        // slot and keep the public request queued for the next transport wake.
+        s_releaseRuntimeOperation(s_slot.m_kind, s_operation_id);
+    }
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         auto& s_operation = m_operations[s_index];
-        s_operation.m_operation_id = s_operation_id;
-        if (s_operation_id == 0) {
+        if (s_retryable_backpressure) {
+            s_operation.m_operation_id = 0;
+            s_operation.m_state = FciOperationState::kQueued;
+            m_active_operation = s_kNoSlot;
+            if (s_operation.m_kind == RpcKind::kAcquireLease) {
+                m_lease.m_state =
+                    (s_operation.m_internal ||
+                     s_operation.m_request.m_lease_token != 0)
+                        ? FciControlLeaseState::kRenewQueued
+                        : FciControlLeaseState::kAcquireQueued;
+            } else if (s_operation.m_kind == RpcKind::kReleaseLease) {
+                m_lease.m_state = FciControlLeaseState::kReleaseQueued;
+            }
+        } else if (s_operation_id == 0) {
             s_operation.m_state = FciOperationState::kLinkFailed;
             s_operation.m_status =
                 s_started.domain == FCI_ARM_RUNTIME_RPC_ERROR &&
@@ -1808,12 +1832,14 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             }
             if (s_operation.m_internal) s_operation = OperationSlot{};
             m_operation_changed.notify_all();
+        } else {
+            s_operation.m_operation_id = s_operation_id;
         }
     }
     if (s_operation_id != 0) {
         m_stats.m_rpc_started.fetch_add(1, std::memory_order_relaxed);
     }
-    return true;
+    return !s_retryable_backpressure;
 }
 
 bool FciWirelinkEndpoint::s_scheduleRenewal(wl_time_ms_t s_now_ms) noexcept {

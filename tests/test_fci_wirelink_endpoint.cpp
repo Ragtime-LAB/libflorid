@@ -918,6 +918,31 @@ void testTypedEndpointLifecycle() {
                 "ArmStatus callback snapshot was not stable after borrowed release");
     }
 
+    // A direct asynchronous transport can still own the preceding ACK when
+    // the next RPC is queued. Temporary sink backpressure must leave the
+    // public request queued instead of exposing a terminal LINK_FAILED.
+    const auto s_rpc_started_before_busy = s_host.stats().m_rpc_started;
+    s_host_to_device.m_busy.store(true, std::memory_order_release);
+    const auto s_busy_info = s_host.getDeviceInfo(250);
+    require(s_busy_info.m_status == FciEndpointStatus::kOk,
+            "backpressured GetDeviceInfo was not queued");
+    const auto s_busy_start_deadline =
+        std::chrono::steady_clock::now() + 1s;
+    while (s_host.stats().m_rpc_started == s_rpc_started_before_busy &&
+           std::chrono::steady_clock::now() < s_busy_start_deadline) {
+        std::this_thread::yield();
+    }
+    require(s_host.stats().m_rpc_started > s_rpc_started_before_busy,
+            "backpressured RPC never attempted a runtime send");
+    s_host_to_device.m_busy.store(false, std::memory_order_release);
+    s_host.notify();
+    require(s_host.waitOperation(s_busy_info.m_request_id, 1s,
+                                 s_operation) == FciEndpointStatus::kOk,
+            "backpressured RPC did not retry after transport wake");
+    require(s_host.takeDeviceInfo(s_busy_info.m_request_id, s_operation,
+                                  s_info) == FciEndpointStatus::kOk,
+            "retried GetDeviceInfo result was not consumable");
+
     const auto s_release = s_host.releaseControlLease(250);
     require(s_release.m_status == FciEndpointStatus::kOk,
             "lease release was not queued");
