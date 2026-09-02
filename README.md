@@ -35,7 +35,9 @@ Optional build-time tools:
 ## Submodules
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init protocol 3rdparty/astrial
+# Only when configuring with BUILD_MPC=ON:
+git submodule update --init --recursive 3rdparty/acados
 ```
 
 - `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
@@ -64,7 +66,7 @@ Developer PowerShell, point CMake at vcpkg and the Wirelink source tree; the
 configure step installs the pinned libusb version into the build tree:
 
 ```powershell
-git submodule update --init --recursive
+git submodule update --init protocol 3rdparty/astrial
 $env:VCPKG_ROOT = "C:\src\vcpkg"
 
 cmake -S . -B build-windows `
