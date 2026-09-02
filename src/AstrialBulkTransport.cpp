@@ -8,10 +8,12 @@ namespace florid {
 
 AstrialBulkTransport::AstrialBulkTransport(std::uint16_t s_vendor_id,
                                            std::uint16_t s_product_id,
-                                           std::string s_serial_number) {
+                                           std::string s_serial_number,
+                                           std::vector<std::uint8_t> s_port_path) {
     m_config.usb.device.vendor_id = s_vendor_id;
     m_config.usb.device.product_id = s_product_id;
     m_config.usb.device.serial_number = std::move(s_serial_number);
+    m_config.usb.device.port_path = std::move(s_port_path);
     m_config.usb.bulk_interface.interface_number = 0;
     m_config.usb.bulk_interface.endpoint_in = 0x81;
     m_config.usb.bulk_interface.endpoint_out = 0x01;
@@ -92,26 +94,6 @@ void AstrialBulkTransport::s_onActivity(void* s_context) noexcept {
     if (s_self.m_wake != nullptr) {
         s_self.m_wake(s_self.m_wake_context);
     }
-}
-
-std::vector<UsbBulkDeviceInfo> AstrialBulkTransport::listDevices() {
-    std::vector<UsbBulkDeviceInfo> s_result;
-    const auto s_devices = UsbBulkDevice::list_devices();
-    if (!s_devices) return s_result;
-    s_result.reserve(s_devices->size());
-    for (const auto& s_device : *s_devices) {
-        s_result.push_back(UsbBulkDeviceInfo{
-            .m_vendor_id = s_device.vendor_id,
-            .m_product_id = s_device.product_id,
-            .m_bus_number = s_device.bus_number,
-            .m_device_address = s_device.device_address,
-            .m_port_path = s_device.port_path,
-            .m_manufacturer = s_device.manufacturer,
-            .m_product = s_device.product,
-            .m_serial_number = s_device.serial_number,
-        });
-    }
-    return s_result;
 }
 
 } // namespace florid

@@ -1,58 +1,16 @@
 #include "florid/Arm.hpp"
+#include "florid/UsbDiscovery.hpp"
 #include "florid/detail/ArmImpl.hpp"
 #include "florid/detail/AstrialBulkTransport.hpp"
 #include "florid/detail/AstrialUSBTransport.hpp"
 #include "florid/detail/UdpTransport.hpp"
 
-#include <charconv>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
 #include <thread>
 
 namespace florid {
-
-namespace {
-
-bool s_parseHex16(std::string_view s_text, std::uint16_t& s_value) {
-    if (s_text.starts_with("0x") || s_text.starts_with("0X")) {
-        s_text.remove_prefix(2);
-    }
-    if (s_text.empty()) return false;
-    unsigned int s_parsed{};
-    const auto [s_end, s_error] = std::from_chars(
-        s_text.data(), s_text.data() + s_text.size(), s_parsed, 16);
-    if (s_error != std::errc{} || s_end != s_text.data() + s_text.size() ||
-        s_parsed == 0 || s_parsed > UINT16_MAX) {
-        return false;
-    }
-    s_value = static_cast<std::uint16_t>(s_parsed);
-    return true;
-}
-
-std::unique_ptr<Transport> s_makeUsbBulkTransport(std::string_view s_selector) {
-    std::uint16_t s_vendor = AstrialBulkTransport::s_kDefaultVendorId;
-    std::uint16_t s_product = AstrialBulkTransport::s_kDefaultProductId;
-    std::string s_serial;
-    if (!s_selector.empty()) {
-        const auto s_slash = s_selector.find('/');
-        const auto s_ids = s_selector.substr(0, s_slash);
-        const auto s_colon = s_ids.find(':');
-        if (s_colon == std::string_view::npos ||
-            !s_parseHex16(s_ids.substr(0, s_colon), s_vendor) ||
-            !s_parseHex16(s_ids.substr(s_colon + 1), s_product)) {
-            return nullptr;
-        }
-        if (s_slash != std::string_view::npos) {
-            s_serial = s_selector.substr(s_slash + 1);
-            if (s_serial.empty()) return nullptr;
-        }
-    }
-    return std::make_unique<AstrialBulkTransport>(s_vendor, s_product,
-                                                   std::move(s_serial));
-}
-
-} // namespace
 
 std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
     // "usb://2fe3:574c" or "usb://2fe3:574c/SERIAL" (Vendor Bulk)
@@ -66,14 +24,26 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
         std::unique_ptr<Transport> s_transport;
 
         if (s_uri.starts_with("usb://")) {
-            s_transport = s_makeUsbBulkTransport(
-                std::string_view{s_uri}.substr(6));
-            if (!s_transport) {
-                std::fprintf(stderr,
-                             "Arm::create: invalid USB Bulk selector '%s'\n",
-                             s_uri.c_str());
+            const auto s_selection = resolveUsbBulkDevice(s_uri);
+            if (!s_selection) {
+                std::fprintf(
+                    stderr, "Arm::create: %s for '%s'",
+                    usbDiscoveryErrorMessage(s_selection.m_error),
+                    s_uri.c_str());
+                if (s_selection.m_error == UsbDiscoveryError::Ambiguous) {
+                    std::fprintf(stderr, " (%zu matches; use an exact URI)",
+                                 s_selection.m_match_count);
+                } else if (s_selection.m_system_error) {
+                    std::fprintf(stderr, ": %s",
+                                 s_selection.m_system_error.message().c_str());
+                }
+                std::fputc('\n', stderr);
                 return nullptr;
             }
+            const auto& s_device = *s_selection.m_device;
+            s_transport = std::make_unique<AstrialBulkTransport>(
+                s_device.m_vendor_id, s_device.m_product_id,
+                s_device.m_serial_number, s_device.m_port_path);
         } else if (s_uri.starts_with("serial://")) {
             std::string s_path = s_uri.substr(9);
             if (s_path.empty()) {

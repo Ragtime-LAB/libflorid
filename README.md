@@ -4,7 +4,13 @@
 
 ## Key Features
 
-- **Native USB Bulk transport**: connect with `Arm::create("usb://")`, `Arm::create("usb://2fe3:574c")`, or append `/SERIAL` when multiple devices share a VID/PID. `serial://<port>` remains available for legacy CDC/debug firmware. UDP via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint and learns the device's source endpoint from the first datagram.
+- **Native USB Bulk transport**: enumerate product names, full serial numbers,
+  and exact connection URIs with `discoverUsbBulkDevices()`, then pass a URI
+  to `Arm::create()`. `usb://` remains convenient when exactly one default
+  device is attached; multiple matches fail safely instead of selecting an
+  arbitrary arm. `serial://<port>` remains available for legacy CDC/debug
+  firmware. UDP via `Arm::create("udp://<ip>:<port>")` binds a fixed local
+  endpoint and learns the device's source endpoint from the first datagram.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
 - **Two control styles**: blocking `Arm::control(cb)` runs your callback on an internal thread at the firmware rate, or `Arm::start*Control()` returns a polling `ActiveControl<T>` with `readOnce()`/`writeOnce()` (this is what the Python bindings use).
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
@@ -88,11 +94,25 @@ product choice.
 ```cpp
 #include <florid/Arm.hpp>
 #include <florid/Model.hpp>
+#include <florid/UsbDiscovery.hpp>
 #include <florid/traits/WillowTraits.hpp>
+
+#include <iostream>
 
 int main() {
     // One-line connection over USB
-    auto arm = florid::Arm::create("usb://2fe3:574c");
+    auto discovery = florid::discoverUsbBulkDevices();
+    if (!discovery || discovery.m_devices.empty()) {
+        return 1;
+    }
+    for (const auto& device : discovery.m_devices) {
+        std::cout << device.m_display_name << "  "
+                  << device.m_serial_number << "  "
+                  << device.m_uri << '\n';
+    }
+
+    // m_uri contains the exact full serial selector when one is available.
+    auto arm = florid::Arm::create(discovery.m_devices.front().m_uri);
     if (!arm) return 1;
 
     arm->home();

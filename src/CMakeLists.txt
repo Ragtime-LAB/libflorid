@@ -19,6 +19,7 @@ target_link_libraries(florid_wirelink_host
 add_library(florid
     AstrialBulkTransport.cpp
     AstrialUSBTransport.cpp
+    UsbDiscovery.cpp
     UdpTransport.cpp
     ArmImpl.cpp
     Arm.cpp

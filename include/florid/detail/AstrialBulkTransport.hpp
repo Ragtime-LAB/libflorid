@@ -1,6 +1,7 @@
 #ifndef FLORID_DETAIL_ASTRIAL_BULK_TRANSPORT_HPP
 #define FLORID_DETAIL_ASTRIAL_BULK_TRANSPORT_HPP
 
+#include "florid/UsbDiscovery.hpp"
 #include "florid/detail/Transport.hpp"
 
 #include <wirelink/astrial/usb_bulk_adapter.hpp>
@@ -11,17 +12,6 @@
 #include <vector>
 
 namespace florid {
-
-struct UsbBulkDeviceInfo {
-    std::uint16_t m_vendor_id{};
-    std::uint16_t m_product_id{};
-    std::uint8_t m_bus_number{};
-    std::uint8_t m_device_address{};
-    std::vector<std::uint8_t> m_port_path;
-    std::string m_manufacturer;
-    std::string m_product;
-    std::string m_serial_number;
-};
 
 struct AstrialBulkTransportStats {
     std::uint64_t m_rx_claims{};
@@ -37,13 +27,14 @@ struct AstrialBulkTransportStats {
 
 class AstrialBulkTransport final : public Transport {
 public:
-    static constexpr std::uint16_t s_kDefaultVendorId = 0x2fe3;
-    static constexpr std::uint16_t s_kDefaultProductId = 0x574c;
+    static constexpr std::uint16_t s_kDefaultVendorId = kDefaultUsbVendorId;
+    static constexpr std::uint16_t s_kDefaultProductId = kDefaultUsbProductId;
 
     explicit AstrialBulkTransport(
         std::uint16_t s_vendor_id = s_kDefaultVendorId,
         std::uint16_t s_product_id = s_kDefaultProductId,
-        std::string s_serial_number = {});
+        std::string s_serial_number = {},
+        std::vector<std::uint8_t> s_port_path = {});
     ~AstrialBulkTransport() override;
 
     AstrialBulkTransport(const AstrialBulkTransport&) = delete;
@@ -61,8 +52,6 @@ public:
         wl_time_ms_t s_now_ms) const noexcept override;
 
     [[nodiscard]] AstrialBulkTransportStats stats() const noexcept;
-
-    static std::vector<UsbBulkDeviceInfo> listDevices();
 
 private:
     static void s_onActivity(void* s_context) noexcept;

@@ -20,3 +20,8 @@ add_executable(test_fci_wirelink_endpoint test_fci_wirelink_endpoint.cpp)
 target_link_libraries(test_fci_wirelink_endpoint PRIVATE florid::wirelink_host)
 target_compile_features(test_fci_wirelink_endpoint PUBLIC cxx_std_20)
 add_test(NAME fci_wirelink_endpoint COMMAND test_fci_wirelink_endpoint)
+
+add_executable(test_usb_discovery test_usb_discovery.cpp)
+target_link_libraries(test_usb_discovery PRIVATE florid)
+target_compile_features(test_usb_discovery PUBLIC cxx_std_20)
+add_test(NAME usb_discovery COMMAND test_usb_discovery)

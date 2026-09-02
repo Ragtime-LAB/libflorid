@@ -1,5 +1,5 @@
 #include "florid/Arm.hpp"
-#include "florid/detail/AstrialBulkTransport.hpp"
+#include "florid/UsbDiscovery.hpp"
 
 #include <atomic>
 #include <csignal>
@@ -42,11 +42,10 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
 
     // ── List available USB devices ──
     printf("=== USB Devices ===\n");
-    auto s_devices = florid::AstrialBulkTransport::listDevices();//获取所有可用的USB设备
-    for (const auto& s_d : s_devices) {
-        printf("  %04X:%04X  %-20s %s\n", s_d.m_vendor_id,
-               s_d.m_product_id, s_d.m_serial_number.c_str(),
-               s_d.m_product.c_str());
+    auto s_discovery = florid::discoverUsbBulkDevices();
+    for (const auto& s_d : s_discovery.m_devices) {
+        printf("  %-32s %-28s %s\n", s_d.m_display_name.c_str(),
+               s_d.m_serial_number.c_str(), s_d.m_uri.c_str());
     }
     printf("\n");
 
