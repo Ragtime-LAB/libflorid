@@ -12,7 +12,7 @@ option(BUILD_EXAMPLES "Build SDK examples" ON)
 option(BUILD_PYFLORID "Build Python bindings via pybind11" OFF)
 option(BUILD_MPC      "Enable MPC via acados" OFF)
 set(WIRELINK_SOURCE_DIR "" CACHE PATH
-    "Optional Wirelink source tree used by libflorid")
+    "Optional Wirelink source-tree override used by libflorid")
 set(WLC_EXECUTABLE "" CACHE FILEPATH
     "Host wlc executable used to generate the FCI Wirelink bindings")
 
@@ -44,6 +44,10 @@ set(FCI_PROTOCOL_GENERATED_BASE_DIR
     "Build-tree location for generated FCI Wirelink artifacts" FORCE)
 if(NOT WIRELINK_SOURCE_DIR STREQUAL "")
     set(FCI_PROTOCOL_WIRELINK_SOURCE_DIR "${WIRELINK_SOURCE_DIR}" CACHE PATH
+        "Wirelink source tree used by fci_protocol" FORCE)
+elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wirelink/CMakeLists.txt")
+    set(FCI_PROTOCOL_WIRELINK_SOURCE_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wirelink" CACHE PATH
         "Wirelink source tree used by fci_protocol" FORCE)
 endif()
 

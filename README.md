@@ -35,13 +35,14 @@ Optional build-time tools:
 ## Submodules
 
 ```bash
-git submodule update --init protocol 3rdparty/astrial
+git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 # Only when configuring with BUILD_MPC=ON:
 git submodule update --init --recursive 3rdparty/acados
 ```
 
 - `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
 - `3rdparty/astrial` (cross-platform serial and native USB Bulk backend)
+- `3rdparty/wirelink` (link core, desktop adapters, and host runtime)
 - `3rdparty/acados` — only needed when `-DBUILD_MPC=ON`
 
 ## Build & Test
@@ -54,10 +55,11 @@ ctest --test-dir build
 
 Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_MPC=OFF`.
 
-If Wirelink is not installed as a CMake package, pass
-`-DWIRELINK_SOURCE_DIR=/path/to/wirelink`. Set `-DWLC_EXECUTABLE=/path/to/wlc`
-when `wlc` is not on `PATH`. The FCI host sources are generated in the build
-tree; generated files are never committed.
+The bundled `3rdparty/wirelink` source is used by default. Pass
+`-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
+development. Wirelink downloads its pinned WLC host release when no compatible
+compiler is on `PATH`; offline builds may set `WLC_EXECUTABLE` explicitly. The
+FCI host sources are generated in the build tree and are never committed.
 
 ### Windows (MSVC + vcpkg)
 
@@ -66,13 +68,12 @@ Developer PowerShell, point CMake at vcpkg and the Wirelink source tree; the
 configure step installs the pinned libusb version into the build tree:
 
 ```powershell
-git submodule update --init protocol 3rdparty/astrial
+git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 $env:VCPKG_ROOT = "C:\src\vcpkg"
 
 cmake -S . -B build-windows `
   -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
   -DVCPKG_TARGET_TRIPLET=x64-windows `
-  -DWIRELINK_SOURCE_DIR=C:\src\wirelink `
   -DBUILD_TESTS=ON
 cmake --build build-windows --config Release --parallel
 ctest --test-dir build-windows -C Release --output-on-failure
