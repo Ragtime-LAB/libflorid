@@ -28,10 +28,10 @@ add_library(florid
 
 target_link_libraries(florid
     PUBLIC
-        astrial
+        wirelink::astrial
         wirelink::astrial_usb
+        wirelink::asio_udp
     PRIVATE
-        asio_standalone
         florid_wirelink_host
 )
 

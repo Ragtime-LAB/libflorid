@@ -25,15 +25,16 @@ public:
     virtual void setReceiveCallback(ReceiveFunctor s_callback, void* s_context) = 0;
 
     // A direct transport owns Wirelink's physical RX claims and sink. This is
-    // setup-only and is used by USB Bulk to avoid the callback + FIFO copy
-    // required by byte-stream transports. All service calls still run on the
-    // endpoint's single owner thread.
+    // setup-only and lets Wirelink adapters receive directly into core-owned
+    // storage. All service calls still run on the endpoint's owner thread.
     virtual bool usesDirectWirelink() const noexcept { return false; }
     virtual int attachWirelink(wl_ctx_t&, WakeFunctor, void*) noexcept {
         return WL_ERR_NOT_SUPPORTED;
     }
     virtual int serviceWirelink() noexcept { return WL_ERR_NOT_SUPPORTED; }
     virtual void quiesceWirelink() noexcept {}
+    virtual std::uint32_t wirelinkDeadlineHint(
+        wl_time_ms_t) const noexcept { return WL_POLL_NO_DEADLINE_MS; }
 };
 
 } // namespace florid

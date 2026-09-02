@@ -352,6 +352,8 @@ private:
                                       wl_time_ms_t s_now_ms) noexcept;
     static std::uint32_t s_applicationDeadline(
         const void* s_user_data, wl_time_ms_t s_now_ms) noexcept;
+    static std::uint32_t s_transportDeadline(
+        const void* s_user_data, wl_time_ms_t s_now_ms) noexcept;
     static void s_quiesce(void* s_user_data) noexcept;
 
     static wl_time_ms_t s_nowMs() noexcept;

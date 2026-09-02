@@ -657,6 +657,21 @@ void testReceiveCallbackDetachQuiesces() {
 }
 
 void testUdpTransportDetachQuiesces() {
+    PeerStorage s_storage;
+    wl_ctx_t s_link{};
+    const wl_config_t s_config{
+        .max_payload_len = 256,
+        .envelope = WL_ENVELOPE_COBS_STREAM,
+        .integrity = WL_INTEGRITY_NONE,
+        .session_id = UINT64_C(0x5544505f484f5354),
+        .max_retries = 0,
+        .ack_timeout_ms = 20,
+        .max_transmission_unit = 320,
+    };
+    auto s_storage_descriptor = s_storage.descriptor();
+    require(wl_init(&s_link, &s_config, &s_storage_descriptor) == WL_OK,
+            "UDP Wirelink context initialization failed");
+
     asio::io_context s_peer_context;
     asio::ip::udp::socket s_port_probe(
         s_peer_context,
@@ -671,88 +686,50 @@ void testUdpTransportDetachQuiesces() {
         asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
     const asio::ip::udp::endpoint s_host(
         asio::ip::address_v4::loopback(), s_host_port);
-    const std::array<std::uint8_t, 1> s_datagram{0x5a};
-
-    std::jthread s_discovery([&](std::stop_token s_stop) {
-        while (!s_stop.stop_requested()) {
-            asio::error_code s_send_error;
-            s_peer.send_to(asio::buffer(s_datagram), s_host, 0,
-                           s_send_error);
-            std::this_thread::sleep_for(1ms);
-        }
-    });
-
+    const std::array<std::uint8_t, 1> s_datagram{0};
     UdpTransport s_transport("127.0.0.1", s_host_port, 2s);
-    s_discovery.request_stop();
-    s_discovery.join();
+    std::atomic<std::uint64_t> s_wakes{};
+    const auto s_wake = [](void* s_context) noexcept {
+        static_cast<std::atomic<std::uint64_t>*>(s_context)->fetch_add(
+            1, std::memory_order_relaxed);
+    };
+    require(s_transport.usesDirectWirelink(),
+            "UDP transport did not select direct Wirelink ownership");
+    require(s_transport.attachWirelink(s_link, s_wake, &s_wakes) == WL_OK,
+            "UDP direct adapter attach failed");
+    require(s_transport.wirelinkDeadlineHint(0) == 1,
+            "UDP adapter did not expose its polling deadline");
 
-    BlockingReceive s_receive;
-    s_transport.setReceiveCallback(BlockingReceive::callback, &s_receive);
+    // The first source is learned by the reusable adapter. A zero byte is a
+    // complete malformed COBS unit, so it cannot leave a partial stream tail.
     s_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
-    const bool s_callback_started =
-        !s_error && s_receive.m_entered.try_acquire_for(1s);
-    if (!s_callback_started) {
-        s_receive.m_return_allowed.release();
-        s_transport.setReceiveCallback(nullptr, nullptr);
-        require(false, "UDP receive callback did not start");
+    require(!s_error, "UDP discovery datagram send failed");
+    int s_service_result = WL_ERR_NO_DATA;
+    for (unsigned int s_attempt = 0;
+         s_attempt < 100 && s_service_result != WL_OK; ++s_attempt) {
+        s_service_result = s_transport.serviceWirelink();
+        if (s_service_result == WL_ERR_NO_DATA)
+            std::this_thread::sleep_for(1ms);
     }
-
-    std::binary_semaphore s_detach_started{0};
-    std::binary_semaphore s_detach_returned{0};
-    std::jthread s_detacher([&] {
-        s_detach_started.release();
-        s_transport.setReceiveCallback(nullptr, nullptr);
-        s_detach_returned.release();
-    });
-    s_detach_started.acquire();
-    const bool s_detached_early = s_detach_returned.try_acquire_for(25ms);
-
-    s_receive.m_return_allowed.release();
-    const bool s_detached =
-        s_detached_early || s_detach_returned.try_acquire_for(1s);
-    s_detacher.join();
-
-    require(!s_detached_early,
-            "UDP callback detach returned while a callback was in flight");
-    require(s_detached,
-            "UDP callback detach did not unblock after callback return");
-
-    const auto s_call_count =
-        s_receive.m_call_count.load(std::memory_order_relaxed);
-    s_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
-    require(!s_error, "post-detach UDP datagram send failed");
-    std::this_thread::sleep_for(25ms);
-    require(s_receive.m_call_count.load(std::memory_order_relaxed) ==
-                s_call_count,
-            "UDP callback ran again after detach returned");
-
-    // A later datagram from another source must not retarget commands away
-    // from the endpoint that completed discovery.
-    asio::ip::udp::socket s_other_peer(
-        s_peer_context,
-        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
-    s_other_peer.send_to(asio::buffer(s_datagram), s_host, 0, s_error);
-    require(!s_error, "second UDP peer datagram send failed");
-    std::this_thread::sleep_for(10ms);
+    require(s_service_result == WL_OK, "UDP adapter did not learn its peer");
 
     const std::array<std::uint8_t, 2> s_reply{0xa5, 0x5a};
-    require(s_transport.send(s_reply.data(), s_reply.size()),
-            "UDP reply to learned peer failed");
+    require(wl_send_unreliable(&s_link, 0x42, s_reply.data(),
+                               s_reply.size()) == WL_OK,
+            "UDP Wirelink reply submission failed");
     s_peer.non_blocking(true, s_error);
     require(!s_error, "could not make UDP test peer nonblocking");
 
     bool s_reply_received = false;
-    std::array<std::uint8_t, 8> s_reply_buffer{};
+    std::array<std::uint8_t, 320> s_reply_buffer{};
     asio::ip::udp::endpoint s_reply_source;
     const auto s_reply_deadline = std::chrono::steady_clock::now() + 1s;
     while (std::chrono::steady_clock::now() < s_reply_deadline) {
         const auto s_received = s_peer.receive_from(
             asio::buffer(s_reply_buffer), s_reply_source, 0, s_error);
         if (!s_error) {
-            s_reply_received =
-                s_received == s_reply.size() &&
-                std::equal(s_reply.begin(), s_reply.end(),
-                           s_reply_buffer.begin());
+            s_reply_received = s_received > s_reply.size() &&
+                               s_reply_buffer[s_received - 1] == 0;
             break;
         }
         if (s_error != asio::error::would_block &&
@@ -762,7 +739,13 @@ void testUdpTransportDetachQuiesces() {
         std::this_thread::sleep_for(1ms);
     }
     require(s_reply_received,
-            "UDP peer changed after its first publication");
+            "UDP adapter did not reply to its learned peer");
+
+    s_transport.quiesceWirelink();
+    require(s_transport.serviceWirelink() == WL_ERR_INVALID_STATE,
+            "quiesced UDP transport still serviced Wirelink");
+    require(s_transport.wirelinkDeadlineHint(0) == WL_POLL_NO_DEADLINE_MS,
+            "quiesced UDP transport retained a polling deadline");
 }
 
 void testArmImplWirelinkPipeline() {

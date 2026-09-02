@@ -55,9 +55,16 @@ int AstrialBulkTransport::serviceWirelink() noexcept {
 }
 
 void AstrialBulkTransport::quiesceWirelink() noexcept {
+    if (m_adapter) m_adapter->quiesce();
     m_adapter.reset();
     m_wake = nullptr;
     m_wake_context = nullptr;
+}
+
+std::uint32_t AstrialBulkTransport::wirelinkDeadlineHint(
+    wl_time_ms_t s_now_ms) const noexcept {
+    return m_adapter ? m_adapter->deadline_hint(s_now_ms)
+                     : WL_POLL_NO_DEADLINE_MS;
 }
 
 AstrialBulkTransportStats AstrialBulkTransport::stats() const noexcept {

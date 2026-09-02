@@ -394,6 +394,7 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
     s_hooks.m_service = s_transportService;
     s_hooks.m_application_progress = s_applicationProgress;
     s_hooks.m_application_deadline_hint = s_applicationDeadline;
+    s_hooks.m_adapter_deadline_hint = s_transportDeadline;
     s_hooks.m_on_event = s_onEvent;
     s_hooks.m_quiesce = s_quiesce;
     s_result = m_executor.setHooks(s_hooks);
@@ -1267,6 +1268,14 @@ std::uint32_t FciWirelinkEndpoint::s_applicationDeadline(
             s_nearest, s_until(s_now_ms, s_self.m_lease_expire_at_ms));
     }
     return s_nearest;
+}
+
+std::uint32_t FciWirelinkEndpoint::s_transportDeadline(
+    const void* s_user_data, wl_time_ms_t s_now_ms) noexcept {
+    const auto& s_self = *static_cast<const FciWirelinkEndpoint*>(s_user_data);
+    return s_self.m_direct_transport == nullptr
+               ? WL_POLL_NO_DEADLINE_MS
+               : s_self.m_direct_transport->wirelinkDeadlineHint(s_now_ms);
 }
 
 void FciWirelinkEndpoint::s_quiesce(void* s_user_data) noexcept {

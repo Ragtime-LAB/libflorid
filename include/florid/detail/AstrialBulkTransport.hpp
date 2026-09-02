@@ -57,6 +57,8 @@ public:
                        void* s_wake_context) noexcept override;
     int serviceWirelink() noexcept override;
     void quiesceWirelink() noexcept override;
+    std::uint32_t wirelinkDeadlineHint(
+        wl_time_ms_t s_now_ms) const noexcept override;
 
     [[nodiscard]] AstrialBulkTransportStats stats() const noexcept;
 
