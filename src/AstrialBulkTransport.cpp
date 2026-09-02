@@ -70,16 +70,16 @@ std::uint32_t AstrialBulkTransport::wirelinkDeadlineHint(
 AstrialBulkTransportStats AstrialBulkTransport::stats() const noexcept {
     if (!m_adapter) return {};
 
-    wirelink::astrial::UsbBulkAdapterStats s_adapter{};
-    m_adapter->get_stats(s_adapter);
+    wl_adapter_stats_t s_adapter{};
+    m_adapter->get_common_stats(s_adapter);
     const UsbBulkStats s_usb = m_adapter->device().stats();
     return {
-        .m_rx_claims = s_adapter.rx_claims,
+        .m_rx_units = s_adapter.rx_units,
         .m_rx_bytes = s_adapter.rx_bytes,
-        .m_rx_pauses = s_adapter.rx_pauses,
-        .m_tx_submissions = s_adapter.tx_submissions,
+        .m_rx_pauses = s_adapter.rx_backpressure,
+        .m_tx_submissions = s_adapter.tx_units,
         .m_tx_completions = s_adapter.tx_completions,
-        .m_tx_bytes = s_usb.bytes_transmitted,
+        .m_tx_bytes = s_adapter.tx_bytes,
         .m_activity_notifications = s_adapter.activity_notifications,
         .m_adapter_errors = s_adapter.errors,
         .m_usb_errors = s_usb.errors,

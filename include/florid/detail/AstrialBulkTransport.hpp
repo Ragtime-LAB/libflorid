@@ -24,7 +24,7 @@ struct UsbBulkDeviceInfo {
 };
 
 struct AstrialBulkTransportStats {
-    std::uint64_t m_rx_claims{};
+    std::uint64_t m_rx_units{};
     std::uint64_t m_rx_bytes{};
     std::uint64_t m_rx_pauses{};
     std::uint64_t m_tx_submissions{};
