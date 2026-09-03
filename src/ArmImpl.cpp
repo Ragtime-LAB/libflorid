@@ -1,10 +1,13 @@
 #include "florid/detail/ArmImpl.hpp"
 
+#include "florid/DeviceDiscovery.hpp"
 #include "florid/Exceptions.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <string>
+#include <thread>
 
 namespace florid {
 
@@ -76,7 +79,8 @@ void ArmControl::stopControl() {
     m_impl->m_data_ready.release();
 }
 
-ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
+ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport,
+                 std::string s_expected_serial)
     : m_transport(std::move(s_transport)) {
     if (!m_transport) {
         throw NetworkException("ArmImpl requires a transport");
@@ -97,6 +101,13 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
         const auto s_attached =
             m_endpoint.attachDirectTransport(*m_transport);
         if (s_attached != detail::FciEndpointStatus::kOk) {
+            const auto s_system_error = m_transport->lastError();
+            if (s_system_error) {
+                throw NetworkException(
+                    "Wirelink direct transport setup failed: " +
+                        s_system_error.message(),
+                    s_system_error);
+            }
             throw ProtocolException(s_operationError(
                 "Wirelink direct transport setup", s_attached));
         }
@@ -127,12 +138,27 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
     }
 
     try {
-        // A connection is established only after the peer has granted the
-        // control lease and the typed metadata RPCs have completed.
+        // Identify and validate the peer before acquiring control. Device
+        // discovery and incompatible firmware must never disturb an existing
+        // controller merely by opening the interface.
+        s_fetchDeviceInfo();
+        if (!isProtocolVersionCompatible(m_device_info.m_protocol_version)) {
+            throw IncompatibleVersionException(
+                "unsupported FCI protocol version " +
+                std::to_string(m_device_info.m_protocol_version.m_major) + '.' +
+                std::to_string(m_device_info.m_protocol_version.m_minor) + '.' +
+                std::to_string(m_device_info.m_protocol_version.m_patch));
+        }
+        if (!s_expected_serial.empty() &&
+            !m_device_info.m_serial_number.empty() &&
+            s_expected_serial != m_device_info.m_serial_number) {
+            throw IncompatibleVersionException(
+                "USB serial and firmware serial do not match");
+        }
+
         s_requireOperation(
             m_endpoint.acquireControlLease(s_kLeaseDurationMs, 1000), 1500ms,
             "AcquireControlLease");
-        s_fetchDeviceInfo();
         s_fetchDeviceSettings();
     } catch (...) {
         if (!m_transport->usesDirectWirelink()) {
@@ -310,6 +336,62 @@ ArmState ArmImpl::readOnce() {
 ArmDiagnostics ArmImpl::readDiagnostics() {
     std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
     return m_last_diagnostics;
+}
+
+ArmConnectionState ArmImpl::connectionState() const noexcept {
+    if (!m_transport) return ArmConnectionState::kClosed;
+    switch (m_transport->connectionState()) {
+        case TransportConnectionState::kDisconnected:
+            return ArmConnectionState::kDisconnected;
+        case TransportConnectionState::kReconnecting:
+            return ArmConnectionState::kReconnecting;
+        case TransportConnectionState::kClosed:
+            return ArmConnectionState::kClosed;
+        case TransportConnectionState::kConnected:
+        case TransportConnectionState::kUnknown:
+            break;
+    }
+
+    const auto s_lease = m_endpoint.controlLease();
+    switch (s_lease.m_state) {
+        case detail::FciControlLeaseState::kHeld:
+        case detail::FciControlLeaseState::kRenewQueued:
+        case detail::FciControlLeaseState::kRenewing:
+            return ArmConnectionState::kReady;
+        default:
+            return ArmConnectionState::kControlUnavailable;
+    }
+}
+
+bool ArmImpl::waitUntilReady(std::chrono::milliseconds s_timeout) {
+    if (s_timeout < std::chrono::milliseconds::zero()) return false;
+    const auto s_deadline = std::chrono::steady_clock::now() + s_timeout;
+    do {
+        const auto s_state = connectionState();
+        if (s_state == ArmConnectionState::kReady) return true;
+        if (s_state == ArmConnectionState::kClosed) return false;
+
+        const auto s_now = std::chrono::steady_clock::now();
+        if (s_now >= s_deadline) break;
+        if (s_state == ArmConnectionState::kControlUnavailable) {
+            const auto s_remaining =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    s_deadline - s_now);
+            const auto s_wait = std::min(s_remaining, 750ms);
+            if (s_operationSucceeded(
+                    m_endpoint.acquireControlLease(s_kLeaseDurationMs,
+                                                   s_kDefaultRpcTimeoutMs),
+                    s_wait)) {
+                return true;
+            }
+        }
+        const auto s_after_attempt = std::chrono::steady_clock::now();
+        if (s_after_attempt >= s_deadline) break;
+        std::this_thread::sleep_for(std::min(
+            50ms, std::chrono::duration_cast<std::chrono::milliseconds>(
+                      s_deadline - s_after_attempt)));
+    } while (true);
+    return connectionState() == ArmConnectionState::kReady;
 }
 
 void ArmImpl::s_requireOperation(detail::FciSubmitResult s_submit,

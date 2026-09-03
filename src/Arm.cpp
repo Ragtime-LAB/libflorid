@@ -1,9 +1,12 @@
 #include "florid/Arm.hpp"
+#include "florid/Exceptions.hpp"
 #include "florid/UsbDiscovery.hpp"
 #include "florid/detail/ArmImpl.hpp"
 #include "florid/detail/AstrialBulkTransport.hpp"
 #include "florid/detail/AstrialUSBTransport.hpp"
 #include "florid/detail/UdpTransport.hpp"
+
+#include <astrial/Usb.hpp>
 
 #include <cstdint>
 #include <cstdio>
@@ -11,6 +14,119 @@
 #include <thread>
 
 namespace florid {
+
+namespace {
+
+ArmConnectionError s_connectionError(DeviceDiscoveryError s_error) {
+    switch (s_error) {
+        case DeviceDiscoveryError::kNone:
+            return ArmConnectionError::kNone;
+        case DeviceDiscoveryError::kEnumerationFailed:
+            return ArmConnectionError::kEnumerationFailed;
+        case DeviceDiscoveryError::kInvalidSelector:
+            return ArmConnectionError::kInvalidSelector;
+        case DeviceDiscoveryError::kDeviceNotFound:
+        case DeviceDiscoveryError::kTimeout:
+            return ArmConnectionError::kDeviceNotFound;
+        case DeviceDiscoveryError::kAmbiguous:
+            return ArmConnectionError::kAmbiguous;
+    }
+    return ArmConnectionError::kProtocolError;
+}
+
+ArmConnectionError s_connectionError(const std::error_code& s_error) {
+    if (s_error == make_error_code(UsbError::PermissionDenied)) {
+        return ArmConnectionError::kPermissionDenied;
+    }
+    if (s_error == make_error_code(UsbError::InterfaceBusy)) {
+        return ArmConnectionError::kDeviceBusy;
+    }
+    if (s_error == make_error_code(UsbError::DeviceDisconnected) ||
+        s_error == make_error_code(UsbError::DeviceNotFound)) {
+        return ArmConnectionError::kDeviceDisconnected;
+    }
+    return ArmConnectionError::kTransportError;
+}
+
+} // namespace
+
+ArmConnectionResult Arm::connect() {
+    return connect(DeviceSelector{});
+}
+
+ArmConnectionResult Arm::connect(const DeviceSelector& s_selector) {
+    ArmConnectionResult s_result;
+    const bool s_probe = s_selector.m_custom_name.has_value() ||
+                         s_selector.m_firmware_type.has_value();
+    const auto s_discovery = discoverDevices({.m_probe = s_probe});
+    if (!s_discovery) {
+        s_result.m_error = s_connectionError(s_discovery.m_error);
+        s_result.m_system_error = s_discovery.m_system_error;
+        s_result.m_message = deviceDiscoveryErrorMessage(s_discovery.m_error);
+        return s_result;
+    }
+
+    auto s_selection = selectDevice(s_discovery.m_devices, s_selector);
+    if (!s_selection) {
+        s_result.m_error = s_connectionError(s_selection.m_error);
+        s_result.m_candidates = std::move(s_selection.m_candidates);
+        s_result.m_message =
+            deviceDiscoveryErrorMessage(s_selection.m_error);
+        return s_result;
+    }
+    return connect(*s_selection.m_device);
+}
+
+ArmConnectionResult Arm::connect(const DeviceDescriptor& s_device) {
+    ArmConnectionResult s_result;
+    s_result.m_device = s_device;
+    if (s_device.m_access == DeviceAccessStatus::kPermissionDenied) {
+        s_result.m_error = ArmConnectionError::kPermissionDenied;
+    } else if (s_device.m_access == DeviceAccessStatus::kBusy) {
+        s_result.m_error = ArmConnectionError::kDeviceBusy;
+    } else if (s_device.m_access == DeviceAccessStatus::kDisconnected) {
+        s_result.m_error = ArmConnectionError::kDeviceDisconnected;
+    } else if (s_device.m_compatibility != DeviceCompatibility::kUnknown &&
+               s_device.m_compatibility !=
+                   DeviceCompatibility::kCompatible) {
+        s_result.m_error = ArmConnectionError::kIncompatibleDevice;
+    }
+    if (s_result.m_error != ArmConnectionError::kNone) {
+        s_result.m_system_error = s_device.m_system_error;
+        s_result.m_message = s_device.m_error_message.empty()
+                                 ? armConnectionErrorMessage(s_result.m_error)
+                                 : s_device.m_error_message;
+        return s_result;
+    }
+
+    try {
+        auto s_transport = std::make_unique<AstrialBulkTransport>(
+            s_device.m_usb.m_vendor_id, s_device.m_usb.m_product_id,
+            s_device.m_usb.m_serial_number, s_device.m_usb.m_port_path);
+        auto s_impl = std::make_shared<ArmImpl>(
+            std::move(s_transport), s_device.m_usb.m_serial_number);
+        auto s_arm = std::unique_ptr<Arm>(new Arm());
+        s_arm->m_impl = std::move(s_impl);
+        s_result.m_arm = std::move(s_arm);
+        return s_result;
+    } catch (const IncompatibleVersionException& s_error) {
+        s_result.m_error = ArmConnectionError::kIncompatibleDevice;
+        s_result.m_message = s_error.what();
+    } catch (const NetworkException& s_error) {
+        s_result.m_system_error = s_error.systemError();
+        s_result.m_error = s_result.m_system_error
+                               ? s_connectionError(s_result.m_system_error)
+                               : ArmConnectionError::kTransportError;
+        s_result.m_message = s_error.what();
+    } catch (const CommandException& s_error) {
+        s_result.m_error = ArmConnectionError::kControlUnavailable;
+        s_result.m_message = s_error.what();
+    } catch (const std::exception& s_error) {
+        s_result.m_error = ArmConnectionError::kProtocolError;
+        s_result.m_message = s_error.what();
+    }
+    return s_result;
+}
 
 std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
     // "usb://2fe3:574c" or "usb://2fe3:574c/SERIAL" (Vendor Bulk)
@@ -40,10 +156,15 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
                 std::fputc('\n', stderr);
                 return nullptr;
             }
-            const auto& s_device = *s_selection.m_device;
-            s_transport = std::make_unique<AstrialBulkTransport>(
-                s_device.m_vendor_id, s_device.m_product_id,
-                s_device.m_serial_number, s_device.m_port_path);
+            DeviceDescriptor s_device;
+            s_device.m_usb = *s_selection.m_device;
+            s_device.m_display_name = s_device.m_usb.m_display_name;
+            auto s_connected = connect(s_device);
+            if (!s_connected) {
+                std::fprintf(stderr, "Arm::create failed: %s\n",
+                             s_connected.m_message.c_str());
+            }
+            return std::move(s_connected.m_arm);
         } else if (s_uri.starts_with("serial://")) {
             std::string s_path = s_uri.substr(9);
             if (s_path.empty()) {
@@ -82,6 +203,34 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
         std::fprintf(stderr, "Arm::create failed: %s\n", s_e.what());
         return nullptr;
     }
+}
+
+const char* armConnectionErrorMessage(ArmConnectionError s_error) noexcept {
+    switch (s_error) {
+        case ArmConnectionError::kNone: return "no error";
+        case ArmConnectionError::kEnumerationFailed:
+            return "USB enumeration failed";
+        case ArmConnectionError::kInvalidSelector:
+            return "invalid device selector";
+        case ArmConnectionError::kDeviceNotFound: return "device not found";
+        case ArmConnectionError::kAmbiguous:
+            return "selector matches multiple devices";
+        case ArmConnectionError::kPermissionDenied:
+            return "USB device permission denied";
+        case ArmConnectionError::kDeviceBusy:
+            return "USB interface is busy";
+        case ArmConnectionError::kDeviceDisconnected:
+            return "USB device disconnected";
+        case ArmConnectionError::kIncompatibleDevice:
+            return "incompatible device";
+        case ArmConnectionError::kControlUnavailable:
+            return "device control is unavailable";
+        case ArmConnectionError::kTransportError:
+            return "transport connection failed";
+        case ArmConnectionError::kProtocolError:
+            return "protocol connection failed";
+    }
+    return "unknown connection error";
 }
 
 Arm::Arm(Arm&& s_other) noexcept
@@ -223,5 +372,13 @@ bool Arm::setDeviceSettings(const DeviceSettings& s_settings) {
     return m_impl->setDeviceSettings(s_settings);
 }
 ArmDiagnostics Arm::readDiagnostics() { return m_impl->readDiagnostics(); }
+
+ArmConnectionState Arm::connectionState() const noexcept {
+    return m_impl ? m_impl->connectionState() : ArmConnectionState::kClosed;
+}
+
+bool Arm::waitUntilReady(std::chrono::milliseconds s_timeout) {
+    return m_impl && m_impl->waitUntilReady(s_timeout);
+}
 
 } // namespace florid

@@ -3,10 +3,19 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <system_error>
 
 #include <wirelink/wirelink.h>
 
 namespace florid {
+
+enum class TransportConnectionState {
+    kUnknown = 0,
+    kConnected,
+    kDisconnected,
+    kReconnecting,
+    kClosed,
+};
 
 class Transport {
 public:
@@ -35,6 +44,10 @@ public:
     virtual void quiesceWirelink() noexcept {}
     virtual std::uint32_t wirelinkDeadlineHint(
         wl_time_ms_t) const noexcept { return WL_POLL_NO_DEADLINE_MS; }
+    virtual std::error_code lastError() const noexcept { return {}; }
+    virtual TransportConnectionState connectionState() const noexcept {
+        return TransportConnectionState::kUnknown;
+    }
 };
 
 } // namespace florid

@@ -6,6 +6,7 @@
 #include "florid/ControlTypes.hpp"
 #include "florid/DeviceTypes.hpp"
 #include "florid/Duration.hpp"
+#include "florid/DeviceDiscovery.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
 #include "florid/detail/LatencyEstimator.hpp"
 #include "florid/detail/Transport.hpp"
@@ -24,6 +25,7 @@
 #include <mutex>
 #include <optional>
 #include <semaphore>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -32,7 +34,8 @@ namespace florid {
 
 class ArmImpl {
 public:
-    explicit ArmImpl(std::unique_ptr<Transport> s_transport);
+    explicit ArmImpl(std::unique_ptr<Transport> s_transport,
+                     std::string s_expected_serial = {});
     ~ArmImpl();
 
     ArmImpl(const ArmImpl&) = delete;
@@ -52,6 +55,8 @@ public:
 
     ArmState readOnce();
     ArmDiagnostics readDiagnostics();
+    [[nodiscard]] ArmConnectionState connectionState() const noexcept;
+    [[nodiscard]] bool waitUntilReady(std::chrono::milliseconds s_timeout);
     ArmControl& controlHandle() { return m_arm_control; }
 
     template <typename Callback>

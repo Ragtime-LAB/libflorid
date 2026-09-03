@@ -36,9 +36,11 @@ int AstrialBulkTransport::attachWirelink(wl_ctx_t& s_link,
     m_wake = s_wake;
     m_wake_context = s_wake_context;
     try {
+        m_last_error.clear();
         auto s_opened =
             wirelink::astrial::UsbBulkAdapter::open(s_link, m_config);
         if (!s_opened) {
+            m_last_error = s_opened.error();
             m_wake = nullptr;
             m_wake_context = nullptr;
             return WL_ERR_IO;
@@ -46,6 +48,7 @@ int AstrialBulkTransport::attachWirelink(wl_ctx_t& s_link,
         m_adapter = std::move(s_opened.value());
         return WL_OK;
     } catch (...) {
+        m_last_error = make_error_code(UsbError::IoError);
         m_wake = nullptr;
         m_wake_context = nullptr;
         return WL_ERR_IO;
@@ -86,6 +89,22 @@ AstrialBulkTransportStats AstrialBulkTransport::stats() const noexcept {
         .m_adapter_errors = s_adapter.errors,
         .m_usb_errors = s_usb.errors,
     };
+}
+
+TransportConnectionState AstrialBulkTransport::connectionState()
+    const noexcept {
+    if (!m_adapter) return TransportConnectionState::kClosed;
+    switch (m_adapter->device().state()) {
+        case UsbState::Connected:
+            return TransportConnectionState::kConnected;
+        case UsbState::Disconnected:
+            return TransportConnectionState::kDisconnected;
+        case UsbState::Reconnecting:
+            return TransportConnectionState::kReconnecting;
+        case UsbState::Closed:
+            return TransportConnectionState::kClosed;
+    }
+    return TransportConnectionState::kUnknown;
 }
 
 void AstrialBulkTransport::s_onActivity(void* s_context) noexcept {

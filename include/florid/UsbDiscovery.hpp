@@ -62,7 +62,9 @@ struct UsbBulkSelectionResult {
 
 // Enumerates USB devices visible to the current process. Descriptor strings
 // may be empty when the OS permits enumeration but not opening a device.
-[[nodiscard]] UsbBulkDiscoveryResult discoverUsbBulkDevices();
+[[nodiscard]] UsbBulkDiscoveryResult discoverUsbBulkDevices(
+    std::uint16_t s_vendor_id = kDefaultUsbVendorId,
+    std::uint16_t s_product_id = kDefaultUsbProductId);
 
 // Pure selection helper for device pickers and tests. Accepted forms are:
 //   usb://                    (default VID/PID)

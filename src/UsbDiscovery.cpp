@@ -181,7 +181,8 @@ void s_completeDeviceInfo(UsbBulkDeviceInfo& s_device) {
 
 } // namespace
 
-UsbBulkDiscoveryResult discoverUsbBulkDevices() {
+UsbBulkDiscoveryResult discoverUsbBulkDevices(std::uint16_t s_vendor_id,
+                                               std::uint16_t s_product_id) {
     UsbBulkDiscoveryResult s_result;
     const auto s_devices = UsbBulkDevice::list_devices();
     if (!s_devices) {
@@ -191,6 +192,10 @@ UsbBulkDiscoveryResult discoverUsbBulkDevices() {
 
     s_result.m_devices.reserve(s_devices->size());
     for (const auto& s_device : *s_devices) {
+        if (s_device.vendor_id != s_vendor_id ||
+            s_device.product_id != s_product_id) {
+            continue;
+        }
         UsbBulkDeviceInfo s_info{
             .m_vendor_id = s_device.vendor_id,
             .m_product_id = s_device.product_id,
@@ -248,7 +253,14 @@ UsbBulkSelectionResult selectUsbBulkDevice(
 }
 
 UsbBulkSelectionResult resolveUsbBulkDevice(std::string_view s_uri) {
-    auto s_discovery = discoverUsbBulkDevices();
+    const auto s_selector = s_parseSelector(s_uri);
+    if (!s_selector) {
+        UsbBulkSelectionResult s_result;
+        s_result.m_error = UsbDiscoveryError::InvalidUri;
+        return s_result;
+    }
+    auto s_discovery = discoverUsbBulkDevices(s_selector->m_vendor_id,
+                                               s_selector->m_product_id);
     if (!s_discovery) {
         UsbBulkSelectionResult s_result;
         s_result.m_error = UsbDiscoveryError::EnumerationFailed;

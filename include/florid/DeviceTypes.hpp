@@ -13,6 +13,11 @@ struct Version {
     std::uint32_t m_patch{};
 };
 
+// Protocol 0.0.x uses the same generated FCI schema. Patch releases are
+// wire-compatible; a major or minor change while the protocol is pre-1.0 is
+// treated as an explicit compatibility boundary.
+inline constexpr Version kSupportedProtocolVersion{0, 0, 1};
+
 enum class FirmwareType : std::uint8_t {
     kStandardArm = 0,
     kMobileArm = 1,

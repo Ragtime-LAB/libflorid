@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <vector>
 
 namespace florid {
@@ -52,6 +53,11 @@ public:
         wl_time_ms_t s_now_ms) const noexcept override;
 
     [[nodiscard]] AstrialBulkTransportStats stats() const noexcept;
+    [[nodiscard]] std::error_code lastError() const noexcept override {
+        return m_last_error;
+    }
+    [[nodiscard]] TransportConnectionState connectionState()
+        const noexcept override;
 
 private:
     static void s_onActivity(void* s_context) noexcept;
@@ -60,6 +66,7 @@ private:
     WakeFunctor m_wake{};
     void* m_wake_context{};
     std::unique_ptr<wirelink::astrial::UsbBulkAdapter> m_adapter;
+    std::error_code m_last_error;
 };
 
 } // namespace florid

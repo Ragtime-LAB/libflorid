@@ -1,4 +1,5 @@
 #include "florid/UsbDiscovery.hpp"
+#include "florid/DeviceDiscovery.hpp"
 
 #include <array>
 #include <cstdint>
@@ -117,11 +118,89 @@ void testPortPathAndInvalidUris() {
     }
 }
 
+florid::DeviceDescriptor s_descriptor(
+    std::string s_usb_serial, std::string s_protocol_serial,
+    std::string s_custom_name,
+    florid::DeviceCompatibility s_compatibility =
+        florid::DeviceCompatibility::kCompatible) {
+    auto s_result = florid::DeviceDescriptor{};
+    s_result.m_usb = s_device(std::move(s_usb_serial), {1, 6});
+    s_result.m_device_info = florid::DeviceInfo{
+        .m_protocol_version = florid::kSupportedProtocolVersion,
+        .m_firmware_version = {1, 2, 3},
+        .m_board_name = "test-board",
+        .m_custom_name = std::move(s_custom_name),
+        .m_firmware_type = florid::FirmwareType::kStandardArm,
+        .m_serial_number = std::move(s_protocol_serial),
+    };
+    s_result.m_access = florid::DeviceAccessStatus::kReady;
+    s_result.m_compatibility = s_compatibility;
+    return s_result;
+}
+
+void testProductDeviceSelection() {
+    const std::array s_devices{
+        s_descriptor("USB-A", "FULL-A", "left-arm"),
+        s_descriptor("USB-B", "FULL-B", "right-arm"),
+    };
+
+    const auto s_by_serial = florid::selectDevice(
+        s_devices, florid::DeviceSelector::bySerial("FULL-B"));
+    require(s_by_serial &&
+                s_by_serial.m_device->serialNumber() == "FULL-B",
+            "protocol serial did not select the device");
+
+    const auto s_by_name = florid::selectDevice(
+        s_devices, florid::DeviceSelector::byCustomName("left-arm"));
+    require(s_by_name &&
+                s_by_name.m_device->m_device_info->m_serial_number ==
+                    "FULL-A",
+            "custom name did not select the device");
+
+    const auto s_default = florid::selectDevice(s_devices);
+    require(!s_default &&
+                s_default.m_error ==
+                    florid::DeviceDiscoveryError::kAmbiguous &&
+                s_default.m_candidates.size() == 2,
+            "default selection silently chose one of several devices");
+}
+
+void testDuplicateNamesAndCompatibility() {
+    const std::array s_devices{
+        s_descriptor("USB-A", "FULL-A", "arm"),
+        s_descriptor("USB-B", "FULL-B", "arm"),
+        s_descriptor("USB-C", "FULL-C", "old-arm",
+                     florid::DeviceCompatibility::kProtocolMismatch),
+    };
+
+    const auto s_duplicate = florid::selectDevice(
+        s_devices, florid::DeviceSelector::byCustomName("arm"));
+    require(!s_duplicate &&
+                s_duplicate.m_error ==
+                    florid::DeviceDiscoveryError::kAmbiguous &&
+                s_duplicate.m_candidates.size() == 2,
+            "duplicate custom names were treated as unique");
+
+    const auto s_incompatible = florid::selectDevice(
+        s_devices, florid::DeviceSelector::bySerial("FULL-C"));
+    require(!s_incompatible &&
+                s_incompatible.m_error ==
+                    florid::DeviceDiscoveryError::kDeviceNotFound,
+            "incompatible device was selectable");
+
+    require(florid::isProtocolVersionCompatible({0, 0, 99}),
+            "compatible protocol patch was rejected");
+    require(!florid::isProtocolVersionCompatible({0, 1, 0}),
+            "incompatible pre-1.0 protocol minor was accepted");
+}
+
 } // namespace
 
 int main() {
     testZeroAndOneMatch();
     testAmbiguousAndExactSerial();
     testPortPathAndInvalidUris();
+    testProductDeviceSelection();
+    testDuplicateNamesAndCompatibility();
     return 0;
 }

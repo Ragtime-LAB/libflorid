@@ -5,12 +5,14 @@
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/Duration.hpp"
+#include "florid/DeviceDiscovery.hpp"
 #include "florid/DeviceTypes.hpp"
 #include "florid/Errors.hpp"
 #include "florid/core/ActiveControl.hpp"
 #include "florid/Gripper.hpp"
 
 #include <cstdint>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -19,12 +21,37 @@
 namespace florid {
 
 class ArmImpl;
+struct ArmConnectionResult;
+
+enum class ArmConnectionError {
+    kNone = 0,
+    kEnumerationFailed,
+    kInvalidSelector,
+    kDeviceNotFound,
+    kAmbiguous,
+    kPermissionDenied,
+    kDeviceBusy,
+    kDeviceDisconnected,
+    kIncompatibleDevice,
+    kControlUnavailable,
+    kTransportError,
+    kProtocolError,
+};
 
 class Arm {
 public:
     static constexpr std::size_t s_kNumJoints = 6;
 
     static std::unique_ptr<Arm> create(const std::string& s_uri);
+
+    // Product-level USB Bulk entry points. connect() selects the only visible
+    // compatible Florid device; explicit selectors never silently choose one
+    // of several matches.
+    [[nodiscard]] static ArmConnectionResult connect();
+    [[nodiscard]] static ArmConnectionResult connect(
+        const DeviceSelector& s_selector);
+    [[nodiscard]] static ArmConnectionResult connect(
+        const DeviceDescriptor& s_device);
 
     Arm(Arm&& s_other) noexcept;
     Arm& operator=(Arm&& s_other) noexcept;
@@ -96,12 +123,34 @@ public:
     bool setDeviceSettings(const DeviceSettings& s_settings);
     ArmDiagnostics readDiagnostics();
 
+    [[nodiscard]] ArmConnectionState connectionState() const noexcept;
+    // Waits for USB reconnection and reacquires the control lease if it expired
+    // while the cable was absent.
+    [[nodiscard]] bool waitUntilReady(
+        std::chrono::milliseconds s_timeout);
+
 private:
     Arm() = default;
     std::shared_ptr<ArmImpl> m_impl;
     std::unique_ptr<Gripper> m_gripper;
     friend class Gripper;
 };
+
+struct ArmConnectionResult {
+    std::unique_ptr<Arm> m_arm;
+    std::optional<DeviceDescriptor> m_device;
+    std::vector<DeviceDescriptor> m_candidates;
+    ArmConnectionError m_error{ArmConnectionError::kNone};
+    std::error_code m_system_error;
+    std::string m_message;
+
+    [[nodiscard]] explicit operator bool() const noexcept {
+        return m_arm != nullptr && m_error == ArmConnectionError::kNone;
+    }
+};
+
+[[nodiscard]] const char* armConnectionErrorMessage(
+    ArmConnectionError s_error) noexcept;
 
 } // namespace florid
 

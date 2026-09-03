@@ -454,11 +454,14 @@ private:
         auto& s_info = s_response.info;
         s_info.has_protocol_version = true;
         s_info.protocol_version.has_major = true;
-        s_info.protocol_version.major = 1;
+        s_info.protocol_version.major =
+            florid::kSupportedProtocolVersion.m_major;
         s_info.protocol_version.has_minor = true;
-        s_info.protocol_version.minor = 0;
+        s_info.protocol_version.minor =
+            florid::kSupportedProtocolVersion.m_minor;
         s_info.protocol_version.has_patch = true;
-        s_info.protocol_version.patch = 0;
+        s_info.protocol_version.patch =
+            florid::kSupportedProtocolVersion.m_patch;
         s_info.has_firmware_version = true;
         s_info.firmware_version.has_major = true;
         s_info.firmware_version.major = 2;
