@@ -33,6 +33,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install Windows USB dependency
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: vcpkg install libusb:x64-windows-static
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.0
         env:
@@ -40,6 +45,15 @@ jobs:
           # Skip free-threaded variants (cp313t/cp314t) unless the
           # pybind11 extension is explicitly free-threading ready.
           CIBW_SKIP: "cp31?t-*"
+          # manylinux builds run in a container, so the host package state is
+          # not visible. Install libusb in that container before CMake runs.
+          CIBW_BEFORE_ALL_LINUX: "dnf install -y libusb1-devel"
+          # Keep the Windows wheel self-contained: link libusb statically and
+          # expose the runner's vcpkg installation to scikit-build-core.
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            VCPKG_TARGET_TRIPLET="x64-windows-static"
+            VCPKG_INSTALLED_DIR="C:/vcpkg/installed"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
