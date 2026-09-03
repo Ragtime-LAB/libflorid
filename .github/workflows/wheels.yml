@@ -53,9 +53,9 @@ jobs:
           # Keep the Windows wheel self-contained: link libusb statically and
           # expose the runner's vcpkg installation to scikit-build-core.
           CIBW_ENVIRONMENT_WINDOWS: >-
-            CMAKE_TOOLCHAIN_FILE="C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-            VCPKG_TARGET_TRIPLET="x64-windows-static"
-            VCPKG_INSTALLED_DIR="C:/vcpkg/installed"
+            CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static
+            -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
