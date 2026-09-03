@@ -4,11 +4,11 @@
 
 ## Key Features
 
-- **Native USB Bulk transport**: enumerate product names, full serial numbers,
-  and exact connection URIs with `discoverUsbBulkDevices()`, then pass a URI
-  to `Arm::create()`. `usb://` remains convenient when exactly one default
-  device is attached; multiple matches fail safely instead of selecting an
-  arbitrary arm. `serial://<port>` remains available for legacy CDC/debug
+- **Native USB Bulk transport**: `discoverDevices()` enumerates only Florid
+  products and can read protocol identity without taking the control lease.
+  `Arm::connect()` connects the only device, or selects by immutable serial or
+  user-editable custom name. Multiple matches fail safely instead of selecting
+  an arbitrary arm. `serial://<port>` remains available for legacy CDC/debug
   firmware. UDP via `Arm::create("udp://<ip>:<port>")` binds a fixed local
   endpoint and learns the device's source endpoint from the first datagram.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
@@ -99,26 +99,28 @@ product choice.
 ```cpp
 #include <florid/Arm.hpp>
 #include <florid/Model.hpp>
-#include <florid/UsbDiscovery.hpp>
+#include <florid/DeviceDiscovery.hpp>
 #include <florid/traits/WillowTraits.hpp>
 
 #include <iostream>
+#include <utility>
 
 int main() {
-    // One-line connection over USB
-    auto discovery = florid::discoverUsbBulkDevices();
+    // Fast USB discovery, with optional read-only Wirelink identity probing.
+    auto discovery = florid::discoverDevices({.m_probe = true});
     if (!discovery || discovery.m_devices.empty()) {
         return 1;
     }
     for (const auto& device : discovery.m_devices) {
         std::cout << device.m_display_name << "  "
-                  << device.m_serial_number << "  "
-                  << device.m_uri << '\n';
+                  << device.serialNumber() << "  "
+                  << device.uri() << '\n';
     }
 
-    // m_uri contains the exact full serial selector when one is available.
-    auto arm = florid::Arm::create(discovery.m_devices.front().m_uri);
-    if (!arm) return 1;
+    // Or use Arm::connect() directly when exactly one arm is attached.
+    auto connected = florid::Arm::connect(discovery.m_devices.front());
+    if (!connected) return 1;
+    auto arm = std::move(connected.m_arm);
 
     arm->home();
 

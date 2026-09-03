@@ -21,3 +21,19 @@ pip install ./pyflorid
 ```
 
 See the top-level `README.md` for the full SDK documentation.
+
+USB Bulk discovery and connection are available directly from Python:
+
+```python
+from pyflorid import Arm, DeviceSelector, discover_devices, wait_for_device
+
+for device in discover_devices(probe=True):
+    print(device.display_name, device.serial_number, device.uri)
+
+arm = Arm.connect()                         # exactly one visible arm
+arm = Arm.connect_by_serial("RF-H7-001")   # immutable identity
+arm = Arm.connect_by_name("left-arm")      # duplicate names are rejected
+
+device = wait_for_device(DeviceSelector.by_serial("RF-H7-001"), 10_000)
+arm = Arm.connect_device(device)
+```
