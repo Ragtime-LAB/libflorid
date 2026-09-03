@@ -5,7 +5,13 @@ except ImportError:
 
 __all__ = [
     "Arm", "ArmState", "ArmControl",
-    "Duration", "ReconnectPolicy", "ControllerMode",
+    "Duration", "ControllerMode",
+    "Version", "FirmwareType", "BusState", "MotorRegister",
+    "DeviceDescriptor", "DeviceSelector", "DeviceAccessStatus",
+    "DeviceCompatibility", "ArmConnectionState",
+    "discover_devices", "wait_for_device",
+    "DeviceInfo", "DeviceSettings", "TorqueFoldParameters", "JointLimits",
+    "ArmDiagnostics", "JointDiag", "GripperDiag",
     "JointMIT", "JointPosVel", "JointVel", "JointPVT",
     "CartesianPose", "CartesianVelocities",
     "ActiveJointMIT", "ActiveJointPosVel", "ActiveJointVel", "ActiveJointPVT",

@@ -1,15 +1,42 @@
 #include "florid/detail/ArmImpl.hpp"
-#include "florid/Exceptions.hpp"
-#include "florid/detail/tick.hpp"
 
-#include <cstring>
+#include "florid/DeviceDiscovery.hpp"
+#include "florid/Exceptions.hpp"
+
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <string>
+#include <thread>
 
 namespace florid {
 
-// ────────────────────────────────────────────────────────
-//  ArmControl
-// ────────────────────────────────────────────────────────
+namespace {
+
+using namespace std::chrono_literals;
+
+constexpr std::uint32_t s_kLeaseDurationMs = 2000;
+constexpr std::uint32_t s_kHomeLeaseDurationMs = 15'000;
+constexpr std::uint32_t s_kDefaultRpcTimeoutMs = 500;
+
+std::string s_operationError(const char* s_operation,
+                             detail::FciEndpointStatus s_status,
+                             const detail::FciOperationResult* s_result =
+                                 nullptr) {
+    std::string s_message{s_operation};
+    s_message += " failed (endpoint=";
+    s_message += std::to_string(static_cast<unsigned>(s_status));
+    if (s_result != nullptr) {
+        s_message += ", domain=";
+        s_message += std::to_string(s_result->m_domain_status);
+        s_message += ", link=";
+        s_message += std::to_string(s_result->m_link_status);
+    }
+    s_message += ')';
+    return s_message;
+}
+
+} // namespace
 
 Duration ArmControl::firmwarePeriod() const {
     return Duration::fromUSec(m_impl ? m_impl->m_fw_dt_us : 2000);
@@ -17,27 +44,28 @@ Duration ArmControl::firmwarePeriod() const {
 
 Duration ArmControl::stateAge() const {
     if (!m_impl) return Duration::fromMSec(0);
-    return Duration::fromUSec(m_impl->m_latency.stateAgeUs(detail::s_nowUs()));
+    std::lock_guard<std::mutex> s_lock(m_impl->m_latency_mutex);
+    return Duration::fromUSec(
+        m_impl->m_latency.stateAgeUs(detail::s_nowUs()));
 }
 
 Duration ArmControl::estimatedLatency() const {
     if (!m_impl) return Duration::fromMSec(0);
-    return Duration::fromUSec(
-        static_cast<std::uint64_t>(m_impl->m_latency.estimatedLatencyMs() * 1000.0));
+    std::lock_guard<std::mutex> s_lock(m_impl->m_latency_mutex);
+    return Duration::fromUSec(static_cast<std::uint64_t>(
+        m_impl->m_latency.estimatedLatencyMs() * 1000.0));
 }
 
 double ArmControl::receiveJitterUs() const {
     if (!m_impl) return 0.0;
+    std::lock_guard<std::mutex> s_lock(m_impl->m_latency_mutex);
     return m_impl->m_latency.receiveJitterUs();
 }
 
 double ArmControl::receiveHz() const {
     if (!m_impl) return 0.0;
-    return m_impl->m_latency.receiveHz(detail::s_nowUs());
-}
-
-bool ArmControl::isReconnecting() const {
-    return m_impl ? m_impl->m_reconnecting.load() : false;
+    std::lock_guard<std::mutex> s_lock(m_impl->m_latency_mutex);
+    return m_impl->m_latency.receiveHz();
 }
 
 void ArmControl::finishMotion() {
@@ -45,383 +73,598 @@ void ArmControl::finishMotion() {
 }
 
 void ArmControl::stopControl() {
-    if (m_impl) {
-        m_impl->m_stop_flag = true;
-        m_impl->m_running = false;
-    }
+    if (!m_impl) return;
+    m_impl->m_stop_flag = true;
+    m_impl->m_running = false;
+    m_impl->m_data_ready.release();
 }
 
-// ────────────────────────────────────────────────────────
-//  ArmImpl
-// ────────────────────────────────────────────────────────
+ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport,
+                 std::string s_expected_serial)
+    : m_transport(std::move(s_transport)) {
+    if (!m_transport) {
+        throw NetworkException("ArmImpl requires a transport");
+    }
 
-ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport)
-    : m_transport(std::move(s_transport))
-{
     m_arm_control.m_impl = this;
-
 #ifdef FLORID_HAS_MPC
     m_mpc = std::make_unique<CartesianMPCSolver<WillowMPCTraits>>();
 #endif
 
-    m_session.on_send([this](const std::uint8_t* s_data, std::size_t s_size) {
-        m_transport->send(s_data, s_size);
-    });
-
-    m_transport->setReceiveCallback(s_onPhysData, this);
-
-    s_fetchDeviceInfo();
-    s_fetchDeviceSettings();
-
-    // ── Lifecycle: notify firmware SDK is connected ──
-    {
-        fci::arm::SdkClientConnectedRequestPacket s_req{};
-        s_req.payload.dummy = 0;
-        m_session.request(s_req, 50);
+    const auto s_initialized = m_endpoint.initialize();
+    if (s_initialized != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(
+            s_operationError("Wirelink endpoint initialization",
+                             s_initialized));
+    }
+    if (m_transport->usesDirectWirelink()) {
+        const auto s_attached =
+            m_endpoint.attachDirectTransport(*m_transport);
+        if (s_attached != detail::FciEndpointStatus::kOk) {
+            const auto s_system_error = m_transport->lastError();
+            if (s_system_error) {
+                throw NetworkException(
+                    "Wirelink direct transport setup failed: " +
+                        s_system_error.message(),
+                    s_system_error);
+            }
+            throw ProtocolException(s_operationError(
+                "Wirelink direct transport setup", s_attached));
+        }
+    } else {
+        const auto s_sink = m_endpoint.setSink(s_wireSink, this);
+        if (s_sink != detail::FciEndpointStatus::kOk) {
+            throw ProtocolException(
+                s_operationError("Wirelink transport sink setup", s_sink));
+        }
+    }
+    const auto s_callbacks =
+        m_endpoint.setCallbacks(s_onArmStatus, s_onDiagnostics, this);
+    if (s_callbacks != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(
+            s_operationError("Wirelink callback setup", s_callbacks));
     }
 
-    m_connected = true;
+    if (!m_transport->usesDirectWirelink()) {
+        m_transport->setReceiveCallback(s_onPhysData, this);
+    }
+    const auto s_started = m_endpoint.start();
+    if (s_started != detail::FciEndpointStatus::kOk) {
+        if (!m_transport->usesDirectWirelink()) {
+            m_transport->setReceiveCallback(nullptr, nullptr);
+        }
+        throw ProtocolException(
+            s_operationError("Wirelink endpoint start", s_started));
+    }
+
+    try {
+        // Identify and validate the peer before acquiring control. Device
+        // discovery and incompatible firmware must never disturb an existing
+        // controller merely by opening the interface.
+        s_fetchDeviceInfo();
+        if (!isProtocolVersionCompatible(m_device_info.m_protocol_version)) {
+            throw IncompatibleVersionException(
+                "unsupported FCI protocol version " +
+                std::to_string(m_device_info.m_protocol_version.m_major) + '.' +
+                std::to_string(m_device_info.m_protocol_version.m_minor) + '.' +
+                std::to_string(m_device_info.m_protocol_version.m_patch));
+        }
+        if (!s_expected_serial.empty() &&
+            !m_device_info.m_serial_number.empty() &&
+            s_expected_serial != m_device_info.m_serial_number) {
+            throw IncompatibleVersionException(
+                "USB serial and firmware serial do not match");
+        }
+
+        s_requireOperation(
+            m_endpoint.acquireControlLease(s_kLeaseDurationMs, 1000), 1500ms,
+            "AcquireControlLease");
+        s_fetchDeviceSettings();
+    } catch (...) {
+        if (!m_transport->usesDirectWirelink()) {
+            m_transport->setReceiveCallback(nullptr, nullptr);
+        }
+        m_endpoint.stop();
+        throw;
+    }
 }
 
 ArmImpl::~ArmImpl() {
-    m_running = false;
+    stop();
 
-    // ── Lifecycle: notify firmware SDK disconnected (best-effort) ──
+    const auto s_lease = m_endpoint.controlLease();
+    if (s_lease.m_token != 0) {
+        const auto s_submit = m_endpoint.releaseControlLease(100);
+        (void)s_operationSucceeded(s_submit, 250ms);
+    }
+
+    if (m_transport && !m_transport->usesDirectWirelink()) {
+        m_transport->setReceiveCallback(nullptr, nullptr);
+    }
+    m_endpoint.stop();
+}
+
+void ArmImpl::s_onPhysData(void* s_context, const std::uint8_t* s_data,
+                           std::size_t s_size) noexcept {
+    if (s_context == nullptr) return;
+    static_cast<ArmImpl*>(s_context)->s_feedBytes(s_data, s_size);
+}
+
+wl_sink_result_t ArmImpl::s_wireSink(void* s_context, wl_io_token_t,
+                                     const std::uint8_t* s_data,
+                                     std::size_t s_size) noexcept {
+    if (s_context == nullptr || s_data == nullptr || s_size == 0) {
+        return WL_SINK_FAILED;
+    }
+    try {
+        auto& s_self = *static_cast<ArmImpl*>(s_context);
+        return s_self.m_transport->send(s_data, s_size) ? WL_SINK_SENT
+                                                        : WL_SINK_FAILED;
+    } catch (...) {
+        return WL_SINK_FAILED;
+    }
+}
+
+void ArmImpl::s_onArmStatus(
+    void* s_context,
+    const detail::FciArmStatusSnapshot& s_status) noexcept {
+    if (s_context == nullptr) return;
+    auto& s_self = *static_cast<ArmImpl*>(s_context);
     {
-        fci::arm::SdkClientDisconnectedRequestPacket s_req{};
-        s_req.payload.dummy = 0;
-        m_session.request(s_req, 20);
+        std::lock_guard<std::mutex> s_lock(s_self.m_snapshot_mutex);
+        s_self.m_latest_state = s_status.m_state;
+        s_self.m_latest_state_generation = s_status.m_generation;
+    }
+    {
+        std::lock_guard<std::mutex> s_lock(s_self.m_latency_mutex);
+        s_self.m_latency.markReceived(s_status.m_last_sdk_timestamp_us,
+                                      detail::s_nowUs());
+    }
+    if (!s_self.m_state_wake_pending.exchange(
+            true, std::memory_order_acq_rel)) {
+        s_self.m_data_ready.release();
     }
 }
 
-void ArmImpl::s_onPhysData(void* s_context, const std::uint8_t* s_data, std::size_t s_size) {
-    auto* s_self = static_cast<ArmImpl*>(s_context);
-    s_self->s_feedBytes(s_data, s_size);
+void ArmImpl::s_onDiagnostics(
+    void* s_context, const ArmDiagnostics& s_diagnostics) noexcept {
+    if (s_context == nullptr) return;
+    auto& s_self = *static_cast<ArmImpl*>(s_context);
+    std::lock_guard<std::mutex> s_lock(s_self.m_snapshot_mutex);
+    s_self.m_last_diagnostics = s_diagnostics;
 }
 
-void ArmImpl::s_feedBytes(const std::uint8_t* s_data, std::size_t s_size) {
-    auto s_result = m_session.receive(s_data, s_size);
-    if (!s_result) return;
-
-    auto s_status = m_session.deserializer().get<fci::arm::ArmStatus>();
-    if (s_status.seq != m_last_status_seq) {
-        m_last_status_seq = s_status.seq;
-        m_latency.markReceived(s_status.last_sdk_timestamp_us, detail::s_nowUs());
-        if (!m_rx_queue.enqueue(s_status)) return;
-        m_data_ready.release();
-    }
-
-    auto s_diag = m_session.deserializer().get<fci::arm::ArmDiagnostics>();
-    if (s_diag.tick_count != m_last_diag_tick) {
-        m_last_diag_tick = s_diag.tick_count;
-        m_last_diag = s_diag;
+void ArmImpl::s_feedBytes(const std::uint8_t* s_data,
+                          std::size_t s_size) noexcept {
+    std::size_t s_offset = 0;
+    while (s_offset < s_size) {
+        std::size_t s_accepted = 0;
+        const auto s_status = m_endpoint.feedBytes(
+            s_data + s_offset, s_size - s_offset, s_accepted);
+        s_offset += s_accepted;
+        if (s_status != detail::FciEndpointStatus::kOk || s_accepted == 0) {
+            break;
+        }
     }
 }
 
 void ArmImpl::s_fetchDeviceInfo() {
-    fci::arm::GetDeviceInfoRequestPacket s_req{};
-    s_req.payload.dummy = 0;
-
-    // Firmware sends GetDeviceInfoResponse directly without USBAck,
-    // so use notify() + manual req_id + poll (same as readMotorRegister).
-    s_req.req_id = m_session.ack_manager().allocate();
-    (void)m_session.notify(s_req);
-
-    using namespace std::chrono;
-    auto s_deadline = steady_clock::now() + milliseconds(2000);
-
-    while (steady_clock::now() < s_deadline) {
-        auto s_response =
-            m_session.deserializer().get<fci::arm::GetDeviceInfoResponsePacket>();
-        if (s_response.req_id == s_req.req_id) {
-            m_device_info = s_response.payload.info;
-            return;
-        }
-        std::this_thread::yield();
+    const auto s_submit = m_endpoint.getDeviceInfo(1000);
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(
+            s_operationError("GetDeviceInfo submit", s_submit.m_status));
     }
 
-    // If device doesn't support GetDeviceInfo, use default values
-    // and continue with the connection.
-    m_device_info.protocol_version = fci::arm::kProtocolVersion;
-    m_device_info.fw_version = fci::MakeSemver(0, 0, 0);
-    m_device_info.board_name.fill('\0');
-    m_device_info.custom_name.fill('\0');
-    m_device_info.fw_type = 0;
+    detail::FciOperationResult s_result{};
+    const auto s_wait =
+        m_endpoint.waitOperation(s_submit.m_request_id, 1500ms, s_result);
+    DeviceInfo s_info{};
+    const auto s_take = m_endpoint.takeDeviceInfo(
+        s_submit.m_request_id, s_result, s_info);
+    if (s_wait != detail::FciEndpointStatus::kOk ||
+        s_take != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(
+            s_operationError("GetDeviceInfo", s_take, &s_result));
+    }
+    m_device_info = std::move(s_info);
 }
 
 void ArmImpl::s_fetchDeviceSettings() {
-    fci::arm::GetDeviceSettingsRequestPacket s_req{};
-    s_req.payload.dummy = 0;
-
-    s_req.req_id = m_session.ack_manager().allocate();
-    (void)m_session.notify(s_req);
-
-    using namespace std::chrono;
-    auto s_deadline = steady_clock::now() + milliseconds(2000);
-
-    while (steady_clock::now() < s_deadline) {
-        auto s_response =
-            m_session.deserializer().get<fci::arm::GetDeviceSettingsResponsePacket>();
-        if (s_response.req_id == s_req.req_id) {
-            m_device_settings = s_response.payload.settings;
-            m_fw_dt_us = m_device_settings.firmware_dt_us;
-            if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
-            return;
-        }
-        std::this_thread::yield();
+    const auto s_submit = m_endpoint.getDeviceSettings(1000);
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(s_operationError("GetDeviceSettings submit",
+                                                 s_submit.m_status));
     }
 
-    // If device doesn't support GetDeviceSettings, use default values
-    m_fw_dt_us = 2000;
-    m_device_settings.firmware_dt_us = 2000;
+    detail::FciOperationResult s_result{};
+    const auto s_wait =
+        m_endpoint.waitOperation(s_submit.m_request_id, 1500ms, s_result);
+    DeviceSettings s_settings{};
+    const auto s_take = m_endpoint.takeDeviceSettings(
+        s_submit.m_request_id, s_result, s_settings);
+    if (s_wait != detail::FciEndpointStatus::kOk ||
+        s_take != detail::FciEndpointStatus::kOk) {
+        throw ProtocolException(
+            s_operationError("GetDeviceSettings", s_take, &s_result));
+    }
+    m_device_settings = s_settings;
+    m_fw_dt_us = s_settings.m_firmware_period_us;
 }
 
-bool ArmImpl::setDeviceSettings(const fci::arm::DeviceSettings& s_settings) {
-    fci::arm::SetDeviceSettingsRequestPacket s_req{};
-    s_req.payload.settings = s_settings;
+bool ArmImpl::setDeviceSettings(const DeviceSettings& s_settings) {
+    const auto s_submit =
+        m_endpoint.setDeviceSettings(s_settings, s_kDefaultRpcTimeoutMs);
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) return false;
 
-    auto s_result = m_session.request(s_req, 200);
-    if (!s_result) return false;
+    detail::FciOperationResult s_result{};
+    const auto s_wait =
+        m_endpoint.waitOperation(s_submit.m_request_id, 750ms, s_result);
+    DeviceSettings s_effective{};
+    const auto s_take = m_endpoint.takeDeviceSettings(
+        s_submit.m_request_id, s_result, s_effective);
+    if (s_wait != detail::FciEndpointStatus::kOk ||
+        s_take != detail::FciEndpointStatus::kOk) {
+        return false;
+    }
+    m_device_settings = s_effective;
+    m_fw_dt_us = s_effective.m_firmware_period_us;
+    return true;
+}
 
-    if (*s_result == static_cast<std::uint8_t>(fci::arm::SetDeviceSettingsStatus::Ok)) {
-        m_device_settings = s_settings;
-        m_fw_dt_us = m_device_settings.firmware_dt_us;
-        if (m_fw_dt_us == 0) m_fw_dt_us = 2000;
+bool ArmImpl::setCustomName(std::string_view s_custom_name) {
+    if (!s_operationSucceeded(
+            m_endpoint.setDeviceInfo(s_custom_name, s_kDefaultRpcTimeoutMs),
+            750ms)) {
+        return false;
+    }
+    try {
+        // SetDeviceInfo acknowledges persistence but does not echo metadata.
+        // Refresh it so immutable firmware type and serial stay authoritative.
+        s_fetchDeviceInfo();
         return true;
+    } catch (...) {
+        return false;
     }
-    return false;
-}
-
-ArmState ArmImpl::s_convertStatus(const fci::arm::ArmStatus& s_raw) {
-    ArmState s_state;
-    s_state.m_time = detail::get_tick_ms();
-    s_state.m_seq = s_raw.seq;
-    s_state.m_mode = static_cast<std::uint32_t>(static_cast<std::uint8_t>(s_raw.mode));
-    s_state.m_source_timestamp_us = s_raw.timestamp_us;
-    s_state.m_errors = s_raw.errors;
-
-    for (int s_i = 0; s_i < 6; ++s_i) {
-        s_state.m_q[s_i]  = s_raw.status.q[s_i];
-        s_state.m_dq[s_i] = s_raw.status.dq[s_i];
-        s_state.m_tau[s_i] = s_raw.status.tau[s_i];
-    }
-    for (int s_i = 0; s_i < 3; ++s_i)
-        s_state.m_base_gravity[s_i] = s_raw.base_gravity[s_i];
-    for (int s_i = 0; s_i < 16; ++s_i)
-        s_state.m_O_T_EE[s_i] = s_raw.O_T_EE[s_i];
-    for (int s_i = 0; s_i < 6; ++s_i)
-        s_state.m_F_ext[s_i] = s_raw.F_ext[s_i];
-
-    s_state.m_gripper_q   = s_raw.gripper.q;
-    s_state.m_gripper_dq  = s_raw.gripper.dq;
-    s_state.m_gripper_tau = s_raw.gripper.tau;
-
-    return s_state;
 }
 
 ArmState ArmImpl::readOnce() {
-    fci::arm::ArmStatus s_raw;
-    if (!m_rx_queue.try_dequeue(s_raw)) return ArmState{};
-    return s_convertStatus(s_raw);
+    ArmState s_state{};
+    (void)s_takeLatestState(s_state);
+    return s_state;
 }
 
-fci::arm::ArmDiagnostics ArmImpl::readDiagnostics() {
-    return m_last_diag;
+ArmDiagnostics ArmImpl::readDiagnostics() {
+    std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
+    return m_last_diagnostics;
 }
 
-// ────────────────────────────────────────────────────────
-//  Control mode switch
-// ────────────────────────────────────────────────────────
-
-void ArmImpl::s_ensureMode(fci::arm::MotorControlMode s_mode) {
-    if (s_mode == m_current_mode) return;
-
-    fci::arm::ArmControlModeRequestPacket s_req{};
-    s_req.payload.mode = s_mode;
-    m_session.notify(s_req);  // fire-and-forget, no blocking
-
-    m_current_mode = s_mode;
-}
-
-// ────────────────────────────────────────────────────────
-//  Cartesian → Joint conversion (MPC or fallback)
-// ────────────────────────────────────────────────────────
-
-JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_cmd,
-                                      const ArmState& s_state) {
-#ifdef FLORID_HAS_MPC
-    if (m_mpc) {
-        return m_mpc->solve(s_state.m_q, s_state.m_dq, s_cmd.m_T);
+ArmConnectionState ArmImpl::connectionState() const noexcept {
+    if (!m_transport) return ArmConnectionState::kClosed;
+    switch (m_transport->connectionState()) {
+        case TransportConnectionState::kDisconnected:
+            return ArmConnectionState::kDisconnected;
+        case TransportConnectionState::kReconnecting:
+            return ArmConnectionState::kReconnecting;
+        case TransportConnectionState::kClosed:
+            return ArmConnectionState::kClosed;
+        case TransportConnectionState::kConnected:
+        case TransportConnectionState::kUnknown:
+            break;
     }
-#endif
-    JointPVT s_out{};
-    return s_out;
-}
 
-void ArmImpl::s_sendCommand(const CartesianPose& s_cmd) {
-#ifdef FLORID_HAS_MPC
-    ArmState s_state = s_convertStatus(
-        m_session.deserializer().get<fci::arm::ArmStatus>());
-    auto s_joint = s_convertCartesian(s_cmd, s_state);
-    s_sendCommand(s_joint);
-#else
-    if (s_supportsCartesian()) {
-        auto s_pkt = m_arm_core.s_pack(s_cmd);
-        s_pkt.sdk_timestamp_us = detail::s_nowUs();
-        m_session.notify(s_pkt);
-    } else {
-        auto s_joint = s_convertCartesian(s_cmd, s_convertStatus(
-            m_session.deserializer().get<fci::arm::ArmStatus>()));
-        s_sendCommand(s_joint);
-    }
-#endif
-}
-
-void ArmImpl::s_sendCommand(const CartesianVelocities& s_cmd) {
-    auto s_pkt = m_arm_core.s_pack(s_cmd);
-    s_pkt.sdk_timestamp_us = detail::s_nowUs();
-    m_session.notify(s_pkt);
-}
-
-// ────────────────────────────────────────────────────────
-//  Configuration commands
-// ────────────────────────────────────────────────────────
-
-void ArmImpl::home() {
-    fci::arm::HomeAllRequestPacket s_req{};
-    s_req.payload.dummy = 0;
-    auto s_result = m_session.request(s_req, 10000);
-
-    if (!s_result) {
-        throw CommandException("HomeAll request failed: ack timeout or transport error");
+    const auto s_lease = m_endpoint.controlLease();
+    switch (s_lease.m_state) {
+        case detail::FciControlLeaseState::kHeld:
+        case detail::FciControlLeaseState::kRenewQueued:
+        case detail::FciControlLeaseState::kRenewing:
+            return ArmConnectionState::kReady;
+        default:
+            return ArmConnectionState::kControlUnavailable;
     }
 }
 
-void ArmImpl::enable() {
-    fci::arm::SetArmModeRequestPacket s_req{};
-    s_req.payload.mode = fci::arm::ArmMode::Pc;
-    auto s_r = m_session.request(s_req, 500);
-    if (!s_r) throw CommandException("enable failed: ack timeout");
+bool ArmImpl::waitUntilReady(std::chrono::milliseconds s_timeout) {
+    if (s_timeout < std::chrono::milliseconds::zero()) return false;
+    const auto s_deadline = std::chrono::steady_clock::now() + s_timeout;
+    do {
+        const auto s_state = connectionState();
+        if (s_state == ArmConnectionState::kReady) return true;
+        if (s_state == ArmConnectionState::kClosed) return false;
+
+        const auto s_now = std::chrono::steady_clock::now();
+        if (s_now >= s_deadline) break;
+        if (s_state == ArmConnectionState::kControlUnavailable) {
+            const auto s_remaining =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    s_deadline - s_now);
+            const auto s_wait = std::min(s_remaining, 750ms);
+            if (s_operationSucceeded(
+                    m_endpoint.acquireControlLease(s_kLeaseDurationMs,
+                                                   s_kDefaultRpcTimeoutMs),
+                    s_wait)) {
+                return true;
+            }
+        }
+        const auto s_after_attempt = std::chrono::steady_clock::now();
+        if (s_after_attempt >= s_deadline) break;
+        std::this_thread::sleep_for(std::min(
+            50ms, std::chrono::duration_cast<std::chrono::milliseconds>(
+                      s_deadline - s_after_attempt)));
+    } while (true);
+    return connectionState() == ArmConnectionState::kReady;
 }
 
-void ArmImpl::drag() {
-    fci::arm::SetArmModeRequestPacket s_req{};
-    s_req.payload.mode = fci::arm::ArmMode::Drag;
-    auto s_r = m_session.request(s_req, 500);
-    if (!s_r) throw CommandException("drag failed: ack timeout");
+void ArmImpl::s_requireOperation(detail::FciSubmitResult s_submit,
+                                 std::chrono::milliseconds s_wait,
+                                 const char* s_operation) {
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) {
+        throw CommandException(
+            s_operationError(s_operation, s_submit.m_status));
+    }
+
+    detail::FciOperationResult s_result{};
+    const auto s_wait_status =
+        m_endpoint.waitOperation(s_submit.m_request_id, s_wait, s_result);
+    if (s_wait_status == detail::FciEndpointStatus::kBusy) {
+        throw CommandException(
+            s_operationError(s_operation, s_wait_status, &s_result));
+    }
+    const auto s_take =
+        m_endpoint.takeOperation(s_submit.m_request_id, s_result);
+    if (s_take != detail::FciEndpointStatus::kOk) {
+        throw CommandException(
+            s_operationError(s_operation, s_take, &s_result));
+    }
 }
 
-void ArmImpl::disable() {
-    fci::arm::SetArmModeRequestPacket s_req{};
-    s_req.payload.mode = fci::arm::ArmMode::Damp;
-    auto s_r = m_session.request(s_req, 500);
-    if (!s_r) throw CommandException("disable failed: ack timeout");
+bool ArmImpl::s_operationSucceeded(detail::FciSubmitResult s_submit,
+                                   std::chrono::milliseconds s_wait) noexcept {
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) return false;
+    detail::FciOperationResult s_result{};
+    const auto s_wait_status =
+        m_endpoint.waitOperation(s_submit.m_request_id, s_wait, s_result);
+    if (s_wait_status == detail::FciEndpointStatus::kBusy) return false;
+    return m_endpoint.takeOperation(s_submit.m_request_id, s_result) ==
+           detail::FciEndpointStatus::kOk;
+}
+
+void ArmImpl::s_requireCommand(detail::FciEndpointStatus s_status,
+                               const char* s_operation) {
+    if (s_status != detail::FciEndpointStatus::kOk) {
+        throw CommandException(s_operationError(s_operation, s_status));
+    }
 }
 
 void ArmImpl::s_requestPcMode() {
-    fci::arm::SetArmModeRequestPacket s_req{};
-    s_req.payload.mode = fci::arm::ArmMode::Pc;
-    m_session.request(s_req, 200);
+    s_requireOperation(m_endpoint.setArmMode(detail::FciArmMode::kPc,
+                                             s_kDefaultRpcTimeoutMs),
+                       750ms, "SetArmMode(Pc)");
 }
 
-void ArmImpl::setJointImpedance(const float (&)[6]) {
-    // Stub — SetJointImpedance not yet implemented in firmware protocol
+void ArmImpl::s_ensureMode(detail::FciMotorControlMode s_mode) {
+    std::lock_guard<std::mutex> s_lock(m_control_mutex);
+    if (m_current_mode == s_mode) return;
+    s_requireOperation(
+        m_endpoint.setArmControlMode(s_mode, s_kDefaultRpcTimeoutMs), 750ms,
+        "SetArmControlMode");
+    m_current_mode = s_mode;
 }
 
-void ArmImpl::setCartesianImpedance(const float (&)[6]) {
-    // Stub
+void ArmImpl::s_ensureGripperMode(detail::FciMotorControlMode s_mode) {
+    std::lock_guard<std::mutex> s_lock(m_control_mutex);
+    if (m_current_gripper_mode == s_mode) return;
+    s_requireOperation(
+        m_endpoint.setGripperControlMode(s_mode, s_kDefaultRpcTimeoutMs),
+        750ms, "SetGripperControlMode");
+    m_current_gripper_mode = s_mode;
 }
 
-void ArmImpl::setEEFrame(const float (&)[16]) {
-    // Stub
+ArmState ArmImpl::s_latestState() const {
+    std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
+    return m_latest_state;
 }
 
-void ArmImpl::setLoad(float, const float (&)[3], const float (&)[9]) {
-    // Stub
+bool ArmImpl::s_takeLatestState(ArmState& s_state) noexcept {
+    std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
+    if (m_latest_state_generation == 0 ||
+        m_latest_state_generation == m_consumed_state_generation) {
+        return false;
+    }
+    s_state = m_latest_state;
+    m_consumed_state_generation = m_latest_state_generation;
+    return true;
+}
+
+#ifdef FLORID_HAS_MPC
+JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_command,
+                                     const ArmState& s_state) {
+    if (m_mpc) {
+        return m_mpc->solve(s_state.m_q, s_state.m_dq, s_command.m_T);
+    }
+    return JointPVT{};
+}
+#endif
+
+void ArmImpl::s_sendCommand(const JointMIT& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendJointMit(s_command, m_fw_dt_us, s_now),
+                     "JointMitCommand");
+}
+
+void ArmImpl::s_sendCommand(const JointPosVel& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendJointPositionVelocity(s_command, s_now),
+                     "JointPositionVelocityCommand");
+}
+
+void ArmImpl::s_sendCommand(const JointVel& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendJointVelocity(s_command, s_now),
+                     "JointVelocityCommand");
+}
+
+void ArmImpl::s_sendCommand(const JointPVT& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendJointPvt(s_command, s_now),
+                     "JointPvtCommand");
+}
+
+void ArmImpl::s_sendCommand(const CartesianPose& s_command) {
+#ifdef FLORID_HAS_MPC
+    s_sendCommand(s_convertCartesian(s_command, s_latestState()));
+#else
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(
+        m_endpoint.sendCartesianPose(s_command, m_fw_dt_us, s_now),
+        "CartesianPoseCommand");
+#endif
+}
+
+void ArmImpl::s_sendCommand(const CartesianVelocities& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(
+        m_endpoint.sendCartesianVelocity(s_command, m_fw_dt_us, s_now),
+        "CartesianVelocityCommand");
+}
+
+void ArmImpl::s_sendGripperCommand(const JointMIT& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendGripperMit(s_command, m_fw_dt_us, s_now),
+                     "GripperMitCommand");
+}
+
+void ArmImpl::s_sendGripperCommand(const JointPosVel& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(
+        m_endpoint.sendGripperPositionVelocity(s_command, s_now),
+        "GripperPositionVelocityCommand");
+}
+
+void ArmImpl::s_sendGripperCommand(const JointVel& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendGripperVelocity(s_command, s_now),
+                     "GripperVelocityCommand");
+}
+
+void ArmImpl::s_sendGripperCommand(const JointPVT& s_command) {
+    const auto s_now = detail::s_nowUs();
+    s_requireCommand(m_endpoint.sendGripperPvt(s_command, s_now),
+                     "GripperPvtCommand");
+}
+
+void ArmImpl::home() {
+    // The link currently serializes reliable RPCs. Extend the short control
+    // lease before Home so its allowed ten-second response window cannot block
+    // the renewal RPC long enough to expire the lease.
+    s_requireOperation(
+        m_endpoint.acquireControlLease(s_kHomeLeaseDurationMs, 1000), 1500ms,
+        "ExtendControlLeaseForHome");
+    try {
+        s_requireOperation(m_endpoint.home(10'000), 10'500ms, "Home");
+    } catch (...) {
+        (void)s_operationSucceeded(
+            m_endpoint.acquireControlLease(s_kLeaseDurationMs, 1000), 1500ms);
+        throw;
+    }
+    s_requireOperation(
+        m_endpoint.acquireControlLease(s_kLeaseDurationMs, 1000), 1500ms,
+        "RestoreControlLeaseAfterHome");
+}
+
+void ArmImpl::enable() {
+    s_requireOperation(
+        m_endpoint.setArmMode(detail::FciArmMode::kPc,
+                              s_kDefaultRpcTimeoutMs),
+        750ms, "Enable");
+}
+
+void ArmImpl::drag() {
+    s_requireOperation(
+        m_endpoint.setArmMode(detail::FciArmMode::kDrag,
+                              s_kDefaultRpcTimeoutMs),
+        750ms, "Drag");
+}
+
+void ArmImpl::disable() {
+    s_requireOperation(
+        m_endpoint.setArmMode(detail::FciArmMode::kDamp,
+                              s_kDefaultRpcTimeoutMs),
+        750ms, "Disable");
 }
 
 void ArmImpl::automaticErrorRecovery() {
-    // Send ClearFaults, then ClearError
-    fci::arm::ClearFaultsRequestPacket s_req_fault{};
-    m_session.request(s_req_fault, 100);
-
-    for (int s_joint = 0; s_joint < 6; ++s_joint) {
-        fci::arm::ClearErrorRequestPacket s_req{};
-        s_req.payload.joint_id = static_cast<std::uint8_t>(s_joint);
-        m_session.request(s_req, 100);
+    s_requireOperation(m_endpoint.clearFaults(s_kDefaultRpcTimeoutMs), 750ms,
+                       "ClearFaults");
+    for (std::uint8_t s_joint = 0; s_joint < 6; ++s_joint) {
+        s_requireOperation(
+            m_endpoint.clearError(s_joint, s_kDefaultRpcTimeoutMs), 750ms,
+            "ClearError");
     }
 }
 
 void ArmImpl::stop() {
-    m_stop_flag = true;
-    m_running = false;
+    m_stop_flag.store(true, std::memory_order_release);
+    m_running.store(false, std::memory_order_release);
     m_data_ready.release();
 }
 
-// ────────────────────────────────────────────────────────
-//  Motor register access
-// ────────────────────────────────────────────────────────
+bool ArmImpl::s_validJointId(std::uint8_t s_joint_id) noexcept {
+    return s_joint_id >= 1 && s_joint_id <= 7;
+}
+
+std::uint8_t ArmImpl::s_wireJointId(std::uint8_t s_joint_id) noexcept {
+    return static_cast<std::uint8_t>(s_joint_id - 1);
+}
 
 std::optional<float> ArmImpl::readMotorRegister(std::uint8_t s_joint_id,
-                                                 fci::arm::MotorRegister s_rid) {
-    fci::arm::MotorRegisterReadRequestPacket s_req{};
-    s_req.payload.joint_id = s_joint_id;
-    s_req.payload.rid = static_cast<std::uint8_t>(s_rid);
-
-    // notify() + poll: firmware sends MotorRegisterReadResponse (0x621E)
-    // without a separate USBAck, so request() would time out on wait_ack.
-    s_req.req_id = m_session.ack_manager().allocate();
-    (void)m_session.notify(s_req);
-
-    using namespace std::chrono;
-    auto s_deadline = steady_clock::now() + milliseconds(200);
-
-    while (steady_clock::now() < s_deadline) {
-        auto s_resp =
-            m_session.deserializer().get<fci::arm::MotorRegisterReadResponsePacket>();
-        if (s_resp.req_id == s_req.req_id) {
-            if (s_resp.payload.status == fci::arm::MotorRegisterStatus::Ok)
-                return s_resp.payload.value;
-            return std::nullopt;
-        }
-        std::this_thread::yield();
+                                                MotorRegister s_register) {
+    if (!s_validJointId(s_joint_id)) return std::nullopt;
+    const auto s_submit = m_endpoint.readMotorRegister(
+        s_wireJointId(s_joint_id), static_cast<std::uint8_t>(s_register),
+        s_kDefaultRpcTimeoutMs);
+    if (s_submit.m_status != detail::FciEndpointStatus::kOk) {
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    detail::FciOperationResult s_result{};
+    const auto s_wait =
+        m_endpoint.waitOperation(s_submit.m_request_id, 750ms, s_result);
+    float s_value{};
+    const auto s_take = m_endpoint.takeMotorRegister(
+        s_submit.m_request_id, s_result, s_value);
+    if (s_wait != detail::FciEndpointStatus::kOk ||
+        s_take != detail::FciEndpointStatus::kOk ||
+        !std::isfinite(s_value)) {
+        return std::nullopt;
+    }
+    return s_value;
 }
 
 bool ArmImpl::writeMotorRegister(std::uint8_t s_joint_id,
-                                  fci::arm::MotorRegister s_rid,
-                                  float s_value) {
-    fci::arm::MotorRegisterWriteRequestPacket s_req{};
-    s_req.payload.joint_id = s_joint_id;
-    s_req.payload.rid = static_cast<std::uint8_t>(s_rid);
-    s_req.payload.value = s_value;
-
-    auto s_result = m_session.request(s_req, 200);
-    if (!s_result) return false;
-
-    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
+                                 MotorRegister s_register, float s_value) {
+    return s_validJointId(s_joint_id) && std::isfinite(s_value) &&
+           s_operationSucceeded(
+               m_endpoint.writeMotorRegister(
+                   s_wireJointId(s_joint_id),
+                   static_cast<std::uint8_t>(s_register), s_value,
+                   s_kDefaultRpcTimeoutMs),
+               750ms);
 }
 
 bool ArmImpl::storeParameters(std::uint8_t s_joint_id) {
-    fci::arm::MotorStoreParamsRequestPacket s_req{};
-    s_req.payload.joint_id = s_joint_id;
-
-    auto s_result = m_session.request(s_req, 200);
-    if (!s_result) return false;
-
-    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
+    return s_validJointId(s_joint_id) &&
+           s_operationSucceeded(
+               m_endpoint.storeMotorParameters(s_wireJointId(s_joint_id),
+                                               s_kDefaultRpcTimeoutMs),
+               750ms);
 }
 
 bool ArmImpl::setZeroPoint(std::uint8_t s_joint_id) {
-    fci::arm::MotorSetZeroRequestPacket s_req{};
-    s_req.payload.joint_id = s_joint_id;
-
-    auto s_result = m_session.request(s_req, 200);
-    if (!s_result) return false;
-
-    return *s_result == static_cast<std::uint8_t>(fci::arm::AckStatus::Ok);
+    return s_validJointId(s_joint_id) &&
+           s_operationSucceeded(
+               m_endpoint.setMotorZero(s_wireJointId(s_joint_id),
+                                       s_kDefaultRpcTimeoutMs),
+               750ms);
 }
 
 } // namespace florid

@@ -14,7 +14,6 @@ public:
     Duration estimatedLatency() const;
     double receiveJitterUs() const;
     double receiveHz() const;
-    bool isReconnecting() const;
     void finishMotion();
     void stopControl();
 

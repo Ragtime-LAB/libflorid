@@ -256,9 +256,9 @@ A：先点 **Invert gravity (−)** 全局翻转；若只有个别轴反，把�
 **Q6：改质量/scale 时界面上数值被回弹？**
 A：中间值（如输入过程中的 `1.`、`-`）会被忽略，输入完整数字后回车生效。
 
-**Q7：`mock://` 能用来无硬件测试吗？**
-A：不能。pybind 层的 `Arm.create("mock://")` 返回 None，无硬件请用
-`tools/gravity_tuner/tests/smoke_test.py` 或 `start_with()` 注入的假设备。
+**Q7：如何做无硬件测试？**
+A：运行 `tools/gravity_tuner/tests/smoke_test.py`，或通过 `start_with()`
+注入假设备；`Arm.create()` 只接受真实的 USB/UDP transport URI。
 
 ---
 

@@ -48,7 +48,7 @@ void LatencyEstimator::markReceived(std::uint64_t s_echo_timestamp_us,
     }
 }
 
-double LatencyEstimator::receiveHz(std::uint64_t s_host_now_us) const {
+double LatencyEstimator::receiveHz() const {
     if (m_window_count < 4) return 0.0;
     std::uint64_t s_sum = 0;
     for (int s_i = 0; s_i < m_window_count; ++s_i)
@@ -57,7 +57,5 @@ double LatencyEstimator::receiveHz(std::uint64_t s_host_now_us) const {
     if (s_avg_us <= 0.0) return 0.0;
     return 1e6 / s_avg_us;
 }
-
-void LatencyEstimator::markSent(std::uint64_t /*s_host_now_us*/) {}
 
 } // namespace florid::detail

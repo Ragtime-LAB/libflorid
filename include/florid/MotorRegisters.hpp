@@ -2,7 +2,6 @@
 #define FLORID_MOTOR_REGISTERS_HPP
 
 #include "florid/Arm.hpp"
-#include "fci_protocol/arm/constants.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -13,8 +12,6 @@ namespace florid {
 namespace motor {
 
 // All functions accept joint_id in range [1, 7] (1–6 = arm, 7 = gripper).
-
-using fci::arm::MotorRegister;
 
 // ── Helpers ────────────────────────────────────────────
 

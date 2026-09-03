@@ -5,11 +5,6 @@
 
 namespace florid {
 
-enum class ReconnectPolicy {
-    kThrow,
-    kWait,
-};
-
 enum class ControllerMode : std::uint8_t {
     JointImpedance = 0,
     CartesianImpedance = 1,
@@ -76,8 +71,6 @@ struct CartesianPose : Finishable {
     float m_T[16]{};
     float m_kp[6]{};
     float m_kd[6]{};
-
-    bool hasElbow() const { return false; }
 
     static CartesianPose MotionFinished(const CartesianPose& s_cmd) {
         CartesianPose s_r = s_cmd;

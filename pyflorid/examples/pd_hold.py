@@ -17,19 +17,11 @@ def signal_handler(sig, frame):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <usb_device>")
-        sys.exit(1)
-
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    uri = f"usb://{sys.argv[1]}"
-    print(f"Connecting to {uri} ...")
-    arm = Arm.create(uri)
-    if arm is None:
-        print("Failed to create Arm.")
-        sys.exit(1)
+    print("Connecting to the only visible Florid USB Bulk device ...")
+    arm = Arm.connect()
     print(f"Connected. fw_dt={arm.firmware_period_us()} us\n")
 
     ctrl = arm.start_joint_mit_control()

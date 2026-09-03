@@ -19,27 +19,34 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # Recursive checkout so protocol/ and 3rdparty/astrial/ (needed by
-          # the bindings) are populated. acados is pruned below.
-          submodules: recursive
 
-      - name: Prune acados (not needed for bindings)
-        shell: bash
-        run: rm -rf 3rdparty/acados
+      - name: Check out binding dependencies
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Install Windows USB dependency
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          vcpkg install --triplet x64-windows-static
+          --x-install-root=C:/vcpkg/installed
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.0
         env:
-          # cibuildwheel >= 3.x builds CPython 3.14 by default.
-          # Skip free-threaded variants (cp313t/cp314t) unless the
-          # pybind11 extension is explicitly free-threading ready.
-          CIBW_SKIP: "cp31?t-*"
+          # manylinux builds run in a container, so the host package state is
+          # not visible. Install libusb in that container before CMake runs.
+          CIBW_BEFORE_ALL_LINUX: "dnf install -y libusb1-devel"
+          # Keep the Windows wheel self-contained: link libusb statically and
+          # expose the runner's vcpkg installation to scikit-build-core.
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static
+            -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -54,12 +61,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Prune acados (not needed for bindings)
-        shell: bash
-        run: rm -rf 3rdparty/acados
+      - name: Check out binding dependencies
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
       - name: Set up Python
         uses: actions/setup-python@v5

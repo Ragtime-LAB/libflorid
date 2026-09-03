@@ -1,5 +1,5 @@
 #include "florid/Arm.hpp"
-#include "florid/detail/AstrialUSBTransport.hpp"
+#include "florid/UsbDiscovery.hpp"
 
 #include <atomic>
 #include <csignal>
@@ -14,11 +14,11 @@
 static std::atomic<bool> g_running{true};
 
 static const char* s_modeName(std::uint32_t s_mode) {
-    switch (static_cast<fci::arm::ArmMode>(s_mode)) {
-        case fci::arm::ArmMode::Pc:  return "PC";
-        case fci::arm::ArmMode::Drag: return "DRAG";
-        case fci::arm::ArmMode::Damp: return "DAMP";
-        case fci::arm::ArmMode::Retracting: return "RETR";
+    switch (s_mode) {
+        case 0: return "PC";
+        case 1: return "DRAG";
+        case 2: return "DAMP";
+        case 3: return "RETR";
         default: return "??";
     }
 }
@@ -28,32 +28,31 @@ void s_signalHandler(int) {
 }
 
 void s_printUsage(const char* s_prog) {
-    fprintf(stderr, "Usage: %s <usb_device>  (e.g. %s /dev/ttyACM0)\n", s_prog, s_prog);
+    fprintf(stderr, "Usage: %s <uri>  (e.g. %s usb://2fe3:574c)\n", s_prog, s_prog);
     exit(1);
 }
 
 int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含命令行参数本身），第二个参数是参数字符串
     if (s_argc < 2) s_printUsage(s_argv[0]);//如果参数不足，打印帮助信息
 
-    std::string s_uri = "usb://";
-    s_uri += s_argv[1];
+    std::string s_uri = s_argv[1];
 
     signal(SIGINT, s_signalHandler);//注册信号处理函数，当收到SIGINT信号（Ctrl+C）时调用
     signal(SIGTERM, s_signalHandler);//注册信号处理函数，当收到SIGTERM信号（kill -9）时调用
 
     // ── List available USB devices ──
     printf("=== USB Devices ===\n");
-    auto s_devices = florid::AstrialUSBTransport::listDevices();//获取所有可用的USB设备
-    for (const auto& s_d : s_devices) {
-        printf("  %-20s %04X:%04X  %s\n",
-               s_d.m_port_name.c_str(), s_d.m_vendor_id, s_d.m_product_id,
-               s_d.m_description.c_str());
+    auto s_discovery = florid::discoverUsbBulkDevices();
+    for (const auto& s_d : s_discovery.m_devices) {
+        printf("  %-32s %-28s %s\n", s_d.m_display_name.c_str(),
+               s_d.m_serial_number.c_str(), s_d.m_uri.c_str());
     }
     printf("\n");
 
     // ── Connect ──
     printf("Connecting to %s ...\n", s_uri.c_str());
     std::unique_ptr<florid::Arm> s_arm;
+    s_arm = florid::Arm::create(s_uri);
 
     if (!s_arm) {
         fprintf(stderr, "Failed to create Arm (unknown URI scheme).\n");
@@ -67,13 +66,19 @@ int main(int s_argc, char** s_argv) {//第一个参数是参数个数（包含�
     // ── Device info ──
     const auto& s_info = s_arm->deviceInfo();
     printf("Device info:\n");
-    printf("  Board:        %s\n", s_info.board_name.data());
-    printf("  Custom name:  %s\n", s_info.custom_name.data());
+    printf("  Board:        %s\n", s_info.m_board_name.c_str());
+    printf("  Custom name:  %s\n", s_info.m_custom_name.c_str());
+    printf("  Serial:       %s\n", s_info.m_serial_number.c_str());
     printf("  FW version:   %u.%u.%u\n",
-           s_info.fw_version.major, s_info.fw_version.minor, s_info.fw_version.patch);
+           s_info.m_firmware_version.m_major,
+           s_info.m_firmware_version.m_minor,
+           s_info.m_firmware_version.m_patch);
     printf("  Protocol ver: %u.%u.%u\n",
-           s_info.protocol_version.major, s_info.protocol_version.minor, s_info.protocol_version.patch);
-    printf("  FW type:      %d\n", s_info.fw_type);
+           s_info.m_protocol_version.m_major,
+           s_info.m_protocol_version.m_minor,
+           s_info.m_protocol_version.m_patch);
+    printf("  FW type:      %u\n",
+           static_cast<unsigned>(s_info.m_firmware_type));
     printf("\n");
 
     // ── Echo state ──

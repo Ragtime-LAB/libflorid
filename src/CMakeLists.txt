@@ -1,23 +1,40 @@
+add_library(florid_wirelink_host
+    FciWirelinkEndpoint.cpp
+)
+add_library(florid::wirelink_host ALIAS florid_wirelink_host)
+
+target_include_directories(florid_wirelink_host
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+target_compile_features(florid_wirelink_host PUBLIC cxx_std_20)
+target_link_libraries(florid_wirelink_host
+    PUBLIC
+        fci_protocol::arm
+        Wirelink::host
+    PRIVATE
+        Threads::Threads
+)
+
 add_library(florid
-    tick_std.cpp
-    timestamp_std.cpp
-    TickProvider.cpp
+    AstrialBulkTransport.cpp
     AstrialUSBTransport.cpp
+    DeviceDiscovery.cpp
+    UsbDiscovery.cpp
     UdpTransport.cpp
     ArmImpl.cpp
-    ArmCore.cpp
     Arm.cpp
-    GripperCore.cpp
     Gripper.cpp
     LatencyEstimator.cpp
 )
 
 target_link_libraries(florid
     PUBLIC
-        fci_protocol
-        astrial
+        wirelink::astrial
+        wirelink::astrial_usb
+        wirelink::asio_udp
     PRIVATE
-        asio_standalone
+        florid_wirelink_host
 )
 
 target_include_directories(florid

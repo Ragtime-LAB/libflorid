@@ -1,475 +1,956 @@
 #include "florid/detail/ArmImpl.hpp"
-#include "florid/detail/Seqlock.hpp"
+#include "florid/detail/ReceiveCallbackGate.hpp"
+#include "florid/detail/Transport.hpp"
 #include "florid/detail/UdpTransport.hpp"
+#include "florid/detail/WirelinkExecutor.hpp"
 
-#include "fci_protocol/arm/packets.hpp"
-#include "fci_protocol/session/arm_control_session.hpp"
-#include "fci_protocol/transport/byte_stream_transport.hpp"
+#include "fci_arm_bindings.h"
 
 #include <asio.hpp>
 
+#include <algorithm>
 #include <array>
-#include <cassert>
 #include <atomic>
-#include <cstdint>
+#include <chrono>
+#include <condition_variable>
 #include <cstdio>
+#include <cstdint>
 #include <cstring>
-#include <functional>
 #include <memory>
 #include <mutex>
-#include <vector>
+#include <semaphore>
+#include <stdexcept>
+#include <string>
 #include <thread>
-#include <chrono>
+#include <vector>
 
-using namespace florid;
+namespace {
 
-#ifdef _WIN32
-void s_disableUdpConnReset(asio::ip::udp::socket& s_socket) {
-    constexpr DWORD s_kSioUdpConnReset = 0x9800000C;
-    DWORD s_zero = 0;
-    DWORD s_returned = 0;
-    (void)::WSAIoctl(s_socket.native_handle(), s_kSioUdpConnReset, &s_zero,
-                     sizeof(s_zero), nullptr, 0, &s_returned, nullptr, nullptr);
-}
-#endif
+using namespace std::chrono_literals;
+using florid::ArmImpl;
+using florid::DeviceSettings;
+using florid::JointMIT;
+using florid::JointPosVel;
+using florid::MotorRegister;
+using florid::Transport;
+using florid::UdpTransport;
+using florid::detail::ReceiveCallbackGate;
+using florid::detail::WirelinkExecutor;
+using florid::detail::WirelinkExecutorHooks;
 
-// ────────────────────────────────────────────────────────────
-//  Frame builders (shared by MockTransport and FakeUdpDevice)
-// ────────────────────────────────────────────────────────────
-
-std::vector<uint8_t> s_makeAckFrame(std::uint8_t s_req_id) {
-    return {
-        0xA5, 0x02, 0x00,             // start + length=2
-        0x00, 0x00,                   // cmd = USBAck (0x0000)
-        s_req_id, 0x00                // status = Ok
-    };
+void require(bool s_condition, const char* s_message) {
+    if (!s_condition) throw std::runtime_error(s_message);
 }
 
-std::vector<uint8_t> s_makeDeviceInfoFrame(std::uint8_t s_req_id) {
-    // Frame: 5-byte header + 72-byte payload = 77 bytes
-    // Payload: req_id(1) + protocol_version(3) + fw_version(3)
-    //          + board_name(32) + custom_name(32) + fw_type(1)
-    std::vector<uint8_t> s_frame(77, 0);
-    s_frame[0] = 0xA5;
-    s_frame[1] = 0x48;  s_frame[2] = 0x00;     // length = 72
-    s_frame[3] = 0x16;  s_frame[4] = 0x62;     // cmd = 0x6216 (GetDeviceInfoResponse)
-    s_frame[5] = s_req_id;
-    s_frame[6] = 1;                             // protocol_version.major
-    s_frame[9] = 2;                             // fw_version.major
-    s_frame[10] = 3;                            // fw_version.minor
-    s_frame[11] = 1;                            // fw_version.patch
-    return s_frame;
-}
+struct PeerStorage {
+    std::array<std::uint8_t, 256> m_tx_payload{};
+    std::array<std::uint8_t, 320> m_tx_unit{};
+    std::array<std::uint8_t, 64> m_control_unit{};
+    std::array<std::uint8_t, 4096> m_rx_fifo{};
+    std::array<std::uint8_t, 320> m_rx_fallback{};
 
-std::vector<uint8_t> s_makeDeviceSettingsFrame(std::uint8_t s_req_id) {
-    // Frame: 5-byte header + 113-byte payload = 118 bytes
-    // Payload: req_id(1) + firmware_dt_us(4) + gravity_scale(24) + torque_fold(84)
-    std::vector<uint8_t> s_frame(118, 0);
-    s_frame[0] = 0xA5;
-    s_frame[1] = 0x71;  s_frame[2] = 0x00;     // length = 113
-    s_frame[3] = 0x29;  s_frame[4] = 0x62;     // cmd = 0x6229 (GetDeviceSettingsResponse)
-    s_frame[5] = s_req_id;
-    s_frame[6] = 0xD0; s_frame[7] = 0x07;      // firmware_dt_us = 2000 (LE)
-    s_frame[8] = 0x00; s_frame[9] = 0x00;      // firmware_dt_us continued
-    return s_frame;
-}
+    wl_storage_t descriptor() noexcept {
+        return wl_storage_t{
+            .tx_payload = m_tx_payload.data(),
+            .tx_payload_size = m_tx_payload.size(),
+            .tx_unit = m_tx_unit.data(),
+            .tx_unit_size = m_tx_unit.size(),
+            .control_unit = m_control_unit.data(),
+            .control_unit_size = m_control_unit.size(),
+            .rx_fifo = m_rx_fifo.data(),
+            .rx_fifo_size = m_rx_fifo.size(),
+            .rx_fallback = m_rx_fallback.data(),
+            .rx_fallback_size = m_rx_fallback.size(),
+        };
+    }
+};
 
-// ────────────────────────────────────────────────────────────
-//  MockTransport: captures sent bytes, can inject received bytes
-// ────────────────────────────────────────────────────────────
+class DevicePeer;
 
-class MockTransport : public Transport {
+class LoopbackTransport final : public Transport {
 public:
-    bool send(const std::uint8_t* s_data, std::size_t s_size) override {
-        m_sent.insert(m_sent.end(), s_data, s_data + s_size);
+    explicit LoopbackTransport(DevicePeer& s_peer) : m_peer(s_peer) {}
+    ~LoopbackTransport() override;
 
-        // Auto-respond to GetDeviceInfoRequest so ArmImpl construction succeeds
-        if (s_size >= 7 && s_data[0] == 0xA5) {
-            std::uint16_t s_cmd = static_cast<std::uint16_t>(s_data[3])
-                               | (static_cast<std::uint16_t>(s_data[4]) << 8);
-            if (s_cmd == 0x6215) {
-                std::uint8_t s_req_id = s_data[5];
-                inject(s_makeAckFrame(s_req_id));
-                inject(s_makeDeviceInfoFrame(s_req_id));
+    bool send(const std::uint8_t* s_data, std::size_t s_size) override;
+
+    void setReceiveCallback(ReceiveFunctor s_callback,
+                            void* s_context) override {
+        m_receive_callback.set(s_callback, s_context);
+    }
+
+    bool deliver(const std::uint8_t* s_data, std::size_t s_size) noexcept {
+        std::size_t s_offset{};
+        while (s_offset < s_size) {
+            const auto s_chunk = std::min<std::size_t>(3, s_size - s_offset);
+            if (!m_receive_callback.invoke(s_data + s_offset, s_chunk)) {
+                return false;
             }
-            if (s_cmd == 0x6228) {
-                std::uint8_t s_req_id = s_data[5];
-                inject(s_makeAckFrame(s_req_id));
-                inject(s_makeDeviceSettingsFrame(s_req_id));
-            }
+            s_offset += s_chunk;
         }
         return true;
     }
 
-    void setReceiveCallback(ReceiveFunctor s_callback, void* s_context) override {
-        m_recv_cb = s_callback;
-        m_recv_ctx = s_context;
-    }
-
-    void poll() override {}
-
-    // Inject bytes into ArmImpl's receive pipeline
-    void inject(const std::vector<uint8_t>& s_bytes) {
-        if (m_recv_cb) {
-            m_recv_cb(m_recv_ctx, s_bytes.data(), s_bytes.size());
-        }
-    }
-
-    std::vector<uint8_t> m_sent;
-    ReceiveFunctor m_recv_cb{nullptr};
-    void* m_recv_ctx{nullptr};
+private:
+    DevicePeer& m_peer;
+    ReceiveCallbackGate m_receive_callback;
 };
 
-// ────────────────────────────────────────────────────────────
-//  Helper: serialize a known-good ArmStatus frame
-// ────────────────────────────────────────────────────────────
-
-struct DummyTick {
-    using tick_type = std::uint32_t;
-    static tick_type now() { return 1; }
-};
-
-std::vector<std::uint8_t> serializeArmStatus(fci::arm::ArmStatus& s_status) {
-    using Session = RPL::USBTransport<
-        RPL::AckManager<DummyTick>,
-        std::function<void(const std::uint8_t*, std::size_t)>,
-        USBAck,
-        fci::arm::ArmStatus>;
-
-    std::vector<uint8_t> s_bytes;
-    Session s_sess;
-    s_sess.on_send([&s_bytes](const uint8_t* d, size_t n) {
-        s_bytes.assign(d, d + n);
-    });
-
-    auto s_result = s_sess.notify(s_status);
-    assert(s_result.has_value());
-    return s_bytes;
-}
-
-// ────────────────────────────────────────────────────────────
-//  FakeUdpDevice: real UDP peer that answers the SDK handshake and
-//  can push ArmStatus frames to the SDK's bound endpoint.
-// ────────────────────────────────────────────────────────────
-
-class FakeUdpDevice {
+class DevicePeer {
 public:
-    FakeUdpDevice(const asio::ip::udp::endpoint& s_bind, asio::ip::udp::endpoint s_sdk)
-        : m_ctx(1), m_socket(m_ctx), m_sdk(std::move(s_sdk)) {
-        m_socket.open(s_bind.protocol());
-#ifdef _WIN32
-        s_disableUdpConnReset(m_socket);
-#endif
-        m_socket.bind(s_bind);
-        m_work_guard = std::make_unique<asio::executor_work_guard<asio::io_context::executor_type>>(
-            m_ctx.get_executor());
-        m_thread = std::jthread([this] { m_ctx.run(); });
-        start_receive();
+    int initialize() {
+        const wl_config_t s_config{
+            .max_payload_len = 256,
+            .envelope = WL_ENVELOPE_COBS_STREAM,
+            .integrity = WL_INTEGRITY_NONE,
+            .session_id = UINT64_C(0x4455667788990011),
+            .max_retries = 2,
+            .ack_timeout_ms = 20,
+            .max_transmission_unit = 320,
+        };
+        auto s_storage = m_storage.descriptor();
+        int s_result = m_executor.initialize(s_config, s_storage);
+        if (s_result != WL_OK) return s_result;
+        WirelinkExecutorHooks s_hooks{};
+        s_hooks.m_user_data = this;
+        s_hooks.m_on_event = s_onEvent;
+        return m_executor.setHooks(s_hooks);
     }
 
-    ~FakeUdpDevice() {
-        m_closed.store(true, std::memory_order_release);
-        asio::error_code s_ec;
-        m_socket.close(s_ec);
-        m_ctx.stop();
-        if (m_thread.joinable()) m_thread.join();
+    int attach(LoopbackTransport& s_transport) {
+        std::lock_guard<std::mutex> s_lock(m_transport_mutex);
+        if (m_transport != nullptr) return WL_ERR_BUSY;
+        if (!m_sink_attached) {
+            const int s_result = m_executor.setSink(s_sink, this);
+            if (s_result != WL_OK) return s_result;
+            m_sink_attached = true;
+        }
+        m_transport = &s_transport;
+        return WL_OK;
     }
 
-    asio::ip::udp::endpoint localEndpoint() const { return m_socket.local_endpoint(); }
+    void detach(LoopbackTransport& s_transport) noexcept {
+        std::lock_guard<std::mutex> s_lock(m_transport_mutex);
+        if (m_transport == &s_transport) m_transport = nullptr;
+    }
 
-    void send(const std::vector<uint8_t>& s_bytes) {
-        std::lock_guard<std::mutex> s_lock(m_send_mutex);
-        asio::error_code s_ec;
-        m_socket.send_to(asio::buffer(s_bytes), m_sdk, 0, s_ec);
+    int start() { return m_executor.start(); }
+    void stop() { m_executor.stop(); }
+
+    bool feed(const std::uint8_t* s_data, std::size_t s_size) noexcept {
+        std::size_t s_offset{};
+        while (s_offset < s_size) {
+            const auto s_chunk = std::min<std::size_t>(2, s_size - s_offset);
+            std::size_t s_accepted{};
+            if (m_executor.feedBytes(s_data + s_offset, s_chunk,
+                                     s_accepted) != WL_OK ||
+                s_accepted != s_chunk) {
+                return false;
+            }
+            s_offset += s_chunk;
+        }
+        return true;
+    }
+
+    int sendArmStatus(std::uint32_t s_sequence, float s_position) {
+        arm_status_t s_status{};
+        arm_status_clear(&s_status);
+        s_status.has_mode = true;
+        s_status.mode = ARM_MODE_PC;
+        s_status.has_sequence = true;
+        s_status.sequence = s_sequence;
+        s_status.has_timestamp_us = true;
+        s_status.timestamp_us = 10'000 + s_sequence;
+        s_status.has_joint_position = true;
+        s_status.has_joint_velocity = true;
+        s_status.has_joint_torque = true;
+        s_status.has_base_gravity = true;
+        s_status.has_gripper_position = true;
+        s_status.gripper_position = 0.25F;
+        s_status.has_gripper_velocity = true;
+        s_status.gripper_velocity = 0.5F;
+        s_status.has_gripper_torque = true;
+        s_status.gripper_torque = 0.75F;
+        s_status.has_end_effector_transform = true;
+        s_status.has_external_wrench = true;
+        s_status.has_error_flags = true;
+        s_status.has_last_sdk_timestamp_us = true;
+        for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+            s_status.joint_position[s_index] =
+                s_position + static_cast<float>(s_index);
+            s_status.joint_velocity[s_index] = 0.1F;
+            s_status.joint_torque[s_index] = 0.2F;
+            s_status.external_wrench[s_index] = 0.3F;
+        }
+        s_status.base_gravity[2] = -9.81F;
+        s_status.end_effector_transform[0] = 1.0F;
+        s_status.end_effector_transform[5] = 1.0F;
+        s_status.end_effector_transform[10] = 1.0F;
+        s_status.end_effector_transform[15] = 1.0F;
+
+        std::array<std::uint8_t, 256> s_payload{};
+        std::size_t s_size{};
+        if (arm_status_encode(&s_status, s_payload.data(), s_payload.size(),
+                              &s_size) != WL_CODEC_OK) {
+            return WL_ERR_INVALID_ARG;
+        }
+        return m_executor.submitLatest(ARM_STATUS_MESSAGE_ID,
+                                       s_payload.data(), s_size);
+    }
+
+    bool waitForCommand(std::uint16_t s_message_id) {
+        std::unique_lock<std::mutex> s_lock(m_mutex);
+        return m_changed.wait_for(s_lock, 2s, [&] {
+            for (const auto s_seen : m_commands) {
+                if (s_seen == s_message_id) return true;
+            }
+            return false;
+        });
+    }
+
+    std::size_t acquireCount() const noexcept {
+        return m_acquire_count.load(std::memory_order_relaxed);
+    }
+    std::size_t releaseCount() const noexcept {
+        return m_release_count.load(std::memory_order_relaxed);
+    }
+    std::size_t newLeaseCount() const noexcept {
+        return m_new_lease_count.load(std::memory_order_relaxed);
+    }
+    std::uint32_t firstNewLeaseOperationId() const noexcept {
+        return m_first_new_lease_operation_id.load(std::memory_order_relaxed);
+    }
+    std::uint32_t lastNewLeaseOperationId() const noexcept {
+        return m_last_new_lease_operation_id.load(std::memory_order_relaxed);
+    }
+    std::uint8_t lastRegisterJoint() const noexcept {
+        return m_last_register_joint.load(std::memory_order_relaxed);
+    }
+    void rejectSettings(bool s_reject) noexcept {
+        m_reject_settings.store(s_reject, std::memory_order_relaxed);
     }
 
 private:
-    void start_receive() {
-        if (m_closed.load(std::memory_order_acquire)) return;
-        try {
-            m_socket.async_receive_from(
-                asio::buffer(m_rx_buffer), m_remote,
-                [this](const asio::error_code& s_ec, std::size_t s_bytes) {
-                    if (s_ec) {
-                        if (s_ec != asio::error::operation_aborted) {
-                            start_receive();
-                        }
-                        return;
-                    }
-                    handle(s_bytes);
-                    start_receive();
-                });
-        } catch (...) {
-        }
+    static fci_arm_encode_scratch_t s_scratch(
+        std::array<std::uint8_t, 256>& s_buffer) noexcept {
+        return {s_buffer.data(), s_buffer.size()};
     }
 
-    void handle(std::size_t s_bytes) {
-        if (s_bytes >= 7 && m_rx_buffer[0] == 0xA5) {
-            std::uint16_t s_cmd = static_cast<std::uint16_t>(m_rx_buffer[3])
-                                | (static_cast<std::uint16_t>(m_rx_buffer[4]) << 8);
-            std::uint8_t s_req_id = m_rx_buffer[5];
-            if (s_cmd == 0x6215) {
-                send(s_makeAckFrame(s_req_id));
-                send(s_makeDeviceInfoFrame(s_req_id));
-            } else if (s_cmd == 0x6228) {
-                send(s_makeAckFrame(s_req_id));
-                send(s_makeDeviceSettingsFrame(s_req_id));
-            }
-        }
+    static wl_sink_result_t s_sink(void* s_user_data, wl_io_token_t,
+                                   const std::uint8_t* s_data,
+                                   std::size_t s_size) noexcept {
+        auto& s_self = *static_cast<DevicePeer*>(s_user_data);
+        std::lock_guard<std::mutex> s_lock(s_self.m_transport_mutex);
+        return s_self.m_transport != nullptr &&
+                       s_self.m_transport->deliver(s_data, s_size)
+                   ? WL_SINK_SENT
+                   : WL_SINK_FAILED;
     }
 
-    asio::io_context m_ctx;
-    asio::ip::udp::socket m_socket;
-    std::unique_ptr<asio::executor_work_guard<asio::io_context::executor_type>> m_work_guard;
-    std::jthread m_thread;
-    std::array<std::uint8_t, 2048> m_rx_buffer{};
-    asio::ip::udp::endpoint m_remote;
-    asio::ip::udp::endpoint m_sdk;
-    std::mutex m_send_mutex;
-    std::atomic<bool> m_closed{false};
+    static void s_onEvent(void* s_user_data, wl_ctx_t& s_context,
+                          const wl_event_t& s_event) noexcept {
+        auto& s_self = *static_cast<DevicePeer*>(s_user_data);
+        if (s_event.type != WL_EVT_UNRELIABLE_RX &&
+            s_event.type != WL_EVT_RELIABLE_RX) {
+            return;
+        }
+
+        switch (s_event.message_id) {
+            case ACQUIRE_CONTROL_LEASE_REQUEST_MESSAGE_ID:
+                s_self.s_acquire(s_context, s_event);
+                break;
+            case RELEASE_CONTROL_LEASE_REQUEST_MESSAGE_ID:
+                s_self.s_release(s_context, s_event);
+                break;
+            case GET_DEVICE_INFO_REQUEST_MESSAGE_ID:
+                s_self.s_deviceInfo(s_context, s_event);
+                break;
+            case SET_DEVICE_INFO_REQUEST_MESSAGE_ID:
+                s_self.s_setDeviceInfo(s_context, s_event);
+                break;
+            case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
+                s_self.s_deviceSettings(s_context, s_event);
+                break;
+            case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
+                s_self.s_setDeviceSettings(s_context, s_event);
+                break;
+            case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_arm_control_mode_request_t,
+                                        set_arm_control_mode_response_t>(
+                    s_context, s_event, set_arm_control_mode_request_decode,
+                    set_arm_control_mode_response_clear,
+                    fci_arm_set_arm_control_mode_response_send_reliable,
+                    MODE_OK);
+                break;
+            case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_gripper_control_mode_request_t,
+                                        set_gripper_control_mode_response_t>(
+                    s_context, s_event,
+                    set_gripper_control_mode_request_decode,
+                    set_gripper_control_mode_response_clear,
+                    fci_arm_set_gripper_control_mode_response_send_reliable,
+                    MODE_OK);
+                break;
+            case SET_ARM_MODE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<set_arm_mode_request_t,
+                                        set_arm_mode_response_t>(
+                    s_context, s_event, set_arm_mode_request_decode,
+                    set_arm_mode_response_clear,
+                    fci_arm_set_arm_mode_response_send_reliable, MODE_OK);
+                break;
+            case HOME_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<home_request_t, home_response_t>(
+                    s_context, s_event, home_request_decode,
+                    home_response_clear,
+                    fci_arm_home_response_send_reliable, HOME_OK);
+                break;
+            case CLEAR_FAULTS_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<clear_faults_request_t,
+                                        clear_faults_response_t>(
+                    s_context, s_event, clear_faults_request_decode,
+                    clear_faults_response_clear,
+                    fci_arm_clear_faults_response_send_reliable,
+                    FAULT_OPERATION_OK);
+                break;
+            case CLEAR_ERROR_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<clear_error_request_t,
+                                        clear_error_response_t>(
+                    s_context, s_event, clear_error_request_decode,
+                    clear_error_response_clear,
+                    fci_arm_clear_error_response_send_reliable,
+                    FAULT_OPERATION_OK);
+                break;
+            case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID:
+                s_self.s_motorRead(s_context, s_event);
+                break;
+            case MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<motor_register_write_request_t,
+                                        motor_register_write_response_t>(
+                    s_context, s_event,
+                    motor_register_write_request_decode,
+                    motor_register_write_response_clear,
+                    fci_arm_motor_register_write_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
+            case MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<
+                    motor_store_parameters_request_t,
+                    motor_store_parameters_response_t>(
+                    s_context, s_event,
+                    motor_store_parameters_request_decode,
+                    motor_store_parameters_response_clear,
+                    fci_arm_motor_store_parameters_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
+            case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID:
+                s_self.s_statusResponse<motor_set_zero_request_t,
+                                        motor_set_zero_response_t>(
+                    s_context, s_event, motor_set_zero_request_decode,
+                    motor_set_zero_response_clear,
+                    fci_arm_motor_set_zero_response_send_reliable,
+                    MOTOR_OPERATION_OK);
+                break;
+            default:
+                s_self.s_recordCommand(s_event);
+                break;
+        }
+        wl_event_release(&s_context, &s_event);
+    }
+
+    template <typename Request, typename Response, typename Decode,
+              typename Clear, typename Send>
+    void s_statusResponse(wl_ctx_t& s_context, const wl_event_t& s_event,
+                          Decode s_decode, Clear s_clear, Send s_send,
+                          std::int32_t s_status) noexcept {
+        Request s_request{};
+        if (s_decode(s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        Response s_response{};
+        s_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = s_status;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)s_send(&s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_acquire(wl_ctx_t& s_context,
+                   const wl_event_t& s_event) noexcept {
+        acquire_control_lease_request_t s_request{};
+        if (acquire_control_lease_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id ||
+            !s_request.has_requested_timeout_ms) {
+            return;
+        }
+        m_acquire_count.fetch_add(1, std::memory_order_relaxed);
+        if (!s_request.has_current_token) {
+            m_new_lease_count.fetch_add(1, std::memory_order_relaxed);
+            std::uint32_t s_unset{};
+            (void)m_first_new_lease_operation_id.compare_exchange_strong(
+                s_unset, s_request.operation_id, std::memory_order_relaxed);
+            m_last_new_lease_operation_id.store(s_request.operation_id,
+                                                std::memory_order_relaxed);
+        }
+        acquire_control_lease_response_t s_response{};
+        acquire_control_lease_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = CONTROL_LEASE_OK;
+        s_response.has_lease_token = true;
+        s_response.lease_token = m_lease_token;
+        s_response.has_granted_timeout_ms = true;
+        s_response.granted_timeout_ms = s_request.requested_timeout_ms;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_acquire_control_lease_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_release(wl_ctx_t& s_context,
+                   const wl_event_t& s_event) noexcept {
+        release_control_lease_request_t s_request{};
+        if (release_control_lease_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        m_release_count.fetch_add(1, std::memory_order_relaxed);
+        release_control_lease_response_t s_response{};
+        release_control_lease_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = CONTROL_LEASE_OK;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_release_control_lease_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_deviceInfo(wl_ctx_t& s_context,
+                      const wl_event_t& s_event) noexcept {
+        get_device_info_request_t s_request{};
+        if (get_device_info_request_decode(s_event.payload,
+                                           s_event.payload_len,
+                                           &s_request) != WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        constexpr char s_board[] = "loopback";
+        constexpr char s_serial[] = "323738373233511200260036";
+        get_device_info_response_t s_response{};
+        get_device_info_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = DEVICE_INFO_OK;
+        s_response.has_info = true;
+        auto& s_info = s_response.info;
+        s_info.has_protocol_version = true;
+        s_info.protocol_version.has_major = true;
+        s_info.protocol_version.major =
+            florid::kSupportedProtocolVersion.m_major;
+        s_info.protocol_version.has_minor = true;
+        s_info.protocol_version.minor =
+            florid::kSupportedProtocolVersion.m_minor;
+        s_info.protocol_version.has_patch = true;
+        s_info.protocol_version.patch =
+            florid::kSupportedProtocolVersion.m_patch;
+        s_info.has_firmware_version = true;
+        s_info.firmware_version.has_major = true;
+        s_info.firmware_version.major = 2;
+        s_info.firmware_version.has_minor = true;
+        s_info.firmware_version.minor = 3;
+        s_info.firmware_version.has_patch = true;
+        s_info.firmware_version.patch = 4;
+        s_info.has_board_name = true;
+        s_info.board_name = {s_board, sizeof(s_board) - 1};
+        s_info.has_custom_name = true;
+        s_info.custom_name = {m_custom_name.data(), m_custom_name.size()};
+        s_info.has_firmware_type = true;
+        s_info.firmware_type = FIRMWARE_STANDARD_ARM;
+        s_info.has_serial = true;
+        s_info.serial = {s_serial, sizeof(s_serial) - 1};
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_get_device_info_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_setDeviceInfo(wl_ctx_t& s_context,
+                         const wl_event_t& s_event) noexcept {
+        set_device_info_request_t s_request{};
+        if (set_device_info_request_decode(s_event.payload,
+                                           s_event.payload_len,
+                                           &s_request) != WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_custom_name) {
+            return;
+        }
+        if (s_request.custom_name.length == 0) {
+            m_custom_name.clear();
+        } else {
+            m_custom_name.assign(s_request.custom_name.data,
+                                 s_request.custom_name.length);
+        }
+        set_device_info_response_t s_response{};
+        set_device_info_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = DEVICE_INFO_OK;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_set_device_info_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_deviceSettings(wl_ctx_t& s_context,
+                          const wl_event_t& s_event) noexcept {
+        get_device_settings_request_t s_request{};
+        if (get_device_settings_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id) {
+            return;
+        }
+        get_device_settings_response_t s_response{};
+        get_device_settings_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = DEVICE_SETTINGS_OK;
+        s_response.has_settings = true;
+        auto& s_settings = s_response.settings;
+        s_settings.has_firmware_dt_us = true;
+        s_settings.firmware_dt_us = 1000;
+        s_settings.has_gravity_scale = true;
+        s_settings.has_torque_continuous = true;
+        s_settings.has_torque_peak = true;
+        s_settings.has_thermal_capacity = true;
+        s_settings.has_torque_ramp_rate = true;
+        s_settings.has_joint_limit_min = true;
+        s_settings.has_joint_limit_max = true;
+        for (std::size_t s_index = 0; s_index < 7; ++s_index) {
+            s_settings.torque_continuous[s_index] = 1.0F;
+            s_settings.torque_peak[s_index] = 2.0F;
+            s_settings.thermal_capacity[s_index] = 3.0F;
+            s_settings.torque_ramp_rate[s_index] = 4.0F;
+        }
+        for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+            s_settings.gravity_scale[s_index] = 1.0F;
+            s_settings.joint_limit_min[s_index] = -2.0F;
+            s_settings.joint_limit_max[s_index] = 2.0F;
+        }
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_get_device_settings_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_setDeviceSettings(wl_ctx_t& s_context,
+                             const wl_event_t& s_event) noexcept {
+        set_device_settings_request_t s_request{};
+        if (set_device_settings_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_settings) {
+            return;
+        }
+        set_device_settings_response_t s_response{};
+        set_device_settings_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        const bool s_reject =
+            m_reject_settings.load(std::memory_order_relaxed);
+        s_response.status = s_reject ? DEVICE_SETTINGS_STORAGE_FAILED
+                                     : DEVICE_SETTINGS_OK;
+        if (!s_reject) {
+            s_response.has_settings = true;
+            s_response.settings = s_request.settings;
+            // Model firmware clamping the requested period.
+            s_response.settings.firmware_dt_us = 2250;
+        }
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_set_device_settings_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_motorRead(wl_ctx_t& s_context,
+                     const wl_event_t& s_event) noexcept {
+        motor_register_read_request_t s_request{};
+        if (motor_register_read_request_decode(
+                s_event.payload, s_event.payload_len, &s_request) !=
+                WL_CODEC_OK ||
+            !s_request.has_operation_id || !s_request.has_joint_id ||
+            !s_request.has_register_id) {
+            return;
+        }
+        m_last_register_joint.store(s_request.joint_id,
+                                    std::memory_order_relaxed);
+        motor_register_read_response_t s_response{};
+        motor_register_read_response_clear(&s_response);
+        s_response.has_operation_id = true;
+        s_response.operation_id = s_request.operation_id;
+        s_response.has_status = true;
+        s_response.status = MOTOR_OPERATION_OK;
+        s_response.has_joint_id = true;
+        s_response.joint_id = s_request.joint_id;
+        s_response.has_register_id = true;
+        s_response.register_id = s_request.register_id;
+        s_response.has_value = true;
+        s_response.value = 12.5F;
+        std::array<std::uint8_t, 256> s_encode{};
+        (void)fci_arm_motor_register_read_response_send_reliable(
+            &s_context, &s_response, s_scratch(s_encode));
+    }
+
+    void s_recordCommand(const wl_event_t& s_event) noexcept {
+        bool s_valid = false;
+        if (s_event.message_id == JOINT_MIT_COMMAND_MESSAGE_ID) {
+            joint_mit_command_t s_command{};
+            s_valid = joint_mit_command_decode(
+                          s_event.payload, s_event.payload_len, &s_command) ==
+                          WL_CODEC_OK &&
+                      s_command.has_lease_token &&
+                      s_command.lease_token == m_lease_token;
+        } else if (s_event.message_id ==
+                   GRIPPER_POSITION_VELOCITY_COMMAND_MESSAGE_ID) {
+            gripper_position_velocity_command_t s_command{};
+            s_valid = gripper_position_velocity_command_decode(
+                          s_event.payload, s_event.payload_len, &s_command) ==
+                          WL_CODEC_OK &&
+                      s_command.has_lease_token &&
+                      s_command.lease_token == m_lease_token;
+        }
+        if (!s_valid) return;
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            m_commands.push_back(s_event.message_id);
+        }
+        m_changed.notify_all();
+    }
+
+    static constexpr std::uint64_t m_lease_token =
+        UINT64_C(0x1020304050607080);
+    PeerStorage m_storage;
+    WirelinkExecutor m_executor;
+    std::mutex m_transport_mutex;
+    LoopbackTransport* m_transport{};
+    bool m_sink_attached{};
+    mutable std::mutex m_mutex;
+    std::condition_variable m_changed;
+    std::vector<std::uint16_t> m_commands;
+    std::atomic<std::size_t> m_acquire_count{};
+    std::atomic<std::size_t> m_release_count{};
+    std::atomic<std::size_t> m_new_lease_count{};
+    std::atomic<std::uint32_t> m_first_new_lease_operation_id{};
+    std::atomic<std::uint32_t> m_last_new_lease_operation_id{};
+    std::atomic<std::uint8_t> m_last_register_joint{0xff};
+    std::atomic<bool> m_reject_settings{};
+    std::string m_custom_name{"test-arm"};
 };
 
-std::uint16_t s_pickFreeUdpPort() {
-    asio::io_context s_ctx;
-    asio::ip::udp::socket s_sock(s_ctx);
-    s_sock.open(asio::ip::udp::v4());
-    s_sock.bind(asio::ip::udp::endpoint(asio::ip::make_address("127.0.0.1"), 0));
-    std::uint16_t s_port = s_sock.local_endpoint().port();
-    s_sock.close();
-    return s_port;
+LoopbackTransport::~LoopbackTransport() {
+    m_receive_callback.clear();
+    m_peer.detach(*this);
 }
 
-// ────────────────────────────────────────────────────────────
-//  Tests
-// ────────────────────────────────────────────────────────────
-
-void test_arm_status_roundtrip() {
-    printf("Test 1: ArmStatus round-trip through MockTransport\n");
-
-    auto s_transport = std::make_unique<MockTransport>();
-    auto* s_mock = static_cast<MockTransport*>(s_transport.get());
-
-    // Create ArmImpl — MockTransport auto-responds to GetDeviceInfoRequest
-    ArmImpl s_impl(std::move(s_transport));
-
-    // Verify device info was fetched from mock response
-    assert(s_impl.firmwarePeriodUs() == 2000);
-    assert(s_impl.getDeviceInfo().protocol_version.major == 1);
-    assert(s_impl.getDeviceInfo().fw_version.major == 2);
-    assert(s_impl.getDeviceInfo().fw_version.minor == 3);
-    assert(s_impl.getDeviceInfo().fw_version.patch == 1);
-
-    // Verify device settings were fetched
-    assert(s_impl.getDeviceSettings().firmware_dt_us == 2000);
-
-    // Build a fake ArmStatus
-    fci::arm::ArmStatus s_status{};
-    s_status.seq = 123;
-    s_status.timestamp_us = 999000;
-    s_status.errors = 0x0A;
-    s_status.status.q[0] = 1.0f;
-    s_status.status.q[1] = 2.0f;
-    s_status.status.q[2] = 3.0f;
-    s_status.status.q[3] = 4.0f;
-    s_status.status.q[4] = 5.0f;
-    s_status.status.q[5] = 6.0f;
-    s_status.status.dq[0] = 0.1f;
-    s_status.base_gravity[0] = 0.0f;
-    s_status.base_gravity[1] = 0.0f;
-    s_status.base_gravity[2] = -9.81f;
-    s_status.O_T_EE[15] = 1.0f;
-    s_status.F_ext[0] = 5.5f;
-    s_status.gripper.q = 0.05f;
-
-    // Serialize the ArmStatus to wire bytes
-    auto s_frame = serializeArmStatus(s_status);
-    printf("  Frame size: %zu bytes\n", s_frame.size());
-
-    // Inject the bytes into ArmImpl via MockTransport
-    s_mock->inject(s_frame);
-
-    // Read from ArmImpl
-    auto s_state = s_impl.readOnce();
-    printf("  seq=%u q0=%f q1=%f err=0x%02X gz=%f\n",
-           s_state.m_seq, s_state.m_q[0], s_state.m_q[1],
-           s_state.m_errors, s_state.m_base_gravity[2]);
-
-    assert(s_state.m_seq == 123);
-    assert(s_state.m_q[0] == 1.0f);
-    assert(s_state.m_q[2] == 3.0f);
-    assert(s_state.m_dq[0] == 0.1f);
-    assert(s_state.m_errors == 0x0A);
-    assert(s_state.m_base_gravity[2] == -9.81f);
-    assert(s_state.m_O_T_EE[15] == 1.0f);
-    assert(s_state.m_F_ext[0] == 5.5f);
-    assert(s_state.m_gripper_q == 0.05f);
-
-    printf("  PASS\n");
+bool LoopbackTransport::send(const std::uint8_t* s_data,
+                             std::size_t s_size) {
+    return m_peer.feed(s_data, s_size);
 }
 
-void test_multiple_frames() {
-    printf("Test 2: Multiple sequential ArmStatus frames\n");
+struct BlockingReceive {
+    std::binary_semaphore m_entered{0};
+    std::binary_semaphore m_return_allowed{0};
+    std::atomic<std::size_t> m_call_count{};
 
-    auto s_transport = std::make_unique<MockTransport>();
-    auto* s_mock = static_cast<MockTransport*>(s_transport.get());
-    ArmImpl s_impl(std::move(s_transport));
+    static void callback(void* s_context, const std::uint8_t*,
+                         std::size_t) {
+        auto& s_self = *static_cast<BlockingReceive*>(s_context);
+        s_self.m_call_count.fetch_add(1, std::memory_order_relaxed);
+        s_self.m_entered.release();
+        s_self.m_return_allowed.acquire();
+    }
+};
 
-    for (uint32_t s_i = 0; s_i < 10; ++s_i) {
-        fci::arm::ArmStatus s_status{};
-        s_status.seq = s_i;
-        s_status.status.q[0] = static_cast<float>(s_i);
+void testReceiveCallbackDetachQuiesces() {
+    ReceiveCallbackGate s_gate;
+    BlockingReceive s_receive;
+    const std::uint8_t s_byte{};
+    s_gate.set(BlockingReceive::callback, &s_receive);
 
-        auto s_frame = serializeArmStatus(s_status);
-        s_mock->inject(s_frame);
-
-        auto s_state = s_impl.readOnce();
-        assert(s_state.m_seq == s_i);
-        assert(s_state.m_q[0] == static_cast<float>(s_i));
+    std::jthread s_receiver([&] { s_gate.invoke(&s_byte, 1); });
+    const bool s_callback_started = s_receive.m_entered.try_acquire_for(1s);
+    if (!s_callback_started) {
+        // Keep the failure path joinable even if the callback starts just
+        // after the timeout.
+        s_receive.m_return_allowed.release();
+        s_gate.clear();
+        s_receiver.join();
+        require(false, "receive callback did not start");
     }
 
-    printf("  PASS\n");
-}
-
-void test_parse_garbage() {
-    printf("Test 3: Garbage data does not crash\n");
-
-    auto s_transport = std::make_unique<MockTransport>();
-    auto* s_mock = static_cast<MockTransport*>(s_transport.get());
-    ArmImpl s_impl(std::move(s_transport));
-
-    // Inject random garbage
-    std::vector<uint8_t> s_garbage(256, 0xFF);
-    s_mock->inject(s_garbage);
-
-    // Follow with a valid frame
-    fci::arm::ArmStatus s_status{};
-    s_status.seq = 999;
-    s_status.status.q[0] = 7.5f;
-    auto s_frame = serializeArmStatus(s_status);
-    s_mock->inject(s_frame);
-
-    auto s_state = s_impl.readOnce();
-    assert(s_state.m_seq == 999);
-    assert(s_state.m_q[0] == 7.5f);
-
-    printf("  PASS\n");
-}
-
-void test_control_loop() {
-    printf("Test 4: Control loop sends commands\n");
-
-    auto s_transport = std::make_unique<MockTransport>();
-    auto* s_mock = static_cast<MockTransport*>(s_transport.get());
-    ArmImpl s_impl(std::move(s_transport));
-
-    // Prepare 5 ArmStatus frames
-    for (uint32_t s_i = 0; s_i < 5; ++s_i) {
-        fci::arm::ArmStatus s_status{};
-        s_status.seq = s_i;
-        s_status.status.q[0] = static_cast<float>(s_i);
-        auto s_frame = serializeArmStatus(s_status);
-
-        // Inject, then call readOnce in the same thread (no separate control thread)
-        // The control loop runs on the caller's thread via s_controlLoop
-        s_mock->inject(s_frame);
-        s_mock->m_sent.clear(); // reset sent buffer between iterations
-    }
-
-    // Inject one more frame for the control loop to consume
-    fci::arm::ArmStatus s_status{};
-    s_status.seq = 100;
-    s_status.status.q[0] = 1.0f;
-    auto s_frame = serializeArmStatus(s_status);
-    s_mock->inject(s_frame);
-
-    // Run control loop with a simple torque callback
-    int s_call_count = 0;
-    s_impl.s_controlLoop([&](const ArmState& s_state, ArmControl&) -> JointMIT {
-        s_call_count++;
-        JointMIT s_cmd;
-        s_cmd.m_tau[0] = s_state.m_q[0] * 10.0f;
-        if (s_call_count >= 1) s_cmd.m_motion_finished = true;
-        return s_cmd;
+    std::binary_semaphore s_detach_started{0};
+    std::binary_semaphore s_detach_returned{0};
+    std::jthread s_detacher([&] {
+        s_detach_started.release();
+        s_gate.clear();
+        s_detach_returned.release();
     });
+    s_detach_started.acquire();
+    const bool s_detached_early = s_detach_returned.try_acquire_for(25ms);
 
-    assert(s_call_count == 1);
-    assert(!s_mock->m_sent.empty());
+    s_receive.m_return_allowed.release();
+    const bool s_detached =
+        s_detached_early || s_detach_returned.try_acquire_for(1s);
+    s_receiver.join();
+    s_detacher.join();
 
-    printf("  PASS (callbacks=%d, sent_bytes=%zu)\n", s_call_count, s_mock->m_sent.size());
+    require(!s_detached_early,
+            "callback detach returned while a callback was in flight");
+    require(s_detached,
+            "callback detach did not unblock after the callback returned");
+    require(!s_gate.invoke(&s_byte, 1) &&
+                s_receive.m_call_count.load(std::memory_order_relaxed) == 1,
+            "detached receive callback was invoked again");
 }
 
-void test_udp_loopback() {
-    printf("Test 5: UDP loopback with FakeUdpDevice\n");
+void testUdpTransportDetachQuiesces() {
+    PeerStorage s_storage;
+    wl_ctx_t s_link{};
+    const wl_config_t s_config{
+        .max_payload_len = 256,
+        .envelope = WL_ENVELOPE_COBS_STREAM,
+        .integrity = WL_INTEGRITY_NONE,
+        .session_id = UINT64_C(0x5544505f484f5354),
+        .max_retries = 0,
+        .ack_timeout_ms = 20,
+        .max_transmission_unit = 320,
+    };
+    auto s_storage_descriptor = s_storage.descriptor();
+    require(wl_init(&s_link, &s_config, &s_storage_descriptor) == WL_OK,
+            "UDP Wirelink context initialization failed");
 
-    const auto s_sdk_addr = asio::ip::udp::endpoint(asio::ip::make_address("127.0.0.1"),
-                                                    s_pickFreeUdpPort());
-    FakeUdpDevice s_device(asio::ip::udp::endpoint(asio::ip::make_address("127.0.0.1"), 0),
-                           s_sdk_addr);
+    asio::io_context s_peer_context;
+    asio::ip::udp::socket s_port_probe(
+        s_peer_context,
+        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
+    const auto s_host_port = s_port_probe.local_endpoint().port();
+    asio::error_code s_error;
+    s_port_probe.close(s_error);
+    require(!s_error, "UDP port probe could not be closed");
 
-    // Announce continuously until the transport learns our peer endpoint.
-    std::atomic<bool> s_stop_announcer{false};
-    std::jthread s_announcer([&] {
-        fci::arm::ArmStatus s_announce{};
-        s_announce.seq = 1;
-        auto s_frame = serializeArmStatus(s_announce);
-        while (!s_stop_announcer.load()) {
-            s_device.send(s_frame);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    asio::ip::udp::socket s_peer(
+        s_peer_context,
+        asio::ip::udp::endpoint(asio::ip::udp::v4(), 0));
+    const asio::ip::udp::endpoint s_host_endpoint(
+        asio::ip::address_v4::loopback(), s_host_port);
+    const std::array<std::uint8_t, 1> s_datagram{0};
+    UdpTransport s_transport("127.0.0.1", s_host_port, 2s);
+    std::atomic<std::uint64_t> s_wakes{};
+    const auto s_wake = [](void* s_context) noexcept {
+        static_cast<std::atomic<std::uint64_t>*>(s_context)->fetch_add(
+            1, std::memory_order_relaxed);
+    };
+    require(s_transport.usesDirectWirelink(),
+            "UDP transport did not select direct Wirelink ownership");
+    require(s_transport.attachWirelink(s_link, s_wake, &s_wakes) == WL_OK,
+            "UDP direct adapter attach failed");
+    require(s_transport.wirelinkDeadlineHint(0) == 1,
+            "UDP adapter did not expose its polling deadline");
+
+    // The first source is learned by the reusable adapter. A zero byte is a
+    // complete malformed COBS unit, so it cannot leave a partial stream tail.
+    s_peer.send_to(asio::buffer(s_datagram), s_host_endpoint, 0, s_error);
+    require(!s_error, "UDP discovery datagram send failed");
+    int s_service_result = WL_ERR_NO_DATA;
+    for (unsigned int s_attempt = 0;
+         s_attempt < 100 && s_service_result != WL_OK; ++s_attempt) {
+        s_service_result = s_transport.serviceWirelink();
+        if (s_service_result == WL_ERR_NO_DATA)
+            std::this_thread::sleep_for(1ms);
+    }
+    require(s_service_result == WL_OK, "UDP adapter did not learn its peer");
+
+    const std::array<std::uint8_t, 2> s_reply{0xa5, 0x5a};
+    require(wl_send_unreliable(&s_link, 0x42, s_reply.data(),
+                               s_reply.size()) == WL_OK,
+            "UDP Wirelink reply submission failed");
+    s_peer.non_blocking(true, s_error);
+    require(!s_error, "could not make UDP test peer nonblocking");
+
+    bool s_reply_received = false;
+    std::array<std::uint8_t, 320> s_reply_buffer{};
+    asio::ip::udp::endpoint s_reply_source;
+    const auto s_reply_deadline = std::chrono::steady_clock::now() + 1s;
+    while (std::chrono::steady_clock::now() < s_reply_deadline) {
+        const auto s_received = s_peer.receive_from(
+            asio::buffer(s_reply_buffer), s_reply_source, 0, s_error);
+        if (!s_error) {
+            s_reply_received = s_received > s_reply.size() &&
+                               s_reply_buffer[s_received - 1] == 0;
+            break;
         }
-    });
+        if (s_error != asio::error::would_block &&
+            s_error != asio::error::try_again) {
+            break;
+        }
+        std::this_thread::sleep_for(1ms);
+    }
+    require(s_reply_received,
+            "UDP adapter did not reply to its learned peer");
 
-    // The transport constructor blocks until the first datagram (peer learn),
-    // so build it on a background thread while the announcer feeds datagrams.
-    std::unique_ptr<UdpTransport> s_transport;
-    std::jthread s_builder([&] {
-        s_transport = std::make_unique<UdpTransport>("127.0.0.1", s_sdk_addr.port(),
-                                                     std::chrono::seconds(3));
-    });
-    s_builder.join();
-    assert(s_transport != nullptr);
+    s_transport.quiesceWirelink();
+    require(s_transport.serviceWirelink() == WL_ERR_INVALID_STATE,
+            "quiesced UDP transport still serviced Wirelink");
+    require(s_transport.wirelinkDeadlineHint(0) == WL_POLL_NO_DEADLINE_MS,
+            "quiesced UDP transport retained a polling deadline");
+}
+
+void testArmImplWirelinkPipeline() {
+    DevicePeer s_peer;
+    require(s_peer.initialize() == WL_OK, "peer initialization failed");
+    auto s_transport = std::make_unique<LoopbackTransport>(s_peer);
+    require(s_peer.attach(*s_transport) == WL_OK, "peer sink failed");
+    require(s_peer.start() == WL_OK, "peer start failed");
 
     {
-        // Run the ArmImpl handshake over real UDP.
         ArmImpl s_impl(std::move(s_transport));
-        s_stop_announcer.store(true);
+        require(s_peer.acquireCount() >= 1, "lease request was not observed");
+        require(s_impl.getDeviceInfo().m_board_name == "loopback" &&
+                    s_impl.getDeviceInfo().m_firmware_version.m_patch == 4 &&
+                    s_impl.getDeviceInfo().m_serial_number ==
+                        "323738373233511200260036",
+                "typed device information was not cached");
+        require(s_impl.firmwarePeriodUs() == 1000,
+                "typed device settings were not cached");
 
-        // Stop device traffic and let in-flight datagrams drain before the
-        // ArmImpl (and its transport io thread) is torn down.
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-        assert(s_impl.firmwarePeriodUs() == 2000);
-        assert(s_impl.getDeviceInfo().fw_version.major == 2);
-
-        // Push a fresh ArmStatus frame over real UDP and read it back.
-        fci::arm::ArmStatus s_status{};
-        s_status.seq = 77;
-        s_status.errors = 0x05;
-        s_status.status.q[0] = 42.0f;
-        auto s_frame = serializeArmStatus(s_status);
-        s_device.send(s_frame);
-
-        ArmState s_state{};
-        for (int i = 0; i < 200 && s_state.m_seq != 77; ++i) {
-            auto s_tmp = s_impl.readOnce();
-            if (s_tmp.m_seq != 0) s_state = s_tmp;
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        require(s_peer.sendArmStatus(42, 1.5F) == WL_OK,
+                "peer telemetry submit failed");
+        florid::ArmState s_state{};
+        const auto s_state_deadline =
+            std::chrono::steady_clock::now() + 2s;
+        while (std::chrono::steady_clock::now() < s_state_deadline &&
+               s_state.m_seq != 42) {
+            s_state = s_impl.readOnce();
+            if (s_state.m_seq != 42) std::this_thread::sleep_for(1ms);
         }
-        assert(s_state.m_seq == 77);
-        assert(s_state.m_errors == 0x05);
-        assert(s_state.m_q[0] == 42.0f);
+        require(s_state.m_seq == 42 && s_state.m_q[0] == 1.5F &&
+                    s_state.m_gripper_q == 0.25F,
+                "borrowed ArmStatus was not copied into a stable snapshot");
 
-        printf("  PASS (udp round-trip seq=%u q0=%f)\n", s_state.m_seq, s_state.m_q[0]);
+        require(s_peer.sendArmStatus(43, 2.0F) == WL_OK,
+                "first replacement telemetry submit failed");
+        std::this_thread::sleep_for(20ms);
+        require(s_peer.sendArmStatus(44, 3.0F) == WL_OK,
+                "second replacement telemetry submit failed");
+        std::this_thread::sleep_for(20ms);
+        s_state = s_impl.readOnce();
+        require(s_state.m_seq == 44 && s_state.m_q[0] == 3.0F,
+                "ArmImpl queued stale telemetry instead of exposing LATEST");
+
+        s_impl.enable();
+        s_impl.drag();
+        s_impl.disable();
+        s_impl.home();
+
+        require(s_impl.setCustomName("operator-arm") &&
+                    s_impl.getDeviceInfo().m_custom_name == "operator-arm" &&
+                    s_impl.getDeviceInfo().m_firmware_type ==
+                        florid::FirmwareType::kStandardArm &&
+                    s_impl.getDeviceInfo().m_serial_number ==
+                        "323738373233511200260036",
+                "custom-name refresh changed immutable device identity");
+
+        DeviceSettings s_settings = s_impl.getDeviceSettings();
+        s_settings.m_firmware_period_us = 2000;
+        require(s_impl.setDeviceSettings(s_settings),
+                "SetDeviceSettings failed");
+        require(s_impl.firmwarePeriodUs() == 2250 &&
+                    s_impl.getDeviceSettings().m_firmware_period_us == 2250,
+                "device-normalized settings were not cached");
+
+        s_peer.rejectSettings(true);
+        auto s_rejected = s_settings;
+        s_rejected.m_firmware_period_us = 3000;
+        require(!s_impl.setDeviceSettings(s_rejected) &&
+                    s_impl.firmwarePeriodUs() == 2250 &&
+                    s_impl.getDeviceSettings().m_firmware_period_us == 2250,
+                "rejected settings mutated the host cache");
+        s_peer.rejectSettings(false);
+
+        auto s_equal_limits = s_settings;
+        s_equal_limits.m_joint_limits[0].m_min = 1.0F;
+        s_equal_limits.m_joint_limits[0].m_max = 1.0F;
+        require(!s_impl.setDeviceSettings(s_equal_limits) &&
+                    s_impl.firmwarePeriodUs() == 2250,
+                "equal joint limits were accepted or mutated the cache");
+
+        const auto s_register =
+            s_impl.readMotorRegister(3, MotorRegister::GearEfficiency);
+        require(s_register && *s_register == 12.5F,
+                "MotorRegisterRead typed result failed");
+        require(s_peer.lastRegisterJoint() == 2,
+                "public one-based joint ID was not bridged to wire zero-based ID");
+        require(s_impl.writeMotorRegister(
+                    3, MotorRegister::GearEfficiency, 7.5F) &&
+                    s_impl.storeParameters(3) && s_impl.setZeroPoint(3),
+                "motor mutation RPC failed");
+
+        s_impl.automaticErrorRecovery();
+
+        s_impl.s_prepareControl<JointMIT>();
+        JointMIT s_joint{};
+        s_joint.m_q[0] = 2.0F;
+        s_joint.m_kp[0] = 10.0F;
+        s_impl.s_sendCommand(s_joint);
+        require(s_peer.waitForCommand(JOINT_MIT_COMMAND_MESSAGE_ID),
+                "lease-bearing JointMIT did not reach the peer");
+
+        s_impl.s_prepareGripperControl<JointPosVel>();
+        JointPosVel s_gripper{};
+        s_gripper.m_q[0] = 0.4F;
+        s_gripper.m_dq[0] = 0.2F;
+        s_impl.s_sendGripperCommand(s_gripper);
+        require(s_peer.waitForCommand(
+                    GRIPPER_POSITION_VELOCITY_COMMAND_MESSAGE_ID),
+                "lease-bearing gripper command did not reach the peer");
     }
 
-    s_announcer.join();
+    require(s_peer.releaseCount() == 1,
+            "ArmImpl shutdown did not release the lease exactly once");
+
+    auto s_second_transport = std::make_unique<LoopbackTransport>(s_peer);
+    require(s_peer.attach(*s_second_transport) == WL_OK,
+            "second peer sink attachment failed");
+    {
+        ArmImpl s_second(std::move(s_second_transport));
+    }
+    require(s_peer.newLeaseCount() == 2 && s_peer.releaseCount() == 2,
+            "consecutive ArmImpl sessions did not own distinct leases");
+    require(s_peer.firstNewLeaseOperationId() != 0 &&
+                s_peer.lastNewLeaseOperationId() != 0 &&
+                s_peer.firstNewLeaseOperationId() !=
+                    s_peer.lastNewLeaseOperationId(),
+            "consecutive sessions reused the RPC operation-id sequence");
+    s_peer.stop();
 }
 
+} // namespace
+
 int main() {
-    test_arm_status_roundtrip();
-    test_multiple_frames();
-    test_parse_garbage();
-    test_control_loop();
-    test_udp_loopback();
-    printf("\nAll tests passed.\n");
-    return 0;
+    try {
+        testReceiveCallbackDetachQuiesces();
+        testUdpTransportDetachQuiesces();
+        testArmImplWirelinkPipeline();
+        return 0;
+    } catch (const std::exception& s_error) {
+        std::fprintf(stderr, "test_transport_pipeline: %s\n", s_error.what());
+        return 1;
+    }
 }

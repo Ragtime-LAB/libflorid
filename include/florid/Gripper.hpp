@@ -6,7 +6,6 @@
 #include "florid/ControlTypes.hpp"
 #include "florid/GripperState.hpp"
 #include "florid/core/ActiveControl.hpp"
-#include "florid/core/GripperCore.hpp"
 
 #include <functional>
 #include <memory>
@@ -41,7 +40,6 @@ public:
 
 private:
     std::shared_ptr<ArmImpl> m_impl;
-    GripperCore m_core;
 };
 
 } // namespace florid

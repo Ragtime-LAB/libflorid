@@ -1,16 +1,27 @@
 # libflorid — Arm Control SDK
 
-**libflorid** is a C++20 SDK for the Ragtime Usb2Arm / Willow 6-DOF robotic arm. It talks to the arm controller over USB using the `fci_protocol` wire format (RPL framing), exposes six real-time control modes plus gripper control, and ships compile-time generated dynamics via `Model<Traits>`. Python bindings live in `pyflorid/`.
+**libflorid** is a C++20 SDK for the Ragtime Usb2Arm / Willow 6-DOF robotic arm. It talks to the arm controller over USB or UDP using generated FCI Wirelink bindings, exposes six real-time control modes plus gripper control, and ships compile-time generated dynamics via `Model<Traits>`. Python bindings live in `pyflorid/`.
 
 ## Key Features
 
-- **USB serial transport**: connect with `Arm::create("usb:///dev/ttyACM0")`. UDP transport via `Arm::create("udp://<ip>:<port>")` binds a fixed local endpoint (e.g. `udp://192.168.1.200:5080`), learns the device's source endpoint from the first received datagram, and streams the same RPL protocol over UDP (best-effort, no retransmission). `mock://` returns `nullptr`.
+- **Native USB Bulk transport**: `discoverDevices()` enumerates only Florid
+  products and can read protocol identity without taking the control lease.
+  `Arm::connect()` connects the only device, or selects by immutable serial or
+  user-editable custom name. Multiple matches fail safely instead of selecting
+  an arbitrary arm. `serial://<port>` remains available for legacy CDC/debug
+  firmware. UDP via `Arm::create("udp://<ip>:<port>")` binds a fixed local
+  endpoint and learns the device's source endpoint from the first datagram.
 - **Six control modes**: `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`. Each frame carries its own `kp/kd`, an optional firmware-gravity flag, and a `MotionFinished` marker.
 - **Two control styles**: blocking `Arm::control(cb)` runs your callback on an internal thread at the firmware rate, or `Arm::start*Control()` returns a polling `ActiveControl<T>` with `readOnce()`/`writeOnce()` (this is what the Python bindings use).
 - **Gripper control**: `arm->gripper()` supports the joint control modes (motor joint_id 7), with state in `GripperState` / `ArmState`.
 - **Compile-time dynamics**: `Model<WillowTraits>` / `Model<PantheraTraits>` provides FK, pose, zero/body Jacobian, mass matrix, Coriolis, and gravity — generated from URDF by `scripts/urdf2traits.py`, resolved at compile time with no runtime allocation.
 - **Motor registers**: read/write control-loop gains and protection parameters per joint (1–6 arm, 7 gripper), store to flash, and set zero point.
-- **Device management**: fetch/update `DeviceInfo` and `DeviceSettings`, read `ArmDiagnostics`, configure the reconnect policy, error recovery, load/EE-frame, and joint/cartesian impedance.
+- **Device management**: `DeviceInfo` exposes the immutable full serial and
+  user-editable custom name; `Arm::setCustomName()` cannot rewrite product
+  identity. `Arm::setDeviceSettings()` caches the settings actually accepted
+  by firmware, including any normalization, and leaves its cache unchanged on
+  rejection. Diagnostics, error recovery, homing, and motor registers share
+  the same typed API.
 - **Optional MPC**: `florid::CartesianMPCSolver<WillowMPCTraits>` over the acados solver (build with `-DBUILD_MPC=ON`).
 - **Python bindings**: install `pyflorid` via pip (pybind11), expose the same API with snake_case names.
 
@@ -20,8 +31,9 @@
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.20+ |
+| Wirelink + `wlc` | ABI 8-compatible release |
 | Build system | Ninja (recommended) or Make |
-| OS | Linux (USB serial via `3rdparty/astrial`) |
+| OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
 Optional build-time tools:
 
@@ -34,12 +46,14 @@ Optional build-time tools:
 ## Submodules
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+# Only when configuring with BUILD_MPC=ON:
+git submodule update --init --recursive 3rdparty/acados
 ```
 
-- `protocol/` → `fci_protocol` (arm packets / session / transport, include `<fci_protocol/protocol.hpp>`)
-- `3rdparty/astrial` (USB serial; itself vendors asio / tl-expected / readerwriterqueue as plain dirs)
-- `3rdparty/readerwriterqueue`
+- `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
+- `3rdparty/astrial` (cross-platform serial and native USB Bulk backend)
+- `3rdparty/wirelink` (link core, desktop adapters, and host runtime)
 - `3rdparty/acados` — only needed when `-DBUILD_MPC=ON`
 
 ## Build & Test
@@ -52,17 +66,61 @@ ctest --test-dir build
 
 Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_MPC=OFF`.
 
+The bundled `3rdparty/wirelink` source is used by default. Pass
+`-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
+development. Wirelink downloads its pinned WLC host release when no compatible
+compiler is on `PATH`; offline builds may set `WLC_EXECUTABLE` explicitly. The
+FCI host sources are generated in the build tree and are never committed.
+
+### Windows (MSVC + vcpkg)
+
+The repository manifest declares the product's native USB dependency. From a
+Developer PowerShell, set the vcpkg root and use the checked-in multi-config
+preset; the configure step installs the pinned libusb version into the build
+tree and downloads the pinned WLC host compiler when necessary:
+
+```powershell
+git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+$env:VCPKG_ROOT = "C:\src\vcpkg"
+cmake --preset windows-msvc-vcpkg
+cmake --build --preset windows-release --parallel
+ctest --preset windows-release
+```
+
+No separate `vcpkg install` command is required. The default dynamic triplet
+also performs app-local deployment of `libusb-1.0.dll` for built tests and
+examples. The same configure tree supports `windows-debug`; use the
+`windows-msvc-vcpkg-static`, `windows-static-release`, and
+`windows-static-debug` presets when static runtime distribution is an explicit
+product choice.
+
 ## Quick Start
 
 ```cpp
 #include <florid/Arm.hpp>
 #include <florid/Model.hpp>
+#include <florid/DeviceDiscovery.hpp>
 #include <florid/traits/WillowTraits.hpp>
 
+#include <iostream>
+#include <utility>
+
 int main() {
-    // One-line connection over USB
-    auto arm = florid::Arm::create("usb:///dev/ttyACM0");
-    if (!arm) return 1;
+    // Fast USB discovery, with optional read-only Wirelink identity probing.
+    auto discovery = florid::discoverDevices({.m_probe = true});
+    if (!discovery || discovery.m_devices.empty()) {
+        return 1;
+    }
+    for (const auto& device : discovery.m_devices) {
+        std::cout << device.m_display_name << "  "
+                  << device.serialNumber() << "  "
+                  << device.uri() << '\n';
+    }
+
+    // Or use Arm::connect() directly when exactly one arm is attached.
+    auto connected = florid::Arm::connect(discovery.m_devices.front());
+    if (!connected) return 1;
+    auto arm = std::move(connected.m_arm);
 
     arm->home();
 
@@ -102,7 +160,7 @@ pip install .                 # or: pip install -e .
 import numpy as np
 from pyflorid import Arm, JointMIT
 
-arm = Arm.create("usb:///dev/ttyACM0")
+arm = Arm.create("usb://2fe3:574c")
 ctrl = arm.start_joint_mit_control()
 
 state = ctrl.read_once()
@@ -128,16 +186,15 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 │   Arm::create("usb://...")   Model<Traits>   Gripper  │
 ├──────────────────────────────────────────────────────┤
 │  include/florid/     public API (Arm, Model, types)   │
-│    core/    ActiveControl, ArmCore, GripperCore       │
-│    detail/  Transport, AstrialUSBTransport, ArmImpl,  │
-│             Seqlock, tick/timestamp, LatencyEstimator │
+│    core/    ActiveControl                              │
+│    detail/  Transport, ArmImpl, FciWirelinkEndpoint,  │
+│             WirelinkExecutor, LatencyEstimator        │
 │    traits/  WillowTraits, PantheraTraits (generated)  │
 │    mpc/     CartesianMPC                               │
 ├──────────────────────────────────────────────────────┤
 │  src/                implementation (Arm/ArmImpl/...)  │
-│  protocol/           fci_protocol (RPL framing,       │
-│                      request/ack + real-time packets) │
-│  3rdparty/           astrial (USB serial), acados     │
+│  protocol/           FCI .wl schemas + binding profiles│
+│  3rdparty/           astrial (USB Bulk/serial), acados│
 │  generated/          acados solver + WillowMPCTraits  │
 │  pyflorid/           Python bindings (pybind11)       │
 └──────────────────────────────────────────────────────┘
@@ -150,8 +207,8 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 | `ActiveControl<T>` | Manual read/write polling handle returned by `start*Control()`. Reads `ArmState` with `readOnce()`, sends commands with `writeOnce()`. |
 | `Gripper` | `arm->gripper()`; same control modes and `ActiveControl` polling for the gripper motor (joint_id 7). |
 | `Model<Traits>` | Stateless computation delegating to generated `Traits` (`fk`, `pose`, Jacobians, `mass`, `coriolis`, `gravity`). Switch arm models by changing the template parameter. |
-| `detail::Transport` | Abstract transport (`send`/`setReceiveCallback`/`poll`). `AstrialUSBTransport` is the USB implementation; the test suite uses a `MockTransport`. |
-| `fci_protocol` | Header-only wire protocol: RPL framing (`0xA5`), telemetry notifications (`ArmStatus` …), real-time fire-and-forget commands (`JointMITCommand` 0x6301 …), and reliable request/ack packets (device info/settings, motor registers). |
+| `detail::Transport` | Transport lifecycle abstraction. Native USB Bulk claims Wirelink RX storage directly and only wakes the endpoint owner from I/O callbacks; serial/UDP retain the push-driven byte path. |
+| `FciWirelinkEndpoint` | Single-owner host runtime generated from `protocol/schema/wirelink/arm/*.wl`. Telemetry is copied from borrowed LATEST views, realtime commands use message-ID keyed coalescing lanes, and configuration uses typed reliable RPCs plus a renewable control lease. |
 
 ## Build Options
 
@@ -166,10 +223,10 @@ cmake -S . -B build \
 
 ## Examples
 
-Run from the `examples/` source tree; each binary takes a USB device path, e.g.:
+Run from the `examples/` source tree; each binary takes a complete transport URI, e.g.:
 
 ```bash
-./build/examples/florid_example_00_echo_arm_state /dev/ttyACM0
+./build/examples/florid_example_00_echo_arm_state usb://2fe3:574c
 ```
 
 | Example | Demonstrates |
@@ -209,11 +266,13 @@ cmake --build build
 ctest --test-dir build
 ```
 
-The single test binary `tests/test_transport_pipeline` drives `ArmImpl` against a `MockTransport` (no hardware required) and covers:
+The tests run without hardware. `test_transport_pipeline` drives `ArmImpl`
+against a fragmented Wirelink device peer and covers:
 
-- `ArmStatus` round-trip through the transport pipeline
-- Multiple sequential frames and garbage-data robustness
-- The control loop sending commands from a callback
+- lease-backed connection and deterministic release
+- typed device settings, metadata, and motor-register RPCs
+- stable `ArmStatus` snapshots after borrowed payload release
+- arm/gripper command encoding over fragmented COBS streams
 
 ## License
 
@@ -221,7 +280,6 @@ libflorid is released under the ISC License.
 
 Third-party code:
 
-- `protocol/` → `fci_protocol` (RPL wire protocol definitions)
+- `protocol/` → FCI Wirelink schemas and binding profiles
 - `3rdparty/astrial` (USB serial; vendors asio, tl-expected, readerwriterqueue)
-- `3rdparty/readerwriterqueue`
 - `3rdparty/acados` (MPC, only when `-DBUILD_MPC=ON`)

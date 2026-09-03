@@ -3,12 +3,11 @@
 
 #include "florid/detail/Transport.hpp"
 
+#include <wirelink/astrial/serial_adapter.hpp>
+
 #include <memory>
-#include <mutex>
 #include <string>
 #include <vector>
-
-class Serial;
 
 namespace florid {
 
@@ -29,25 +28,28 @@ public:
 
   AstrialUSBTransport(const AstrialUSBTransport &) = delete;
   AstrialUSBTransport &operator=(const AstrialUSBTransport &) = delete;
-  AstrialUSBTransport(AstrialUSBTransport &&) noexcept;
-  AstrialUSBTransport &operator=(AstrialUSBTransport &&) noexcept;
+  AstrialUSBTransport(AstrialUSBTransport &&) = delete;
+  AstrialUSBTransport &operator=(AstrialUSBTransport &&) = delete;
 
-  bool send(const std::uint8_t *s_data, std::size_t s_size) override;
-
-  void setReceiveCallback(ReceiveFunctor s_callback, void *s_context) override;
-
-  void poll() override;
-
-  bool isConnected() const;
+  bool send(const std::uint8_t*, std::size_t) override { return false; }
+  void setReceiveCallback(ReceiveFunctor, void*) override {}
+  bool usesDirectWirelink() const noexcept override { return true; }
+  int attachWirelink(wl_ctx_t& s_link, WakeFunctor s_wake,
+                     void* s_wake_context) noexcept override;
+  int serviceWirelink() noexcept override;
+  void quiesceWirelink() noexcept override;
+  std::uint32_t wirelinkDeadlineHint(
+      wl_time_ms_t s_now_ms) const noexcept override;
 
   static std::vector<UsbDeviceInfo> listDevices();
 
 private:
-  std::unique_ptr<Serial> m_serial;
-  ReceiveFunctor m_recv_callback{nullptr};
-  void *m_recv_context{nullptr};
-  std::mutex m_write_mutex;
-  // TODO: remove this mutex for performance
+  static void s_onActivity(void* s_context) noexcept;
+
+  wirelink::astrial::SerialConfig m_config;
+  WakeFunctor m_wake{};
+  void* m_wake_context{};
+  std::unique_ptr<wirelink::astrial::SerialAdapter> m_adapter;
 };
 
 } // namespace florid

@@ -1,0 +1,87 @@
+name: Host CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: host-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows MSVC (${{ matrix.linkage }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - linkage: dynamic
+            configure_preset: windows-msvc-vcpkg
+            release_preset: windows-release
+            debug_preset: windows-debug
+          - linkage: static
+            configure_preset: windows-msvc-vcpkg-static
+            release_preset: windows-static-release
+            debug_preset: windows-static-debug
+
+    steps:
+      - name: Check out libflorid
+        uses: actions/checkout@v5
+
+      - name: Check out required submodules
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+
+      - name: Set up MSVC command line
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Prepare pinned vcpkg registry
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          git -C "$env:VCPKG_INSTALLATION_ROOT" fetch --depth=1 origin 9e593bb18ea69cc5095e012465dcd675a822ed0d
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.configure_preset }}
+
+      - name: Build and test Release
+        run: |
+          cmake --build --preset ${{ matrix.release_preset }} --parallel
+          ctest --preset ${{ matrix.release_preset }}
+
+      - name: Build and test Debug
+        run: |
+          cmake --build --preset ${{ matrix.debug_preset }} --parallel
+          ctest --preset ${{ matrix.debug_preset }}
+
+      - name: Verify dynamic app-local deployment
+        if: matrix.linkage == 'dynamic'
+        shell: pwsh
+        run: |
+          $dlls = Get-ChildItem build/windows-msvc-vcpkg `
+            -Filter libusb-1.0.dll -Recurse |
+            Where-Object FullName -NotMatch 'vcpkg_installed'
+          if (-not ($dlls.FullName -match '\\Release\\')) {
+            throw 'Release libusb-1.0.dll was not deployed app-local'
+          }
+          if (-not ($dlls.FullName -match '\\Debug\\')) {
+            throw 'Debug libusb-1.0.dll was not deployed app-local'
+          }
+
+      - name: Verify static build has no app-local libusb DLL
+        if: matrix.linkage == 'static'
+        shell: pwsh
+        run: |
+          $dlls = Get-ChildItem build/windows-msvc-vcpkg-static `
+            -Filter libusb-1.0.dll -Recurse |
+            Where-Object FullName -NotMatch 'vcpkg_installed'
+          if ($dlls) {
+            throw "Static build unexpectedly deployed: $($dlls.FullName)"
+          }

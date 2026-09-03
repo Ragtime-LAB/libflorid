@@ -1,202 +1,49 @@
 #include "florid/detail/UdpTransport.hpp"
 
-#include <asio.hpp>
-
-#include <array>
-#include <atomic>
-#include <condition_variable>
-#include <cstdio>
-#include <mutex>
-#include <stdexcept>
-#include <thread>
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 namespace florid {
 
-namespace {
-constexpr std::size_t s_kMaxDatagramSize = 2048;
-
-#ifdef _WIN32
-void s_disableUdpConnReset(asio::ip::udp::socket& s_socket) {
-    // Windows surfaces ICMP port-unreachable on unconnected UDP sockets as
-    // WSAECONNRESET on the next operation. Disable that so a stray datagram
-    // to a not-yet-bound peer cannot abort our receive loop.
-    constexpr DWORD s_kSioUdpConnReset = 0x9800000C;
-    DWORD s_zero = 0;
-    DWORD s_returned = 0;
-    (void)::WSAIoctl(s_socket.native_handle(), s_kSioUdpConnReset, &s_zero,
-                     sizeof(s_zero), nullptr, 0, &s_returned, nullptr, nullptr);
-}
-#endif
-} // namespace
-
-struct UdpTransport::Impl {
-    asio::io_context m_ctx;
-    asio::ip::udp::socket m_socket;
-    std::unique_ptr<asio::executor_work_guard<asio::io_context::executor_type>> m_work_guard;
-    std::jthread m_thread;
-
-    std::array<std::uint8_t, s_kMaxDatagramSize> m_rx_buffer{};
-    asio::ip::udp::endpoint m_remote_endpoint;
-
-    // Learned device endpoint (from first received datagram).
-    std::mutex m_peer_mutex;
-    asio::ip::udp::endpoint m_peer;
-    bool m_peer_known{false};
-    std::condition_variable m_peer_cv;
-
-    // Receive callback (installed by ArmImpl).
-    std::mutex m_callback_mutex;
-    ReceiveFunctor m_recv_callback{nullptr};
-    void* m_recv_context{nullptr};
-
-    std::mutex m_write_mutex;
-    std::atomic<bool> m_closed{false};
-
-    Impl(const std::string& s_bind_ip, std::uint16_t s_bind_port)
-        : m_ctx(1), m_socket(m_ctx) {
-        asio::ip::udp::endpoint s_local(asio::ip::make_address(s_bind_ip), s_bind_port);
-        m_socket.open(s_local.protocol());
-#ifdef _WIN32
-        s_disableUdpConnReset(m_socket);
-#endif
-        m_socket.bind(s_local);
-    }
-
-    void close() {
-        m_closed.store(true, std::memory_order_release);
-        asio::error_code s_ec;
-        m_socket.close(s_ec);
-        m_ctx.stop();
-        if (m_thread.joinable()) m_thread.join();
-    }
-
-    void start_receive() {
-        if (m_closed.load(std::memory_order_acquire)) return;
-
-        try {
-            m_socket.async_receive_from(
-                asio::buffer(m_rx_buffer), m_remote_endpoint,
-                [this](const asio::error_code& s_ec, std::size_t s_bytes) {
-                    if (s_ec) {
-                        if (s_ec != asio::error::operation_aborted) {
-                            start_receive();
-                        }
-                        return;
-                    }
-
-                    {
-                        std::lock_guard<std::mutex> s_lock(m_peer_mutex);
-                        if (!m_peer_known) {
-                            m_peer = m_remote_endpoint;
-                            m_peer_known = true;
-                        }
-                    }
-                    m_peer_cv.notify_all();
-
-                    ReceiveFunctor s_cb = nullptr;
-                    void* s_ctx = nullptr;
-                    {
-                        std::lock_guard<std::mutex> s_lock(m_callback_mutex);
-                        s_cb = m_recv_callback;
-                        s_ctx = m_recv_context;
-                    }
-                    if (s_cb && s_bytes > 0) {
-                        s_cb(s_ctx, m_rx_buffer.data(), s_bytes);
-                    }
-
-                    if (!m_closed.load(std::memory_order_acquire)) {
-                        start_receive();
-                    }
-                });
-        } catch (...) {
-            // Socket was closed concurrently during shutdown.
-        }
-    }
-};
-
-UdpTransport::UdpTransport(const std::string& s_bind_ip, std::uint16_t s_bind_port,
-                           std::chrono::milliseconds s_first_datagram_timeout)
-    : m_impl(std::make_unique<Impl>(s_bind_ip, s_bind_port)) {
-    auto& s_impl = *m_impl;
-
-    s_impl.m_work_guard =
-        std::make_unique<asio::executor_work_guard<asio::io_context::executor_type>>(
-            s_impl.m_ctx.get_executor());
-    s_impl.m_thread = std::jthread([&s_impl] {
-#ifdef _WIN32
-        ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
-#endif
-        try {
-            s_impl.m_ctx.run();
-        } catch (const std::exception& s_e) {
-            std::fprintf(stderr, "UdpTransport io thread exception: %s\n", s_e.what());
-        } catch (...) {
-            std::fprintf(stderr, "UdpTransport io thread unknown exception\n");
-        }
-    });
-
-    s_impl.start_receive();
-
-    // Block until the device's first datagram reveals its source endpoint so
-    // that ArmImpl's handshake sends go to the correct peer.
-    std::unique_lock<std::mutex> s_lock(s_impl.m_peer_mutex);
-    if (!s_impl.m_peer_cv.wait_for(s_lock, s_first_datagram_timeout,
-                                   [&s_impl] { return s_impl.m_peer_known; })) {
-        s_impl.close();
-        throw std::runtime_error("UdpTransport: no datagram received from device within "
-                                 + std::to_string(s_first_datagram_timeout.count()) + " ms at "
-                                 + s_bind_ip + ":" + std::to_string(s_bind_port));
-    }
+UdpTransport::UdpTransport(
+    const std::string& s_bind_ip, std::uint16_t s_bind_port,
+    std::chrono::milliseconds s_first_datagram_timeout) {
+    (void)s_first_datagram_timeout;
+    m_config.bind_address = s_bind_ip;
+    m_config.bind_port = s_bind_port;
+    m_config.maximum_datagram_size = 2048;
+    m_config.poll_interval = std::chrono::milliseconds{1};
+    m_config.learn_peer_from_first_datagram = true;
 }
 
 UdpTransport::~UdpTransport() {
-    if (m_impl) {
-        m_impl->close();
+    quiesceWirelink();
+}
+
+int UdpTransport::attachWirelink(wl_ctx_t& s_link, WakeFunctor s_wake,
+                                 void* s_wake_context) noexcept {
+    if (m_adapter || s_wake == nullptr) return WL_ERR_INVALID_STATE;
+    (void)s_wake_context;
+    std::error_code s_error;
+    try {
+        m_adapter = wirelink::asio::UdpAdapter::open(s_link, m_config, s_error);
+    } catch (...) {
+        return WL_ERR_IO;
     }
+    if (!m_adapter || s_error) return WL_ERR_IO;
+    return WL_OK;
 }
 
-UdpTransport::UdpTransport(UdpTransport&&) noexcept = default;
-UdpTransport& UdpTransport::operator=(UdpTransport&& s_other) noexcept {
-    if (this != &s_other) {
-        if (m_impl) m_impl->close();
-        m_impl = std::move(s_other.m_impl);
-    }
-    return *this;
+int UdpTransport::serviceWirelink() noexcept {
+    return m_adapter ? m_adapter->service() : WL_ERR_INVALID_STATE;
 }
 
-bool UdpTransport::send(const std::uint8_t* s_data, std::size_t s_size) {
-    if (!m_impl || s_size == 0) return false;
-
-    asio::ip::udp::endpoint s_peer;
-    {
-        std::lock_guard<std::mutex> s_lock(m_impl->m_peer_mutex);
-        if (!m_impl->m_peer_known) return false;
-        s_peer = m_impl->m_peer;
-    }
-
-    std::lock_guard<std::mutex> s_lock(m_impl->m_write_mutex);
-    asio::error_code s_ec;
-    std::size_t s_sent = m_impl->m_socket.send_to(asio::buffer(s_data, s_size), s_peer, 0, s_ec);
-    return !s_ec && s_sent == s_size;
+void UdpTransport::quiesceWirelink() noexcept {
+    if (m_adapter) m_adapter->quiesce();
+    m_adapter.reset();
 }
 
-void UdpTransport::setReceiveCallback(ReceiveFunctor s_callback, void* s_context) {
-    if (!m_impl) return;
-    std::lock_guard<std::mutex> s_lock(m_impl->m_callback_mutex);
-    m_impl->m_recv_callback = s_callback;
-    m_impl->m_recv_context = s_context;
-}
-
-void UdpTransport::poll() {
-    // ASIO io_context runs on its own background thread; nothing to poll.
-}
-
-bool UdpTransport::isConnected() const {
-    return m_impl && !m_impl->m_closed.load(std::memory_order_acquire);
+std::uint32_t UdpTransport::wirelinkDeadlineHint(
+    wl_time_ms_t s_now_ms) const noexcept {
+    return m_adapter ? m_adapter->deadline_hint(s_now_ms)
+                     : WL_POLL_NO_DEADLINE_MS;
 }
 
 } // namespace florid
