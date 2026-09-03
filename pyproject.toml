@@ -53,7 +53,10 @@ BUILD_MPC = "OFF"
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-* cp314-*"
-skip = "*-manylinux_i686 *-musllinux_* pp*"
+# cibuildwheel 3 also selects free-threaded CPython and musllinux by default.
+# pybind11 free-threading is not enabled yet, and the supported Linux product
+# artifact is the manylinux wheel.
+skip = "cp31?t-* *-manylinux_i686 *-musllinux_* pp*"
 test-command = "python -c \"import pyflorid; print(pyflorid.__doc__)\""
 
 [tool.cibuildwheel.linux]
