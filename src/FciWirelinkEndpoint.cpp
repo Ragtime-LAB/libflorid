@@ -1220,8 +1220,9 @@ FciEndpointStatus FciWirelinkEndpoint::sendGripperPvt(
                                  s_payload.data(), s_size);
 }
 
-void FciWirelinkEndpoint::s_onEvent(void* s_user_data, wl_ctx_t& s_context,
-                                    const wl_event_t& s_event) noexcept {
+wl_pump_event_disposition_t FciWirelinkEndpoint::s_onEvent(
+    void* s_user_data, wl_ctx_t& s_context,
+    const wl_event_t& s_event) noexcept {
     auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
     s_self.m_stats.m_dispatch_calls.fetch_add(1, std::memory_order_relaxed);
     const auto s_result = fci_arm_runtime_dispatch_event(
@@ -1231,6 +1232,8 @@ void FciWirelinkEndpoint::s_onEvent(void* s_user_data, wl_ctx_t& s_context,
         s_self.m_stats.m_dispatch_errors.fetch_add(1,
                                                   std::memory_order_relaxed);
     }
+    return s_result.event_consumed != 0U ? WL_PUMP_EVENT_CONSUMED
+                                         : WL_PUMP_EVENT_UNHANDLED;
 }
 
 bool FciWirelinkEndpoint::s_applicationProgress(

@@ -347,8 +347,9 @@ private:
     static constexpr std::size_t s_kRxFifoSize = 4096;
     static constexpr std::size_t s_kRxFallbackSize = 320;
 
-    static void s_onEvent(void* s_user_data, wl_ctx_t& s_context,
-                          const wl_event_t& s_event) noexcept;
+    static wl_pump_event_disposition_t s_onEvent(
+        void* s_user_data, wl_ctx_t& s_context,
+        const wl_event_t& s_event) noexcept;
     static int s_transportService(void* s_user_data) noexcept;
     static void s_transportWake(void* s_user_data) noexcept;
     static bool s_applicationProgress(void* s_user_data, wl_ctx_t& s_context,

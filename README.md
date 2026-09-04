@@ -31,7 +31,7 @@
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | ABI 8-compatible release |
+| Wirelink + `wlc` | Codegen ABI 15-compatible pair |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 

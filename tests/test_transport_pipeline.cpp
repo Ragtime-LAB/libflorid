@@ -242,12 +242,13 @@ private:
                    : WL_SINK_FAILED;
     }
 
-    static void s_onEvent(void* s_user_data, wl_ctx_t& s_context,
-                          const wl_event_t& s_event) noexcept {
+    static wl_pump_event_disposition_t s_onEvent(
+        void* s_user_data, wl_ctx_t& s_context,
+        const wl_event_t& s_event) noexcept {
         auto& s_self = *static_cast<DevicePeer*>(s_user_data);
         if (s_event.type != WL_EVT_UNRELIABLE_RX &&
             s_event.type != WL_EVT_RELIABLE_RX) {
-            return;
+            return WL_PUMP_EVENT_UNHANDLED;
         }
 
         switch (s_event.message_id) {
@@ -350,6 +351,7 @@ private:
                 break;
         }
         wl_event_release(&s_context, &s_event);
+        return WL_PUMP_EVENT_CONSUMED;
     }
 
     template <typename Request, typename Response, typename Decode,
