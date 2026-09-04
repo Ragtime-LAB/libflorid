@@ -16,7 +16,7 @@ struct Version {
 // Protocol 0.0.x uses the same generated FCI schema. Patch releases are
 // wire-compatible; a major or minor change while the protocol is pre-1.0 is
 // treated as an explicit compatibility boundary.
-inline constexpr Version kSupportedProtocolVersion{0, 0, 1};
+inline constexpr Version kSupportedProtocolVersion{0, 0, 2};
 
 enum class FirmwareType : std::uint8_t {
     kStandardArm = 0,
@@ -120,6 +120,7 @@ struct ArmDiagnostics {
     std::uint16_t m_rx_error_count{};
     std::array<JointDiagnostics, 6> m_joints{};
     GripperDiagnostics m_gripper{};
+    std::uint8_t m_overheat_mask{};
 };
 
 } // namespace florid

@@ -132,7 +132,7 @@ bool s_diagnosticsFromWire(const arm_diagnostics_t& s_wire,
         !s_wire.has_bus_state || !s_wire.has_tx_error_count ||
         !s_wire.has_rx_error_count || !s_wire.has_joint_healthy_mask ||
         !s_wire.has_joint_temperature_c || !s_wire.has_gripper_healthy ||
-        !s_wire.has_gripper_temperature_c ||
+        !s_wire.has_gripper_temperature_c || !s_wire.has_overheat_mask ||
         !s_allFinite(s_wire.joint_temperature_c) ||
         !std::isfinite(s_wire.gripper_temperature_c)) {
         return false;
@@ -162,6 +162,7 @@ bool s_diagnosticsFromWire(const arm_diagnostics_t& s_wire,
         .m_healthy = s_wire.gripper_healthy,
         .m_temperature_c = s_wire.gripper_temperature_c,
     };
+    s_domain.m_overheat_mask = s_wire.overheat_mask;
     return true;
 }
 

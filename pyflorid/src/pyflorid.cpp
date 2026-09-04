@@ -345,6 +345,7 @@ PYBIND11_MODULE(_pyflorid, m) {
         .def_readonly("bus_state", &florid::ArmDiagnostics::m_bus_state)
         .def_readonly("tx_err_count", &florid::ArmDiagnostics::m_tx_error_count)
         .def_readonly("rx_err_count", &florid::ArmDiagnostics::m_rx_error_count)
+        .def_readonly("overheat_mask", &florid::ArmDiagnostics::m_overheat_mask)
         .def_property_readonly("joints", [](const florid::ArmDiagnostics& s_d) {
             py::list l;
             for (const auto& s_joint : s_d.m_joints) l.append(s_joint);
