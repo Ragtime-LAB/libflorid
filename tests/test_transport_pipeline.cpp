@@ -477,6 +477,9 @@ private:
         s_info.firmware_type = FIRMWARE_STANDARD_ARM;
         s_info.has_serial = true;
         s_info.serial = {s_serial, sizeof(s_serial) - 1};
+        s_info.has_command_capabilities = true;
+        s_info.command_capabilities = florid::kAllJointCommandCapabilities |
+                                      florid::kAllGripperCommandCapabilities;
         std::array<std::uint8_t, 256> s_encode{};
         (void)fci_arm_get_device_info_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode));

@@ -7,6 +7,7 @@
 #include "florid/DeviceTypes.hpp"
 #include "florid/Duration.hpp"
 #include "florid/DeviceDiscovery.hpp"
+#include "florid/Exceptions.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
 #include "florid/detail/LatencyEstimator.hpp"
 #include "florid/detail/Transport.hpp"
@@ -125,12 +126,20 @@ public:
 
     template <typename CommandType>
     void s_prepareControl() {
+        if (!m_device_info.supports(s_armCapabilityFor<CommandType>())) {
+            throw CommandException(
+                "firmware does not advertise this arm command capability");
+        }
         s_requestPcMode();
         s_ensureMode(s_controlModeFor<CommandType>());
     }
 
     template <typename CommandType>
     void s_prepareGripperControl() {
+        if (!m_device_info.supports(s_gripperCapabilityFor<CommandType>())) {
+            throw CommandException(
+                "firmware does not advertise this gripper command capability");
+        }
         s_requestPcMode();
         s_ensureGripperMode(s_controlModeFor<CommandType>());
     }
@@ -181,6 +190,41 @@ private:
 
     static bool s_validJointId(std::uint8_t s_joint_id) noexcept;
     static std::uint8_t s_wireJointId(std::uint8_t s_joint_id) noexcept;
+
+    template <typename CommandType>
+    static constexpr CommandCapability s_armCapabilityFor() {
+        if constexpr (std::is_same_v<CommandType, JointPosVel>) {
+            return CommandCapability::kJointPositionVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointVel>) {
+            return CommandCapability::kJointVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointPVT>) {
+            return CommandCapability::kJointPvt;
+        } else if constexpr (std::is_same_v<CommandType, CartesianPose>) {
+#ifdef FLORID_HAS_MPC
+            return CommandCapability::kJointPvt;
+#else
+            return CommandCapability::kCartesianPose;
+#endif
+        } else if constexpr (std::is_same_v<CommandType,
+                                            CartesianVelocities>) {
+            return CommandCapability::kCartesianVelocity;
+        } else {
+            return CommandCapability::kJointMit;
+        }
+    }
+
+    template <typename CommandType>
+    static constexpr CommandCapability s_gripperCapabilityFor() {
+        if constexpr (std::is_same_v<CommandType, JointPosVel>) {
+            return CommandCapability::kGripperPositionVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointVel>) {
+            return CommandCapability::kGripperVelocity;
+        } else if constexpr (std::is_same_v<CommandType, JointPVT>) {
+            return CommandCapability::kGripperPvt;
+        } else {
+            return CommandCapability::kGripperMit;
+        }
+    }
 
     template <typename CommandType>
     static constexpr detail::FciMotorControlMode s_controlModeFor() {

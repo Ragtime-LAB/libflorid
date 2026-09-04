@@ -382,6 +382,8 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
     s_result = m_executor.setHooks(s_hooks);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
 
+    m_command_capabilities.store(0U, std::memory_order_relaxed);
+
     std::lock_guard<std::mutex> s_lock(m_mutex);
     m_initialized = true;
     return FciEndpointStatus::kOk;
@@ -770,6 +772,8 @@ FciEndpointStatus FciWirelinkEndpoint::takeDeviceInfo(
             .m_serial_number = std::string(
                 s_slot.m_device_info.m_serial_number.data(),
                 s_slot.m_device_info.m_serial_number_size),
+            .m_command_capabilities =
+                s_slot.m_device_info.m_command_capabilities,
         };
     }
     s_slot = OperationSlot{};
@@ -1031,19 +1035,89 @@ FciEndpointStatus FciWirelinkEndpoint::sendJointPvt(
 FciEndpointStatus FciWirelinkEndpoint::sendCartesianPose(
     const CartesianPose& s_command, std::uint32_t s_dt_us,
     std::uint64_t s_sdk_timestamp_us) noexcept {
-    static_cast<void>(s_command);
-    static_cast<void>(s_dt_us);
-    static_cast<void>(s_sdk_timestamp_us);
-    return FciEndpointStatus::kUnsupported;
+    if ((m_command_capabilities.load(std::memory_order_acquire) &
+         commandCapability(CommandCapability::kCartesianPose)) == 0U) {
+        return FciEndpointStatus::kUnsupported;
+    }
+    if (s_dt_us == 0 || !s_allFinite(s_command.m_T) ||
+        !s_allFinite(s_command.m_kp) || !s_allFinite(s_command.m_kd)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    cartesian_pose_command_t s_wire{};
+    cartesian_pose_command_clear(&s_wire);
+    s_wire.has_transform = true;
+    s_wire.has_kp = true;
+    s_wire.has_kd = true;
+    std::copy_n(s_command.m_T, 16, s_wire.transform);
+    std::copy_n(s_command.m_kp, 6, s_wire.kp);
+    std::copy_n(s_command.m_kd, 6, s_wire.kd);
+    s_wire.has_dt_us = true;
+    s_wire.dt_us = s_dt_us;
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_gravity_compensation = true;
+    s_wire.gravity_compensation = false;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (cartesian_pose_command_encode(&s_wire, s_payload.data(),
+                                      s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(CARTESIAN_POSE_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
 }
 
 FciEndpointStatus FciWirelinkEndpoint::sendCartesianVelocity(
     const CartesianVelocities& s_command, std::uint32_t s_dt_us,
     std::uint64_t s_sdk_timestamp_us) noexcept {
-    static_cast<void>(s_command);
-    static_cast<void>(s_dt_us);
-    static_cast<void>(s_sdk_timestamp_us);
-    return FciEndpointStatus::kUnsupported;
+    if ((m_command_capabilities.load(std::memory_order_acquire) &
+         commandCapability(CommandCapability::kCartesianVelocity)) == 0U) {
+        return FciEndpointStatus::kUnsupported;
+    }
+    if (s_dt_us == 0 || !s_allFinite(s_command.m_v) ||
+        !s_allFinite(s_command.m_kp) || !s_allFinite(s_command.m_kd)) {
+        return FciEndpointStatus::kInvalidArgument;
+    }
+    std::uint64_t s_token{};
+    const auto s_lease_status = s_commandToken(s_token);
+    if (s_lease_status != FciEndpointStatus::kOk) return s_lease_status;
+    cartesian_velocity_command_t s_wire{};
+    cartesian_velocity_command_clear(&s_wire);
+    s_wire.has_twist = true;
+    s_wire.has_kp = true;
+    s_wire.has_kd = true;
+    std::copy_n(s_command.m_v, 6, s_wire.twist);
+    std::copy_n(s_command.m_kp, 6, s_wire.kp);
+    std::copy_n(s_command.m_kd, 6, s_wire.kd);
+    s_wire.has_dt_us = true;
+    s_wire.dt_us = s_dt_us;
+    s_wire.has_sequence = true;
+    s_wire.sequence =
+        m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.has_gravity_compensation = true;
+    s_wire.gravity_compensation = false;
+    s_wire.has_sdk_timestamp_us = true;
+    s_wire.sdk_timestamp_us = s_sdk_timestamp_us;
+    s_wire.has_lease_token = true;
+    s_wire.lease_token = s_token;
+    std::array<std::uint8_t, s_kTxPayloadSize> s_payload{};
+    std::size_t s_size{};
+    if (cartesian_velocity_command_encode(
+            &s_wire, s_payload.data(), s_payload.size(), &s_size) !=
+        WL_CODEC_OK) {
+        return FciEndpointStatus::kCodecError;
+    }
+    return s_submitLatestPayload(CARTESIAN_VELOCITY_COMMAND_MESSAGE_ID,
+                                 s_payload.data(), s_size);
 }
 
 FciEndpointStatus FciWirelinkEndpoint::sendGripperPositionVelocity(
@@ -1851,6 +1925,10 @@ void FciWirelinkEndpoint::s_finalize(
                             };
                             s_device_info.m_firmware_type =
                                 s_firmwareType(s_info.firmware_type);
+                            s_device_info.m_command_capabilities =
+                                s_info.has_command_capabilities
+                                    ? s_info.command_capabilities
+                                    : 0U;
                             s_response_valid = s_copyString(
                                 s_info.board_name,
                                 s_device_info.m_board_name.data(),
@@ -2093,6 +2171,12 @@ void FciWirelinkEndpoint::s_finalize(
 
     s_releaseRuntimeOperation(s_client.operation_id);
     m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
+
+    if (s_kind == RpcKind::kGetDeviceInfo &&
+        s_status == FciEndpointStatus::kOk && s_device_info.m_valid) {
+        m_command_capabilities.store(s_device_info.m_command_capabilities,
+                                     std::memory_order_release);
+    }
 
     std::lock_guard<std::mutex> s_lock(m_mutex);
     auto& s_slot = m_operations[s_index];

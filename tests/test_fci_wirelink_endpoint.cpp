@@ -228,6 +228,7 @@ public:
     std::array<std::size_t, 9> m_control_messages{};
     joint_mit_command_t m_last_joint{};
     std::atomic<bool> m_drop_device_info{};
+    std::atomic<std::uint64_t> m_command_capabilities{};
     // 0: OK with normalized settings, 1: malformed OK without settings,
     // 2: domain rejection without settings.
     std::atomic<int> m_set_settings_mode{};
@@ -565,6 +566,9 @@ private:
         s_info.firmware_type = FIRMWARE_COBOT_ARM;
         s_info.has_serial = true;
         s_info.serial = {s_serial, sizeof(s_serial) - 1};
+        s_info.has_command_capabilities = true;
+        s_info.command_capabilities =
+            m_command_capabilities.load(std::memory_order_acquire);
         std::array<std::uint8_t, 256> s_encode{};
         s_recordSend(fci_arm_get_device_info_response_send_reliable(
             &s_context, &s_response, s_scratch(s_encode)));
@@ -781,7 +785,8 @@ void testTypedEndpointLifecycle() {
                 s_info.m_board_name == "ESP32-S3" &&
                 s_info.m_custom_name == "arm-\xE4\xB8\x80" &&
                 s_info.m_firmware_type == florid::FirmwareType::kCobotArm &&
-                s_info.m_serial_number == "323738373233511200260036",
+                s_info.m_serial_number == "323738373233511200260036" &&
+                s_info.m_command_capabilities == 0U,
             "GetDeviceInfo wire-to-domain conversion failed");
 
     const auto s_acquire = s_host.acquireControlLease(5000, 250);
@@ -947,6 +952,29 @@ void testTypedEndpointLifecycle() {
     require(s_host.sendCartesianVelocity(s_twist, 2000, 106) ==
                 FciEndpointStatus::kUnsupported,
             "CartesianVelocity must fail closed until firmware advertises support");
+    const auto s_cartesian_capabilities =
+        florid::commandCapability(florid::CommandCapability::kCartesianPose) |
+        florid::commandCapability(
+            florid::CommandCapability::kCartesianVelocity);
+    s_device.m_command_capabilities.store(s_cartesian_capabilities,
+                                          std::memory_order_release);
+    const auto s_capability_request = s_host.getDeviceInfo(250);
+    require(s_capability_request.m_status == FciEndpointStatus::kOk &&
+                s_host.waitOperation(s_capability_request.m_request_id, 1s,
+                                     s_operation) == FciEndpointStatus::kOk &&
+                s_host.takeDeviceInfo(s_capability_request.m_request_id,
+                                      s_operation, s_info) ==
+                    FciEndpointStatus::kOk &&
+                s_info.m_command_capabilities == s_cartesian_capabilities,
+            "command capability refresh failed");
+    require(s_host.sendCartesianPose(s_pose, 2000, 105) ==
+                FciEndpointStatus::kOk,
+            "advertised CartesianPose was rejected");
+    s_wait_control(4, "CartesianPose did not reach the peer");
+    require(s_host.sendCartesianVelocity(s_twist, 2000, 106) ==
+                FciEndpointStatus::kOk,
+            "advertised CartesianVelocity was rejected");
+    s_wait_control(5, "CartesianVelocity did not reach the peer");
     require(s_host.sendGripperPositionVelocity(s_pos_vel, 107) ==
                 FciEndpointStatus::kOk,
             "GripperPositionVelocity send failed");

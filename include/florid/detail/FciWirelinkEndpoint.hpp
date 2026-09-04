@@ -302,6 +302,7 @@ private:
         std::uint8_t m_custom_name_size{};
         std::uint8_t m_serial_number_size{};
         FirmwareType m_firmware_type{FirmwareType::kUnknown};
+        std::uint64_t m_command_capabilities{};
         bool m_valid{};
     };
 
@@ -418,6 +419,7 @@ private:
     bool m_running{};
     std::size_t m_runtime_storage_bytes{};
     std::atomic<std::uint32_t> m_command_sequence{};
+    std::atomic<std::uint64_t> m_command_capabilities{};
     AtomicStats m_stats{};
 };
 

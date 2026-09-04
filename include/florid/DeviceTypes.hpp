@@ -25,6 +25,34 @@ enum class FirmwareType : std::uint8_t {
     kUnknown = 0xff,
 };
 
+enum class CommandCapability : std::uint64_t {
+    kJointMit = UINT64_C(1) << 0U,
+    kJointPositionVelocity = UINT64_C(1) << 1U,
+    kJointVelocity = UINT64_C(1) << 2U,
+    kJointPvt = UINT64_C(1) << 3U,
+    kCartesianPose = UINT64_C(1) << 4U,
+    kCartesianVelocity = UINT64_C(1) << 5U,
+    kGripperMit = UINT64_C(1) << 6U,
+    kGripperPositionVelocity = UINT64_C(1) << 7U,
+    kGripperVelocity = UINT64_C(1) << 8U,
+    kGripperPvt = UINT64_C(1) << 9U,
+};
+
+constexpr std::uint64_t commandCapability(CommandCapability s_capability) {
+    return static_cast<std::uint64_t>(s_capability);
+}
+
+inline constexpr std::uint64_t kAllJointCommandCapabilities =
+    commandCapability(CommandCapability::kJointMit) |
+    commandCapability(CommandCapability::kJointPositionVelocity) |
+    commandCapability(CommandCapability::kJointVelocity) |
+    commandCapability(CommandCapability::kJointPvt);
+inline constexpr std::uint64_t kAllGripperCommandCapabilities =
+    commandCapability(CommandCapability::kGripperMit) |
+    commandCapability(CommandCapability::kGripperPositionVelocity) |
+    commandCapability(CommandCapability::kGripperVelocity) |
+    commandCapability(CommandCapability::kGripperPvt);
+
 enum class BusState : std::uint8_t {
     kErrorActive = 0,
     kErrorWarning = 1,
@@ -79,6 +107,12 @@ struct DeviceInfo {
     // Immutable full product serial reported by firmware. This is distinct
     // from the user-editable custom name.
     std::string m_serial_number;
+    // Zero means the firmware advertised no real-time command capability.
+    std::uint64_t m_command_capabilities{};
+
+    bool supports(CommandCapability s_capability) const noexcept {
+        return (m_command_capabilities & commandCapability(s_capability)) != 0;
+    }
 };
 
 struct TorqueFoldParameters {
