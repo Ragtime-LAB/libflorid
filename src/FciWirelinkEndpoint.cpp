@@ -319,19 +319,18 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         s_config.m_session_id == 0U ? s_makeSessionId(this)
                                     : s_config.m_session_id;
 
-    fci_arm_runtime_config_t s_runtime_config{};
-    s_runtime_config.arm_status_latest_initial_generation = 1;
-    s_runtime_config.motor_feedback_latest_initial_generation = 1;
-    s_runtime_config.arm_diagnostics_latest_initial_generation = 1;
-    s_runtime_config.rpc_client_enabled = 1;
+    fci_arm_runtime_config_t s_runtime_config;
+    int s_result = fci_arm_runtime_config_defaults(&s_runtime_config);
+    if (s_result != WL_OK) return s_endpointStatus(s_result);
     s_runtime_config.rpc_client_slot_count = s_kOperationCapacity;
     s_runtime_config.rpc_client_response_capacity = s_kTxPayloadSize;
     s_runtime_config.rpc_client_next_operation_id =
         s_rpcOperationSeed(s_session_id);
+    s_result = fci_arm_runtime_config_enable_client(&s_runtime_config);
+    if (s_result != WL_OK) return s_endpointStatus(s_result);
 
     fci_arm_runtime_requirements_t s_requirements{};
-    int s_result =
-        fci_arm_runtime_requirements(&s_runtime_config, &s_requirements);
+    s_result = fci_arm_runtime_requirements(&s_runtime_config, &s_requirements);
     if (s_result != WL_OK ||
         s_requirements.storage_size > m_runtime_storage.size() ||
         s_requirements.storage_alignment > alignof(std::max_align_t)) {
