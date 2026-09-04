@@ -941,14 +941,12 @@ void testTypedEndpointLifecycle() {
     s_wait_control(3, "JointPVT did not reach the peer");
     florid::CartesianPose s_pose{};
     require(s_host.sendCartesianPose(s_pose, 2000, 105) ==
-                FciEndpointStatus::kOk,
-            "CartesianPose send failed");
-    s_wait_control(4, "CartesianPose did not reach the peer");
+                FciEndpointStatus::kUnsupported,
+            "CartesianPose must fail closed until firmware advertises support");
     florid::CartesianVelocities s_twist{};
     require(s_host.sendCartesianVelocity(s_twist, 2000, 106) ==
-                FciEndpointStatus::kOk,
-            "CartesianVelocity send failed");
-    s_wait_control(5, "CartesianVelocity did not reach the peer");
+                FciEndpointStatus::kUnsupported,
+            "CartesianVelocity must fail closed until firmware advertises support");
     require(s_host.sendGripperPositionVelocity(s_pos_vel, 107) ==
                 FciEndpointStatus::kOk,
             "GripperPositionVelocity send failed");

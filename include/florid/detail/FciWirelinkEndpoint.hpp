@@ -26,6 +26,7 @@ enum class FciEndpointStatus : std::uint8_t {
     kQueueFull,
     kBusy,
     kInvalidArgument,
+    kUnsupported,
     kNoLease,
     kNoData,
     kCodecError,
