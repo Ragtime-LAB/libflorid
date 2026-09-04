@@ -397,7 +397,6 @@ private:
     alignas(std::max_align_t)
         std::array<std::byte, s_kRuntimeStorageSize> m_runtime_storage{};
     std::array<std::uint8_t, s_kTxPayloadSize> m_tx_payload{};
-    std::array<std::uint8_t, s_kTxPayloadSize> m_rpc_encode_scratch{};
     std::array<std::uint8_t, s_kTxUnitSize> m_tx_unit{};
     std::array<std::uint8_t, s_kControlUnitSize> m_control_unit{};
     std::array<std::uint8_t, s_kRxFifoSize> m_rx_fifo{};

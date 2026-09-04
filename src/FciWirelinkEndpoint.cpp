@@ -1506,10 +1506,6 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
     }
 
     fci_arm_runtime_result_t s_started{};
-    const fci_arm_encode_scratch_t s_scratch{
-        .data = m_rpc_encode_scratch.data(),
-        .capacity = m_rpc_encode_scratch.size(),
-    };
     switch (s_slot.m_kind) {
         case RpcKind::kAcquireLease: {
             acquire_control_lease_request_t s_request{};
@@ -1521,9 +1517,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_request.has_current_token = true;
                 s_request.current_token = s_slot.m_request.m_lease_token;
             }
-            s_started = fci_arm_acquire_control_lease_client_start_scratch(
+            s_started = fci_arm_acquire_control_lease_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kReleaseLease: {
@@ -1531,17 +1527,17 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             release_control_lease_request_clear(&s_request);
             s_request.has_lease_token = true;
             s_request.lease_token = s_slot.m_request.m_lease_token;
-            s_started = fci_arm_release_control_lease_client_start_scratch(
+            s_started = fci_arm_release_control_lease_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kGetDeviceInfo: {
             get_device_info_request_t s_request{};
             get_device_info_request_clear(&s_request);
-            s_started = fci_arm_get_device_info_client_start_scratch(
+            s_started = fci_arm_get_device_info_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetDeviceInfo: {
@@ -1552,17 +1548,17 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_slot.m_request.m_custom_name.data(),
                 s_slot.m_request.m_custom_name_size,
             };
-            s_started = fci_arm_set_device_info_client_start_scratch(
+            s_started = fci_arm_set_device_info_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kGetDeviceSettings: {
             get_device_settings_request_t s_request{};
             get_device_settings_request_clear(&s_request);
-            s_started = fci_arm_get_device_settings_client_start_scratch(
+            s_started = fci_arm_get_device_settings_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetDeviceSettings: {
@@ -1571,9 +1567,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_settings = true;
             s_settingsToWire(s_slot.m_request.m_device_settings,
                              s_request.settings);
-            s_started = fci_arm_set_device_settings_client_start_scratch(
+            s_started = fci_arm_set_device_settings_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetArmControlMode: {
@@ -1581,9 +1577,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_control_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_arm_control_mode_client_start_scratch(
+            s_started = fci_arm_set_arm_control_mode_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetGripperControlMode: {
@@ -1591,9 +1587,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_gripper_control_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_gripper_control_mode_client_start_scratch(
+            s_started = fci_arm_set_gripper_control_mode_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetArmMode: {
@@ -1601,17 +1597,17 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
-            s_started = fci_arm_set_arm_mode_client_start_scratch(
+            s_started = fci_arm_set_arm_mode_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kHome: {
             home_request_t s_request{};
             home_request_clear(&s_request);
-            s_started = fci_arm_home_client_start_scratch(
+            s_started = fci_arm_home_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kSetZero: {
@@ -1619,9 +1615,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_zero_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_set_zero_client_start_scratch(
+            s_started = fci_arm_set_zero_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kClearError: {
@@ -1629,25 +1625,25 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             clear_error_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_clear_error_client_start_scratch(
+            s_started = fci_arm_clear_error_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kClearFaults: {
             clear_faults_request_t s_request{};
             clear_faults_request_clear(&s_request);
-            s_started = fci_arm_clear_faults_client_start_scratch(
+            s_started = fci_arm_clear_faults_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kEmergencyStop: {
             emergency_stop_request_t s_request{};
             emergency_stop_request_clear(&s_request);
-            s_started = fci_arm_emergency_stop_client_start_scratch(
+            s_started = fci_arm_emergency_stop_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kMotorRegisterRead: {
@@ -1657,9 +1653,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_request.has_register_id = true;
             s_request.register_id = s_slot.m_request.m_register_id;
-            s_started = fci_arm_motor_register_read_client_start_scratch(
+            s_started = fci_arm_motor_register_read_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kMotorRegisterWrite: {
@@ -1671,9 +1667,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.register_id = s_slot.m_request.m_register_id;
             s_request.has_value = true;
             s_request.value = s_slot.m_request.m_value;
-            s_started = fci_arm_motor_register_write_client_start_scratch(
+            s_started = fci_arm_motor_register_write_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kMotorStoreParameters: {
@@ -1682,9 +1678,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_started =
-                fci_arm_motor_store_parameters_client_start_scratch(
+                fci_arm_motor_store_parameters_client_start_direct(
                     &s_context, &m_runtime_instance.runtime, &s_request,
-                    s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                    s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kMotorSetZero: {
@@ -1692,9 +1688,9 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             motor_set_zero_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_motor_set_zero_client_start_scratch(
+            s_started = fci_arm_motor_set_zero_client_start_direct(
                 &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms, s_scratch);
+                s_slot.m_timeout_ms, s_now_ms);
             break;
         }
         case RpcKind::kNone:
