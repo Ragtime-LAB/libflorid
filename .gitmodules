@@ -10,4 +10,4 @@
 [submodule "3rdparty/wirelink"]
 	path = 3rdparty/wirelink
 	url = https://github.com/starwey604/wirelink.git
-	branch = feat/wirelink-fci-v1
+	branch = dev/wirelink-p0

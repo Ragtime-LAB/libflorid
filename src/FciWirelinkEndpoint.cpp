@@ -1363,15 +1363,17 @@ std::uint32_t FciWirelinkEndpoint::s_until(wl_time_ms_t s_now,
 bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
                                      wl_time_ms_t s_now_ms) noexcept {
     bool s_progressed = false;
-    fci_arm_runtime_poll_result_t s_poll{};
+    fci_arm_runtime_service_result_t s_service{};
     m_stats.m_runtime_poll_calls.fetch_add(1, std::memory_order_relaxed);
-    if (fci_arm_runtime_poll(&m_runtime_instance.runtime, s_now_ms, &s_poll) ==
-        WL_RPC_OK) {
-        if (s_poll.client_timed_out != 0) {
-            m_stats.m_runtime_timeouts.fetch_add(s_poll.client_timed_out,
-                                                std::memory_order_relaxed);
+    if (fci_arm_runtime_service(&s_context, &m_runtime_instance.runtime,
+                                s_now_ms, &s_service) == WL_RPC_OK) {
+        if (s_service.deadlines.client_timed_out != 0) {
+            m_stats.m_runtime_timeouts.fetch_add(
+                s_service.deadlines.client_timed_out,
+                std::memory_order_relaxed);
             s_progressed = true;
         }
+        s_progressed = s_service.responses_submitted != 0 || s_progressed;
     }
 
     s_progressed = s_drainLatest() || s_progressed;
