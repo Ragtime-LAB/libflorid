@@ -1222,11 +1222,11 @@ FciEndpointStatus FciWirelinkEndpoint::sendGripperPvt(
 
 wl_pump_event_disposition_t FciWirelinkEndpoint::s_onEvent(
     void* s_user_data, wl_ctx_t& s_context,
-    const wl_event_t& s_event) noexcept {
+    const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
     auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
     s_self.m_stats.m_dispatch_calls.fetch_add(1, std::memory_order_relaxed);
     const auto s_result = fci_arm_runtime_dispatch_event(
-        &s_context, &s_event, &s_self.m_runtime_instance.runtime, s_nowMs());
+        &s_context, &s_event, &s_self.m_runtime_instance.runtime, s_now_ms);
     if (s_result.domain != FCI_ARM_RUNTIME_OK &&
         s_result.domain != FCI_ARM_RUNTIME_NON_RX) {
         s_self.m_stats.m_dispatch_errors.fetch_add(1,

@@ -349,7 +349,7 @@ private:
 
     static wl_pump_event_disposition_t s_onEvent(
         void* s_user_data, wl_ctx_t& s_context,
-        const wl_event_t& s_event) noexcept;
+        const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept;
     static int s_transportService(void* s_user_data) noexcept;
     static void s_transportWake(void* s_user_data) noexcept;
     static bool s_applicationProgress(void* s_user_data, wl_ctx_t& s_context,
