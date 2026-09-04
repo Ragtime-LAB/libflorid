@@ -258,7 +258,7 @@ private:
                                         set_device_info_response_t>(
                     s_context, s_event, set_device_info_request_decode,
                     set_device_info_response_clear,
-                    fci_arm_set_device_info_response_send_reliable,
+                    fci_arm_set_device_info_response_send,
                     DEVICE_INFO_OK);
                 break;
             case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
@@ -273,7 +273,7 @@ private:
                     s_context, s_event,
                     set_arm_control_mode_request_decode,
                     set_arm_control_mode_response_clear,
-                    fci_arm_set_arm_control_mode_response_send_reliable,
+                    fci_arm_set_arm_control_mode_response_send,
                     MODE_OK);
                 break;
             case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID:
@@ -282,7 +282,7 @@ private:
                     s_context, s_event,
                     set_gripper_control_mode_request_decode,
                     set_gripper_control_mode_response_clear,
-                    fci_arm_set_gripper_control_mode_response_send_reliable,
+                    fci_arm_set_gripper_control_mode_response_send,
                     MODE_OK);
                 break;
             case SET_ARM_MODE_REQUEST_MESSAGE_ID:
@@ -290,20 +290,20 @@ private:
                                         set_arm_mode_response_t>(
                     s_context, s_event, set_arm_mode_request_decode,
                     set_arm_mode_response_clear,
-                    fci_arm_set_arm_mode_response_send_reliable, MODE_OK);
+                    fci_arm_set_arm_mode_response_send, MODE_OK);
                 break;
             case HOME_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<home_request_t, home_response_t>(
                     s_context, s_event, home_request_decode,
                     home_response_clear,
-                    fci_arm_home_response_send_reliable, HOME_OK);
+                    fci_arm_home_response_send, HOME_OK);
                 break;
             case SET_ZERO_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_zero_request_t,
                                         set_zero_response_t>(
                     s_context, s_event, set_zero_request_decode,
                     set_zero_response_clear,
-                    fci_arm_set_zero_response_send_reliable,
+                    fci_arm_set_zero_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case CLEAR_ERROR_REQUEST_MESSAGE_ID:
@@ -311,7 +311,7 @@ private:
                                         clear_error_response_t>(
                     s_context, s_event, clear_error_request_decode,
                     clear_error_response_clear,
-                    fci_arm_clear_error_response_send_reliable,
+                    fci_arm_clear_error_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case CLEAR_FAULTS_REQUEST_MESSAGE_ID:
@@ -319,7 +319,7 @@ private:
                                         clear_faults_response_t>(
                     s_context, s_event, clear_faults_request_decode,
                     clear_faults_response_clear,
-                    fci_arm_clear_faults_response_send_reliable,
+                    fci_arm_clear_faults_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case EMERGENCY_STOP_REQUEST_MESSAGE_ID:
@@ -327,7 +327,7 @@ private:
                                         emergency_stop_response_t>(
                     s_context, s_event, emergency_stop_request_decode,
                     emergency_stop_response_clear,
-                    fci_arm_emergency_stop_response_send_reliable,
+                    fci_arm_emergency_stop_response_send,
                     EMERGENCY_STOP_OK);
                 break;
             case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID:
@@ -339,7 +339,7 @@ private:
                     s_context, s_event,
                     motor_register_write_request_decode,
                     motor_register_write_response_clear,
-                    fci_arm_motor_register_write_response_send_reliable,
+                    fci_arm_motor_register_write_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID:
@@ -349,7 +349,7 @@ private:
                     s_context, s_event,
                     motor_store_parameters_request_decode,
                     motor_store_parameters_response_clear,
-                    fci_arm_motor_store_parameters_response_send_reliable,
+                    fci_arm_motor_store_parameters_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID:
@@ -357,7 +357,7 @@ private:
                                         motor_set_zero_response_t>(
                     s_context, s_event, motor_set_zero_request_decode,
                     motor_set_zero_response_clear,
-                    fci_arm_motor_set_zero_response_send_reliable,
+                    fci_arm_motor_set_zero_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case JOINT_MIT_COMMAND_MESSAGE_ID:
@@ -412,11 +412,6 @@ private:
         }
     }
 
-    static fci_arm_encode_scratch_t s_scratch(
-        std::array<std::uint8_t, 256>& s_storage) noexcept {
-        return {s_storage.data(), s_storage.size()};
-    }
-
     template <typename Request, typename Response, typename Decode,
               typename Clear, typename Send>
     void s_statusResponse(wl_ctx_t& s_context, const wl_event_t& s_event,
@@ -438,8 +433,7 @@ private:
         s_response.operation_id = s_request.operation_id;
         s_response.has_status = true;
         s_response.status = s_status;
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(s_send(&s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(s_send(&s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 
@@ -484,9 +478,8 @@ private:
         s_response.lease_token = m_lease_token;
         s_response.has_granted_timeout_ms = true;
         s_response.granted_timeout_ms = s_request.requested_timeout_ms;
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_acquire_control_lease_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_acquire_control_lease_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 
@@ -511,9 +504,8 @@ private:
         s_response.status = s_request.lease_token == m_lease_token
                                 ? CONTROL_LEASE_OK
                                 : CONTROL_LEASE_INVALID_TOKEN;
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_release_control_lease_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_release_control_lease_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 
@@ -569,9 +561,8 @@ private:
         s_info.has_command_capabilities = true;
         s_info.command_capabilities =
             m_command_capabilities.load(std::memory_order_acquire);
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_get_device_info_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_get_device_info_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
     }
 
     void s_deviceSettings(wl_ctx_t& s_context,
@@ -615,9 +606,8 @@ private:
             s_settings.joint_limit_min[s_index] = -2.0F;
             s_settings.joint_limit_max[s_index] = 2.0F;
         }
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_get_device_settings_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_get_device_settings_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 
@@ -648,9 +638,8 @@ private:
             // Exercise host consumption of a device-normalized value.
             s_response.settings.firmware_dt_us = 1250;
         }
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_set_device_settings_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_set_device_settings_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 
@@ -680,9 +669,8 @@ private:
         s_response.register_id = s_request.register_id;
         s_response.has_value = true;
         s_response.value = 12.5F;
-        std::array<std::uint8_t, 256> s_encode{};
-        s_recordSend(fci_arm_motor_register_read_response_send_reliable(
-            &s_context, &s_response, s_scratch(s_encode)));
+        s_recordSend(fci_arm_motor_register_read_response_send(
+            &s_context, &s_response, WL_DELIVERY_RELIABLE));
         m_cv.notify_all();
     }
 

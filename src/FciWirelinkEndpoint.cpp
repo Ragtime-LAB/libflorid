@@ -1517,7 +1517,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_request.has_current_token = true;
                 s_request.current_token = s_slot.m_request.m_lease_token;
             }
-            s_started = fci_arm_acquire_control_lease_client_start_direct(
+            s_started = fci_arm_acquire_control_lease_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1527,7 +1527,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             release_control_lease_request_clear(&s_request);
             s_request.has_lease_token = true;
             s_request.lease_token = s_slot.m_request.m_lease_token;
-            s_started = fci_arm_release_control_lease_client_start_direct(
+            s_started = fci_arm_release_control_lease_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1535,7 +1535,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         case RpcKind::kGetDeviceInfo: {
             get_device_info_request_t s_request{};
             get_device_info_request_clear(&s_request);
-            s_started = fci_arm_get_device_info_client_start_direct(
+            s_started = fci_arm_get_device_info_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1548,7 +1548,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_slot.m_request.m_custom_name.data(),
                 s_slot.m_request.m_custom_name_size,
             };
-            s_started = fci_arm_set_device_info_client_start_direct(
+            s_started = fci_arm_set_device_info_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1556,7 +1556,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         case RpcKind::kGetDeviceSettings: {
             get_device_settings_request_t s_request{};
             get_device_settings_request_clear(&s_request);
-            s_started = fci_arm_get_device_settings_client_start_direct(
+            s_started = fci_arm_get_device_settings_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1567,7 +1567,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_settings = true;
             s_settingsToWire(s_slot.m_request.m_device_settings,
                              s_request.settings);
-            s_started = fci_arm_set_device_settings_client_start_direct(
+            s_started = fci_arm_set_device_settings_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1577,7 +1577,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_control_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_arm_control_mode_client_start_direct(
+            s_started = fci_arm_set_arm_control_mode_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1587,7 +1587,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_gripper_control_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_gripper_control_mode_client_start_direct(
+            s_started = fci_arm_set_gripper_control_mode_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1597,7 +1597,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_mode_request_clear(&s_request);
             s_request.has_mode = true;
             s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
-            s_started = fci_arm_set_arm_mode_client_start_direct(
+            s_started = fci_arm_set_arm_mode_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1605,7 +1605,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         case RpcKind::kHome: {
             home_request_t s_request{};
             home_request_clear(&s_request);
-            s_started = fci_arm_home_client_start_direct(
+            s_started = fci_arm_home_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1615,7 +1615,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_zero_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_set_zero_client_start_direct(
+            s_started = fci_arm_set_zero_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1625,7 +1625,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             clear_error_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_clear_error_client_start_direct(
+            s_started = fci_arm_clear_error_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1633,7 +1633,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         case RpcKind::kClearFaults: {
             clear_faults_request_t s_request{};
             clear_faults_request_clear(&s_request);
-            s_started = fci_arm_clear_faults_client_start_direct(
+            s_started = fci_arm_clear_faults_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1641,7 +1641,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
         case RpcKind::kEmergencyStop: {
             emergency_stop_request_t s_request{};
             emergency_stop_request_clear(&s_request);
-            s_started = fci_arm_emergency_stop_client_start_direct(
+            s_started = fci_arm_emergency_stop_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1653,7 +1653,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_request.has_register_id = true;
             s_request.register_id = s_slot.m_request.m_register_id;
-            s_started = fci_arm_motor_register_read_client_start_direct(
+            s_started = fci_arm_motor_register_read_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1667,7 +1667,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.register_id = s_slot.m_request.m_register_id;
             s_request.has_value = true;
             s_request.value = s_slot.m_request.m_value;
-            s_started = fci_arm_motor_register_write_client_start_direct(
+            s_started = fci_arm_motor_register_write_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1678,7 +1678,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_started =
-                fci_arm_motor_store_parameters_client_start_direct(
+                fci_arm_motor_store_parameters_client_start(
                     &s_context, &m_runtime_instance.runtime, &s_request,
                     s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1688,7 +1688,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             motor_set_zero_request_clear(&s_request);
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_motor_set_zero_client_start_direct(
+            s_started = fci_arm_motor_set_zero_client_start(
                 &s_context, &m_runtime_instance.runtime, &s_request,
                 s_slot.m_timeout_ms, s_now_ms);
             break;
@@ -1703,10 +1703,11 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             : 0;
     const bool s_retryable_backpressure =
         s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC &&
-        s_operation_id != 0 &&
-        wl_rpc_client_release_deferred_start(
-            m_runtime_instance.runtime.rpc_client, s_operation_id) ==
-            WL_RPC_OK;
+        s_operation_id == 0 &&
+        s_started.domain == FCI_ARM_RUNTIME_CORE_ERROR &&
+        (s_started.detail.rpc.core_result == WL_ERR_BUSY ||
+         s_started.detail.rpc.core_result == WL_ERR_WOULD_BLOCK ||
+         s_started.detail.rpc.core_result == WL_ERR_NO_SPACE);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         auto& s_operation = m_operations[s_index];
