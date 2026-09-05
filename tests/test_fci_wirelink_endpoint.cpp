@@ -215,6 +215,45 @@ public:
                                        s_payload.data(), s_size);
     }
 
+    int sendArmDiagnostics(std::uint8_t s_overheat_mask) {
+        arm_diagnostics_t s_diagnostics{};
+        arm_diagnostics_clear(&s_diagnostics);
+        s_diagnostics.has_uptime_s = true;
+        s_diagnostics.uptime_s = 10;
+        s_diagnostics.has_tick_count = true;
+        s_diagnostics.tick_count = 20;
+        s_diagnostics.has_mode_entry_ms = true;
+        s_diagnostics.mode_entry_ms = 30;
+        s_diagnostics.has_bus_healthy = true;
+        s_diagnostics.bus_healthy = true;
+        s_diagnostics.has_bus_state = true;
+        s_diagnostics.bus_state = 1;
+        s_diagnostics.has_tx_error_count = true;
+        s_diagnostics.has_rx_error_count = true;
+        s_diagnostics.has_joint_healthy_mask = true;
+        s_diagnostics.joint_healthy_mask = 0x3f;
+        s_diagnostics.has_joint_temperature_c = true;
+        s_diagnostics.has_gripper_healthy = true;
+        s_diagnostics.gripper_healthy = true;
+        s_diagnostics.has_gripper_temperature_c = true;
+        s_diagnostics.has_overheat_mask = true;
+        s_diagnostics.overheat_mask = s_overheat_mask;
+        for (std::size_t s_index = 0; s_index < 6; ++s_index) {
+            s_diagnostics.joint_temperature_c[s_index] =
+                40.0F + static_cast<float>(s_index);
+        }
+        s_diagnostics.gripper_temperature_c = 50.0F;
+
+        std::array<std::uint8_t, 96> s_payload{};
+        std::size_t s_size{};
+        if (arm_diagnostics_encode(&s_diagnostics, s_payload.data(),
+                                   s_payload.size(), &s_size) != WL_CODEC_OK) {
+            return WL_ERR_INVALID_ARG;
+        }
+        return m_executor.submitLatest(ARM_DIAGNOSTICS_MESSAGE_ID,
+                                       s_payload.data(), s_size);
+    }
+
     WirelinkExecutor& executor() noexcept { return m_executor; }
 
     std::mutex m_mutex;
@@ -699,7 +738,9 @@ struct StatusCapture {
     std::mutex m_mutex;
     std::condition_variable m_cv;
     florid::detail::FciArmStatusSnapshot m_status{};
+    florid::ArmDiagnostics m_diagnostics{};
     std::size_t m_calls{};
+    std::size_t m_diagnostics_calls{};
 
     static void callback(
         void* s_user_data,
@@ -709,6 +750,18 @@ struct StatusCapture {
             std::lock_guard<std::mutex> s_lock(s_self.m_mutex);
             s_self.m_status = s_status;
             ++s_self.m_calls;
+        }
+        s_self.m_cv.notify_all();
+    }
+
+    static void diagnosticsCallback(
+        void* s_user_data,
+        const florid::ArmDiagnostics& s_diagnostics) noexcept {
+        auto& s_self = *static_cast<StatusCapture*>(s_user_data);
+        {
+            std::lock_guard<std::mutex> s_lock(s_self.m_mutex);
+            s_self.m_diagnostics = s_diagnostics;
+            ++s_self.m_diagnostics_calls;
         }
         s_self.m_cv.notify_all();
     }
@@ -740,7 +793,8 @@ void testTypedEndpointLifecycle() {
     require(s_device.setSink(FragmentSink::sink, &s_device_to_host) == WL_OK,
             "device sink setup failed");
     StatusCapture s_status_capture;
-    require(s_host.setCallbacks(StatusCapture::callback, nullptr,
+    require(s_host.setCallbacks(StatusCapture::callback,
+                                StatusCapture::diagnosticsCallback,
                                 &s_status_capture) == FciEndpointStatus::kOk,
             "host callback setup failed");
     require(s_device.start() == WL_OK, "device peer start failed");
@@ -1013,6 +1067,19 @@ void testTypedEndpointLifecycle() {
         require(s_status_capture.m_status.m_state.m_seq == 41 &&
                     s_status_capture.m_status.m_state.m_q[0] == 4.25F,
                 "ArmStatus callback snapshot was not stable after borrowed release");
+    }
+
+    require(s_device.sendArmDiagnostics(0x42) == WL_OK,
+            "ArmDiagnostics submit failed");
+    waitFor(s_status_capture.m_cv, s_status_capture.m_mutex,
+            [&] { return s_status_capture.m_diagnostics_calls == 1; },
+            "ArmDiagnostics callback did not run");
+    {
+        std::lock_guard<std::mutex> s_lock(s_status_capture.m_mutex);
+        require(!s_status_capture.m_diagnostics.m_joints[0].m_overheated &&
+                    s_status_capture.m_diagnostics.m_joints[1].m_overheated &&
+                    s_status_capture.m_diagnostics.m_gripper.m_overheated,
+                "ArmDiagnostics overheat mask was not mapped to motors");
     }
 
     // A direct asynchronous transport can still own the preceding ACK when

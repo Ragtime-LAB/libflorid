@@ -137,11 +137,13 @@ struct DeviceSettings {
 struct JointDiagnostics {
     bool m_healthy{};
     float m_temperature_c{};
+    bool m_overheated{};
 };
 
 struct GripperDiagnostics {
     bool m_healthy{};
     float m_temperature_c{};
+    bool m_overheated{};
 };
 
 struct ArmDiagnostics {
