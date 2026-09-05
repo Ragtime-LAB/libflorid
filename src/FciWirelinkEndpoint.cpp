@@ -1699,17 +1699,17 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             break;
     }
 
+    const auto* const s_rpc_detail =
+        fci_arm_runtime_result_rpc_detail(&s_started);
     const std::uint32_t s_operation_id =
-        s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC
-            ? s_started.detail.rpc.operation_id
-            : 0;
+        s_rpc_detail != nullptr ? s_rpc_detail->operation_id : 0;
     const bool s_retryable_backpressure =
-        s_started.detail_kind == FCI_ARM_RUNTIME_DETAIL_RPC &&
+        s_rpc_detail != nullptr &&
         s_operation_id == 0 &&
         s_started.domain == FCI_ARM_RUNTIME_CORE_ERROR &&
-        (s_started.detail.rpc.core_result == WL_ERR_BUSY ||
-         s_started.detail.rpc.core_result == WL_ERR_WOULD_BLOCK ||
-         s_started.detail.rpc.core_result == WL_ERR_NO_SPACE);
+        (s_rpc_detail->core_result == WL_ERR_BUSY ||
+         s_rpc_detail->core_result == WL_ERR_WOULD_BLOCK ||
+         s_rpc_detail->core_result == WL_ERR_NO_SPACE);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         auto& s_operation = m_operations[s_index];
@@ -1861,7 +1861,7 @@ void FciWirelinkEndpoint::s_finalize(
                     fci_arm_acquire_control_lease_client_decode(&s_client,
                                                                  &s_response);
                 s_response_valid =
-                    s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                    fci_arm_runtime_result_ok(&s_decoded) &&
                     s_response.has_status;
                 if (s_response_valid) {
                     s_domain_status = s_response.status;
@@ -1882,7 +1882,7 @@ void FciWirelinkEndpoint::s_finalize(
                     fci_arm_release_control_lease_client_decode(&s_client,
                                                                  &s_response);
                 s_response_valid =
-                    s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                    fci_arm_runtime_result_ok(&s_decoded) &&
                     s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -1892,7 +1892,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded = fci_arm_get_device_info_client_decode(
                     &s_client, &s_response);
                 s_response_valid =
-                    s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                    fci_arm_runtime_result_ok(&s_decoded) &&
                     s_response.has_status;
                 if (s_response_valid) {
                     s_domain_status = s_response.status;
@@ -1957,7 +1957,7 @@ void FciWirelinkEndpoint::s_finalize(
                 set_device_info_response_t s_response{};
                 const auto s_decoded = fci_arm_set_device_info_client_decode(
                     &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -1967,7 +1967,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_get_device_settings_client_decode(&s_client,
                                                                &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) {
                     s_domain_status = s_response.status;
@@ -1986,7 +1986,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_set_device_settings_client_decode(&s_client,
                                                                &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) {
                     s_domain_status = s_response.status;
@@ -2005,7 +2005,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_set_arm_control_mode_client_decode(&s_client,
                                                                 &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2015,7 +2015,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_set_gripper_control_mode_client_decode(
                         &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2024,7 +2024,7 @@ void FciWirelinkEndpoint::s_finalize(
                 set_arm_mode_response_t s_response{};
                 const auto s_decoded = fci_arm_set_arm_mode_client_decode(
                     &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2033,7 +2033,7 @@ void FciWirelinkEndpoint::s_finalize(
                 home_response_t s_response{};
                 const auto s_decoded =
                     fci_arm_home_client_decode(&s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2042,7 +2042,7 @@ void FciWirelinkEndpoint::s_finalize(
                 set_zero_response_t s_response{};
                 const auto s_decoded =
                     fci_arm_set_zero_client_decode(&s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2051,7 +2051,7 @@ void FciWirelinkEndpoint::s_finalize(
                 clear_error_response_t s_response{};
                 const auto s_decoded = fci_arm_clear_error_client_decode(
                     &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2060,7 +2060,7 @@ void FciWirelinkEndpoint::s_finalize(
                 clear_faults_response_t s_response{};
                 const auto s_decoded = fci_arm_clear_faults_client_decode(
                     &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2069,7 +2069,7 @@ void FciWirelinkEndpoint::s_finalize(
                 emergency_stop_response_t s_response{};
                 const auto s_decoded = fci_arm_emergency_stop_client_decode(
                     &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2079,7 +2079,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_motor_register_read_client_decode(&s_client,
                                                                &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) {
                     s_domain_status = s_response.status;
@@ -2110,7 +2110,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_motor_register_write_client_decode(&s_client,
                                                                 &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2120,7 +2120,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_motor_store_parameters_client_decode(
                         &s_client, &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
@@ -2130,7 +2130,7 @@ void FciWirelinkEndpoint::s_finalize(
                 const auto s_decoded =
                     fci_arm_motor_set_zero_client_decode(&s_client,
                                                           &s_response);
-                s_response_valid = s_decoded.domain == FCI_ARM_RUNTIME_OK &&
+                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
                                    s_response.has_status;
                 if (s_response_valid) s_domain_status = s_response.status;
                 break;
