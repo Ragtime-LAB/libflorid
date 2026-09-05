@@ -22,22 +22,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Prune acados (not needed for bindings)
-        shell: bash
-        run: rm -rf 3rdparty/acados
+      - name: Check out binding dependencies
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
+      - name: Install Windows USB dependency
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          vcpkg install --triplet x64-windows-static
+          --x-install-root=C:/vcpkg/installed
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.0
         env:
-          CIBW_SKIP: "cp31?t-*"
+          CIBW_BEFORE_ALL_LINUX: "dnf install -y libusb1-devel"
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static
+            -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -52,12 +60,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Prune acados (not needed for bindings)
-        shell: bash
-        run: rm -rf 3rdparty/acados
+      - name: Check out binding dependencies
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
       - name: Set up Python
         uses: actions/setup-python@v5

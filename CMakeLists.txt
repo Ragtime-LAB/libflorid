@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(florid VERSION 0.1.0 LANGUAGES CXX C)
+project(florid VERSION 0.2.0 LANGUAGES CXX C)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 20)
