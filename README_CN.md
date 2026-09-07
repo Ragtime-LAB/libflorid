@@ -57,10 +57,13 @@ ctest --test-dir build
 默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`。
 
 默认使用 `3rdparty/wirelink`；联合开发才用 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` 覆盖。
-当前 dev 固定 Wirelink `10083e065eb7c79e196b66dff882fffbb95bd0f2`，
+当前 dev 固定 Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`，
 配对 WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8`（生成 ABI 26）。
 按 [Wirelink 安装篇](3rdparty/wirelink/docs/installation-cn.md) 单独安装编译器，
 不依赖嵌套 WLC worktree，也不假定已有匹配的公开发行包。
+也可以省略两个 WLC 参数：主机装有支持 Rust 2024 edition 的 Rust/Cargo 时，
+CMake 会获取经过 SHA-256 校验的固定源码并构建工具。源码/Python 构建需要
+CMake 3.21 或更新版本；安装好的 wheel 在运行时不依赖 Rust。
 FCI 保留显式 operation/status 字段映射，本轮没有切换托管 RPC 的线上格式。
 两端须用配对编译器重建；FCI host 源码只生成到构建目录，不提交生成物。
 

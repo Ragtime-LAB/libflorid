@@ -14,11 +14,22 @@ interface to Python.
 pip install pyflorid
 ```
 
-Or build from source (requires a C++20 toolchain, pybind11, and NumPy):
+Or build from the repository root or an unpacked source distribution (requires
+C11/C++20, CMake, and libusb development files; pip installs the Python build
+dependencies):
 
 ```bash
-pip install ./pyflorid
+pip install .
 ```
+
+Source builds also need a matching WLC (ABI 26) on PATH, or host Rust/Cargo
+supporting edition 2024. Wirelink's CMake fallback fetches a SHA-256-verified
+pinned source commit and builds WLC with locked dependencies; it does not use an
+older same-version release binary. Rust and WLC are build tools, not wheel
+runtime dependencies. For offline builds, supply
+`CMAKE_ARGS="-DWLC_EXECUTABLE=/absolute/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF"`.
+The sdist includes Wirelink and the FCI/Astrial sources, but not downloaded Cargo
+dependencies or a WLC binary. No source build is claimed to be offline by default.
 
 See the top-level `README.md` for the full SDK documentation.
 

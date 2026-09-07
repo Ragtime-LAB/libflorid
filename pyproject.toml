@@ -28,7 +28,7 @@ classifiers = [
 ]
 
 [tool.scikit-build]
-cmake.version = ">=3.20"
+cmake.version = ">=3.21"
 cmake.build-type = "Release"
 wheel.packages = []
 sdist.inclusion-mode = "explicit"
@@ -36,14 +36,16 @@ sdist.include = [
   "pyproject.toml",
   "CMakeLists.txt",
   "cmake/**",
+  "scripts/ci/**",
   "include/**",
   "src/**",
   "protocol/**",
   "3rdparty/astrial/**",
+  "3rdparty/wirelink/**",
   "generated/**",
   "pyflorid/**",
 ]
-sdist.exclude = ["3rdparty/acados/**", "*.so", "*.o", "*.pyc", "__pycache__", "build*", "dist"]
+sdist.exclude = ["3rdparty/acados/**", "**/.git/**", "**/.git", "**/build/**", "**/target/**", "*.so", "*.o", "*.pyc", "__pycache__", "build*", "dist"]
 
 [tool.scikit-build.cmake.define]
 BUILD_PYFLORID = "ON"
@@ -62,6 +64,8 @@ test-command = "python -c \"import pyflorid; print(pyflorid.__doc__)\""
 [tool.cibuildwheel.linux]
 archs = ["x86_64"]
 manylinux-x86_64-image = "manylinux_2_28"
+before-all = "bash {project}/scripts/ci/manylinux-build-tools.sh"
+environment = { PATH = "$HOME/.cargo/bin:$PATH", CMAKE_ARGS = "-DWIRELINK_WLC_CACHE_DIR=/tmp/pyflorid-wlc-cache", CMAKE_BUILD_PARALLEL_LEVEL = "2" }
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]

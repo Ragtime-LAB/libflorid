@@ -69,10 +69,13 @@ Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_M
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
-development. This dev pins Wirelink `10083e065eb7c79e196b66dff882fffbb95bd0f2`
+development. This dev pins Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`
 and requires WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8` (codegen ABI 26).
 Install the compiler separately using the [Wirelink setup guide](3rdparty/wirelink/docs/installation.md);
 no nested WLC worktree or matching public release asset is assumed.
+Alternatively omit both WLC flags: with host Rust/Cargo (edition 2024 support),
+CMake fetches the SHA-256-verified pinned source and builds the compiler locally.
+Source and Python builds require CMake 3.21 or newer; wheels do not require Rust at runtime.
 The FCI schemas retain their explicit operation/status field mappings; this is
 not a migration to managed RPC wire payloads. Rebuild both consumers with the
 paired compiler. Generated FCI sources stay in the build tree.

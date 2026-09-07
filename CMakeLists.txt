@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project(florid VERSION 0.2.0 LANGUAGES CXX C)
 
