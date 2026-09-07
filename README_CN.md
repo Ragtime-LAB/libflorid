@@ -20,9 +20,9 @@
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | 兼容 ABI 8 的版本 |
+| Wirelink + `wlc` | 兼容生成 ABI 25 的配对版本（未发布 dev） |
 | 构建系统 | Ninja（推荐）或 Make |
-| 操作系统 | Linux（经 `3rdparty/astrial` 使用 USB 串口） |
+| 操作系统 | Linux、macOS 或 Windows（Astrial/libusb USB Bulk） |
 
 可选构建工具：
 
@@ -35,26 +35,34 @@
 ## 子模块
 
 ```bash
-git submodule update --init --recursive
+git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+# 仅 BUILD_MPC=ON 时需要：
+git submodule update --init --recursive 3rdparty/acados
 ```
 
 - `protocol/` → FCI `.wl` schema 与 host/firmware binding profile
-- `3rdparty/astrial`（USB 串口；内部以普通目录方式附带 asio / tl-expected / readerwriterqueue）
+- `3rdparty/astrial`（跨平台串口及原生 USB Bulk 后端）
+- `3rdparty/wirelink`（链路核心、桌面适配器和 host runtime）
 - `3rdparty/acados` — 仅在 `-DBUILD_MPC=ON` 时需要
 
 ## 构建与测试
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON \
+  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 cmake --build build
 ctest --test-dir build
 ```
 
 默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`。
 
-如果 Wirelink 未安装为 CMake package，请传入
-`-DWIRELINK_SOURCE_DIR=/path/to/wirelink`；若 `wlc` 不在 `PATH`，再传入
-`-DWLC_EXECUTABLE=/path/to/wlc`。FCI host 源码只生成到构建目录，不提交生成物。
+默认使用 `3rdparty/wirelink`；联合开发才用 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` 覆盖。
+当前 dev 固定 Wirelink `3df748826ad3a3b0dbdf642b68fe98221310343d`，
+配对 WLC `afa5dfd186be1f747dc6d0cbcfc54c79654bf5f7`（生成 ABI 25）。
+按 [Wirelink 安装篇](3rdparty/wirelink/docs/installation-cn.md) 单独安装编译器，
+不依赖嵌套 WLC worktree，也不假定已有匹配的公开发行包。
+FCI 保留显式 operation/status 字段映射，本轮没有切换托管 RPC 的线上格式。
+两端须用配对编译器重建；FCI host 源码只生成到构建目录，不提交生成物。
 
 ## 快速开始
 

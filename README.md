@@ -31,7 +31,7 @@
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | Codegen ABI 18-compatible pair |
+| Wirelink + `wlc` | Codegen ABI 25-compatible pair (unreleased dev) |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
@@ -59,7 +59,8 @@ git submodule update --init --recursive 3rdparty/acados
 ## Build & Test
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON \
+  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 cmake --build build
 ctest --test-dir build
 ```
@@ -68,21 +69,25 @@ Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_M
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
-development. Wirelink downloads its pinned WLC host release when no compatible
-compiler is on `PATH`; offline builds may set `WLC_EXECUTABLE` explicitly. The
-FCI host sources are generated in the build tree and are never committed.
+development. This dev pins Wirelink `3df748826ad3a3b0dbdf642b68fe98221310343d`
+and requires WLC `afa5dfd186be1f747dc6d0cbcfc54c79654bf5f7` (codegen ABI 25).
+Install the compiler separately using the [Wirelink setup guide](3rdparty/wirelink/docs/installation.md);
+no nested WLC worktree or matching public release asset is assumed.
+The FCI schemas retain their explicit operation/status field mappings; this is
+not a migration to managed RPC wire payloads. Rebuild both consumers with the
+paired compiler. Generated FCI sources stay in the build tree.
 
 ### Windows (MSVC + vcpkg)
 
 The repository manifest declares the product's native USB dependency. From a
 Developer PowerShell, set the vcpkg root and use the checked-in multi-config
 preset; the configure step installs the pinned libusb version into the build
-tree and downloads the pinned WLC host compiler when necessary:
+tree. Supply the separately installed ABI 25 compiler:
 
 ```powershell
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 $env:VCPKG_ROOT = "C:\src\vcpkg"
-cmake --preset windows-msvc-vcpkg
+cmake --preset windows-msvc-vcpkg -DWLC_EXECUTABLE=C:/tools/wlc.exe -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 cmake --build --preset windows-release --parallel
 ctest --preset windows-release
 ```

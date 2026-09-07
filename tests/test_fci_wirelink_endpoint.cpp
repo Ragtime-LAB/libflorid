@@ -278,7 +278,6 @@ private:
         void* s_user_data, wl_ctx_t& s_context,
         const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         auto& s_self = *static_cast<DevicePeer*>(s_user_data);
-        (void)s_now_ms;
         if (s_event.type != WL_EVT_UNRELIABLE_RX &&
             s_event.type != WL_EVT_RELIABLE_RX) {
             return WL_PUMP_EVENT_UNHANDLED;
@@ -286,32 +285,32 @@ private:
 
         switch (s_event.message_id) {
             case ACQUIRE_CONTROL_LEASE_REQUEST_MESSAGE_ID:
-                s_self.s_acquire(s_context, s_event);
+                s_self.s_acquire(s_context, s_event, s_now_ms);
                 break;
             case RELEASE_CONTROL_LEASE_REQUEST_MESSAGE_ID:
-                s_self.s_release(s_context, s_event);
+                s_self.s_release(s_context, s_event, s_now_ms);
                 break;
             case GET_DEVICE_INFO_REQUEST_MESSAGE_ID:
-                s_self.s_deviceInfo(s_context, s_event);
+                s_self.s_deviceInfo(s_context, s_event, s_now_ms);
                 break;
             case SET_DEVICE_INFO_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_device_info_request_t,
                                         set_device_info_response_t>(
-                    s_context, s_event, set_device_info_request_decode,
+                    s_context, s_event, s_now_ms, set_device_info_request_decode,
                     set_device_info_response_clear,
                     fci_arm_set_device_info_response_send,
                     DEVICE_INFO_OK);
                 break;
             case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
-                s_self.s_deviceSettings(s_context, s_event);
+                s_self.s_deviceSettings(s_context, s_event, s_now_ms);
                 break;
             case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
-                s_self.s_setDeviceSettings(s_context, s_event);
+                s_self.s_setDeviceSettings(s_context, s_event, s_now_ms);
                 break;
             case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_arm_control_mode_request_t,
                                         set_arm_control_mode_response_t>(
-                    s_context, s_event,
+                    s_context, s_event, s_now_ms,
                     set_arm_control_mode_request_decode,
                     set_arm_control_mode_response_clear,
                     fci_arm_set_arm_control_mode_response_send,
@@ -320,7 +319,7 @@ private:
             case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_gripper_control_mode_request_t,
                                         set_gripper_control_mode_response_t>(
-                    s_context, s_event,
+                    s_context, s_event, s_now_ms,
                     set_gripper_control_mode_request_decode,
                     set_gripper_control_mode_response_clear,
                     fci_arm_set_gripper_control_mode_response_send,
@@ -329,20 +328,20 @@ private:
             case SET_ARM_MODE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_arm_mode_request_t,
                                         set_arm_mode_response_t>(
-                    s_context, s_event, set_arm_mode_request_decode,
+                    s_context, s_event, s_now_ms, set_arm_mode_request_decode,
                     set_arm_mode_response_clear,
                     fci_arm_set_arm_mode_response_send, MODE_OK);
                 break;
             case HOME_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<home_request_t, home_response_t>(
-                    s_context, s_event, home_request_decode,
+                    s_context, s_event, s_now_ms, home_request_decode,
                     home_response_clear,
                     fci_arm_home_response_send, HOME_OK);
                 break;
             case SET_ZERO_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<set_zero_request_t,
                                         set_zero_response_t>(
-                    s_context, s_event, set_zero_request_decode,
+                    s_context, s_event, s_now_ms, set_zero_request_decode,
                     set_zero_response_clear,
                     fci_arm_set_zero_response_send,
                     FAULT_OPERATION_OK);
@@ -350,7 +349,7 @@ private:
             case CLEAR_ERROR_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<clear_error_request_t,
                                         clear_error_response_t>(
-                    s_context, s_event, clear_error_request_decode,
+                    s_context, s_event, s_now_ms, clear_error_request_decode,
                     clear_error_response_clear,
                     fci_arm_clear_error_response_send,
                     FAULT_OPERATION_OK);
@@ -358,7 +357,7 @@ private:
             case CLEAR_FAULTS_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<clear_faults_request_t,
                                         clear_faults_response_t>(
-                    s_context, s_event, clear_faults_request_decode,
+                    s_context, s_event, s_now_ms, clear_faults_request_decode,
                     clear_faults_response_clear,
                     fci_arm_clear_faults_response_send,
                     FAULT_OPERATION_OK);
@@ -366,18 +365,18 @@ private:
             case EMERGENCY_STOP_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<emergency_stop_request_t,
                                         emergency_stop_response_t>(
-                    s_context, s_event, emergency_stop_request_decode,
+                    s_context, s_event, s_now_ms, emergency_stop_request_decode,
                     emergency_stop_response_clear,
                     fci_arm_emergency_stop_response_send,
                     EMERGENCY_STOP_OK);
                 break;
             case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID:
-                s_self.s_motorRegisterRead(s_context, s_event);
+                s_self.s_motorRegisterRead(s_context, s_event, s_now_ms);
                 break;
             case MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<motor_register_write_request_t,
                                         motor_register_write_response_t>(
-                    s_context, s_event,
+                    s_context, s_event, s_now_ms,
                     motor_register_write_request_decode,
                     motor_register_write_response_clear,
                     fci_arm_motor_register_write_response_send,
@@ -387,7 +386,7 @@ private:
                 s_self.s_statusResponse<
                     motor_store_parameters_request_t,
                     motor_store_parameters_response_t>(
-                    s_context, s_event,
+                    s_context, s_event, s_now_ms,
                     motor_store_parameters_request_decode,
                     motor_store_parameters_response_clear,
                     fci_arm_motor_store_parameters_response_send,
@@ -396,7 +395,7 @@ private:
             case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<motor_set_zero_request_t,
                                         motor_set_zero_response_t>(
-                    s_context, s_event, motor_set_zero_request_decode,
+                    s_context, s_event, s_now_ms, motor_set_zero_request_decode,
                     motor_set_zero_response_clear,
                     fci_arm_motor_set_zero_response_send,
                     MOTOR_OPERATION_OK);
@@ -457,7 +456,8 @@ private:
     template <typename Request, typename Response, typename Decode,
               typename Clear, typename Send>
     void s_statusResponse(wl_ctx_t& s_context, const wl_event_t& s_event,
-                          Decode s_decode, Clear s_clear, Send s_send,
+                          wl_time_ms_t s_now_ms, Decode s_decode,
+                          Clear s_clear, Send s_send,
                           std::int32_t s_status) noexcept {
         Request s_request{};
         if (s_decode(s_event.payload, s_event.payload_len, &s_request) !=
@@ -475,7 +475,7 @@ private:
         s_response.operation_id = s_request.operation_id;
         s_response.has_status = true;
         s_response.status = s_status;
-        s_recordSend(s_send(&s_context, &s_response, WL_DELIVERY_RELIABLE));
+        s_recordSend(s_send(&s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
@@ -497,7 +497,7 @@ private:
     }
 
     void s_acquire(wl_ctx_t& s_context,
-                   const wl_event_t& s_event) noexcept {
+                   const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         acquire_control_lease_request_t s_request{};
         if (acquire_control_lease_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
@@ -521,12 +521,12 @@ private:
         s_response.has_granted_timeout_ms = true;
         s_response.granted_timeout_ms = s_request.requested_timeout_ms;
         s_recordSend(fci_arm_acquire_control_lease_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_release(wl_ctx_t& s_context,
-                   const wl_event_t& s_event) noexcept {
+                   const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         release_control_lease_request_t s_request{};
         if (release_control_lease_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
@@ -547,12 +547,12 @@ private:
                                 ? CONTROL_LEASE_OK
                                 : CONTROL_LEASE_INVALID_TOKEN;
         s_recordSend(fci_arm_release_control_lease_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_deviceInfo(wl_ctx_t& s_context,
-                      const wl_event_t& s_event) noexcept {
+                      const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         get_device_info_request_t s_request{};
         if (get_device_info_request_decode(s_event.payload,
                                            s_event.payload_len,
@@ -604,11 +604,11 @@ private:
         s_info.command_capabilities =
             m_command_capabilities.load(std::memory_order_acquire);
         s_recordSend(fci_arm_get_device_info_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
     }
 
     void s_deviceSettings(wl_ctx_t& s_context,
-                          const wl_event_t& s_event) noexcept {
+                          const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         get_device_settings_request_t s_request{};
         if (get_device_settings_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
@@ -649,12 +649,12 @@ private:
             s_settings.joint_limit_max[s_index] = 2.0F;
         }
         s_recordSend(fci_arm_get_device_settings_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_setDeviceSettings(wl_ctx_t& s_context,
-                             const wl_event_t& s_event) noexcept {
+                             const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         set_device_settings_request_t s_request{};
         if (set_device_settings_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
@@ -681,12 +681,12 @@ private:
             s_response.settings.firmware_dt_us = 1250;
         }
         s_recordSend(fci_arm_set_device_settings_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_motorRegisterRead(wl_ctx_t& s_context,
-                             const wl_event_t& s_event) noexcept {
+                             const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
         motor_register_read_request_t s_request{};
         if (motor_register_read_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
@@ -712,7 +712,7 @@ private:
         s_response.has_value = true;
         s_response.value = 12.5F;
         s_recordSend(fci_arm_motor_register_read_response_send(
-            &s_context, &s_response, WL_DELIVERY_RELIABLE));
+            &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 

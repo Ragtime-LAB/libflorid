@@ -10,4 +10,4 @@
 [submodule "3rdparty/wirelink"]
 	path = 3rdparty/wirelink
 	url = https://github.com/starwey604/wirelink.git
-	branch = dev/wirelink-p0
+	branch = dev/wirelink-p0-hardening
