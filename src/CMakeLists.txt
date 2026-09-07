@@ -12,6 +12,7 @@ target_link_libraries(florid_wirelink_host
     PUBLIC
         fci_protocol::arm
         Wirelink::host
+        Wirelink::platform
     PRIVATE
         Threads::Threads
 )

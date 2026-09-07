@@ -34,6 +34,21 @@ void require(bool s_condition, const char* s_message) {
     if (!s_condition) throw std::runtime_error(s_message);
 }
 
+struct SessionSource {
+    std::uint64_t m_next{UINT64_C(0x1000000000000001)};
+    std::size_t m_reads{};
+    wl_err_t m_error{WL_OK};
+
+    static wl_err_t next(void* s_context, std::uint64_t* s_identity) noexcept {
+        auto& s_self = *static_cast<SessionSource*>(s_context);
+        ++s_self.m_reads;
+        *s_identity = s_self.m_next++;
+        return s_self.m_error;
+    }
+
+    wl_session_source_t descriptor() noexcept { return {next, this}; }
+};
+
 template <typename Predicate>
 void waitFor(std::condition_variable& s_cv, std::mutex& s_mutex,
              Predicate s_predicate, const char* s_message) {
@@ -112,6 +127,7 @@ public:
 
     int attachWirelink(wl_ctx_t& s_link, WakeFunctor s_wake,
                        void* s_context) noexcept override {
+        m_session_id = wl_link_session_id(&s_link);
         m_wake = s_wake;
         m_wake_context = s_context;
         return wl_set_sink(&s_link, s_sink, this);
@@ -132,6 +148,7 @@ public:
 
     std::atomic<std::uint64_t> m_service_calls{};
     std::atomic<bool> m_quiesced{};
+    std::uint64_t m_session_id{};
 
 private:
     static wl_sink_result_t s_sink(void*, wl_io_token_t, const std::uint8_t*,
@@ -768,10 +785,11 @@ struct StatusCapture {
 };
 
 void testTypedEndpointLifecycle() {
+    SessionSource s_source;
     FciWirelinkEndpoint s_host;
     DevicePeer s_device;
     require(s_host.initialize(FciWirelinkEndpointConfig{
-                .m_session_id = UINT64_C(0x1000000000000001),
+                .m_session_source = s_source.descriptor(),
                 .m_max_retries = 2,
                 .m_ack_timeout_ms = 20,
             }) == FciEndpointStatus::kOk,
@@ -1199,13 +1217,78 @@ void testTypedEndpointLifecycle() {
                 s_device_to_host.m_fragments.load() > 10 &&
                 s_device.m_send_failures.load() == 0,
             "fragmented COBS link failed");
+    require(s_source.m_reads == 1U,
+            "RPC and endpoint progress must not consume identities");
+}
+
+void testSessionSource() {
+    SessionSource s_source;
+    FciWirelinkEndpointConfig s_config;
+    DirectTransportProbe s_transport;
+    FciWirelinkEndpoint s_endpoint;
+    s_config.m_session_source = {};
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kInvalidArgument,
+            "missing identity source must not silently use a default");
+    s_config.m_session_source = s_source.descriptor();
+    s_source.m_error = WL_ERR_NOT_SUPPORTED;
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kUnsupported,
+            "unsupported identity source must be reported");
+    s_source.m_error = WL_ERR_IO;
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kLinkError,
+            "failed random source must not use weak entropy");
+    s_source.m_error = WL_OK;
+    s_source.m_next = 0U;
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kNotReady,
+            "zero identity must fail initialization");
+    require(s_endpoint.start() == FciEndpointStatus::kNotReady,
+            "failed initialization must not start an owner");
+
+    s_source.m_next = UINT64_C(0x445566778899aabb);
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kOk,
+            "identity source failure must allow a later initialization retry");
+    require(s_endpoint.attachDirectTransport(s_transport) == FciEndpointStatus::kOk,
+            "source-injected endpoint attach failed");
+    require(s_transport.m_session_id == UINT64_C(0x445566778899aabb),
+            "link must use the supplied identity");
+    require(s_endpoint.initialize(s_config) == FciEndpointStatus::kBusy &&
+                s_source.m_reads == 4U,
+            "already-initialized endpoint must not consume a new identity");
+    s_endpoint.stop();
+
+    DirectTransportProbe s_next_transport;
+    FciWirelinkEndpoint s_next_endpoint;
+    require(s_next_endpoint.initialize(s_config) == FciEndpointStatus::kOk &&
+                s_next_endpoint.attachDirectTransport(s_next_transport) ==
+                    FciEndpointStatus::kOk,
+            "shared source must support a reconstructed endpoint");
+    require(s_next_transport.m_session_id == s_transport.m_session_id + 1U &&
+                s_source.m_reads == 5U,
+            "new endpoint must request its own identity");
+    s_next_endpoint.stop();
+
+    // Exercise the actual platform provider, not just the injected callback.
+    DirectTransportProbe s_platform_transport_a, s_platform_transport_b;
+    FciWirelinkEndpoint s_platform_a, s_platform_b;
+    require(s_platform_a.initialize() == FciEndpointStatus::kOk &&
+                s_platform_b.initialize() == FciEndpointStatus::kOk,
+            "default platform source failed");
+    require(s_platform_a.attachDirectTransport(s_platform_transport_a) ==
+                FciEndpointStatus::kOk &&
+                s_platform_b.attachDirectTransport(s_platform_transport_b) ==
+                FciEndpointStatus::kOk,
+            "default endpoint attach failed");
+    require(s_platform_transport_a.m_session_id != 0U &&
+                s_platform_transport_b.m_session_id != 0U &&
+                s_platform_transport_a.m_session_id != s_platform_transport_b.m_session_id,
+            "default endpoints must receive distinct nonzero identities");
+    s_platform_a.stop();
+    s_platform_b.stop();
 }
 
 void testDirectTransportLifecycle() {
     DirectTransportProbe s_transport;
     FciWirelinkEndpoint s_endpoint;
     FciWirelinkEndpointConfig s_config{};
-    s_config.m_session_id = UINT64_C(0x445566778899aabb);
     require(s_endpoint.initialize(s_config) == FciEndpointStatus::kOk,
             "direct endpoint initialization failed");
     require(s_endpoint.attachDirectTransport(s_transport) ==
@@ -1243,6 +1326,7 @@ void testDirectTransportLifecycle() {
 int main() {
     try {
         testTypedEndpointLifecycle();
+        testSessionSource();
         testDirectTransportLifecycle();
         std::puts("PASS: typed FCI endpoint owns runtime, RPC, LATEST, and shutdown");
         return 0;

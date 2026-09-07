@@ -25,3 +25,7 @@ add_executable(test_usb_discovery test_usb_discovery.cpp)
 target_link_libraries(test_usb_discovery PRIVATE florid)
 target_compile_features(test_usb_discovery PUBLIC cxx_std_20)
 add_test(NAME usb_discovery COMMAND test_usb_discovery)
+
+# Transport shutdown must remain bounded, including backend-mismatch failures.
+set_tests_properties(transport_pipeline wirelink_executor fci_wirelink_endpoint
+    usb_discovery PROPERTIES TIMEOUT 30)

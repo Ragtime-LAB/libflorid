@@ -31,7 +31,7 @@
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | Codegen ABI 25-compatible pair (unreleased dev) |
+| Wirelink + `wlc` | Codegen ABI 26-compatible pair (unreleased dev) |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
@@ -69,20 +69,29 @@ Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_M
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
-development. This dev pins Wirelink `3df748826ad3a3b0dbdf642b68fe98221310343d`
-and requires WLC `afa5dfd186be1f747dc6d0cbcfc54c79654bf5f7` (codegen ABI 25).
+development. This dev pins Wirelink `10083e065eb7c79e196b66dff882fffbb95bd0f2`
+and requires WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8` (codegen ABI 26).
 Install the compiler separately using the [Wirelink setup guide](3rdparty/wirelink/docs/installation.md);
 no nested WLC worktree or matching public release asset is assumed.
 The FCI schemas retain their explicit operation/status field mappings; this is
 not a migration to managed RPC wire payloads. Rebuild both consumers with the
 paired compiler. Generated FCI sources stay in the build tree.
 
+Endpoint initialization now obtains a fresh identity from `Wirelink::platform`.
+Applications do not choose session IDs. Advanced integrations/tests may override
+`FciWirelinkEndpointConfig::m_session_source` with a `wl_session_source_t` callback;
+the callback runs only during initialization and must return a fresh nonzero ID.
+Failure is reported, never replaced by clock/address-derived randomness. The
+existing executor monotonic clock remains the only source for RPC deadlines.
+Mapped FCI still randomizes its initial operation ID; it does **not** gain managed
+RPC v2's client-session echo validation merely by upgrading the dependency.
+
 ### Windows (MSVC + vcpkg)
 
 The repository manifest declares the product's native USB dependency. From a
 Developer PowerShell, set the vcpkg root and use the checked-in multi-config
 preset; the configure step installs the pinned libusb version into the build
-tree. Supply the separately installed ABI 25 compiler:
+tree. Supply the separately installed ABI 26 compiler:
 
 ```powershell
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink

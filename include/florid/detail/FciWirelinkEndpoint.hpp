@@ -8,6 +8,7 @@
 #include "florid/detail/Transport.hpp"
 
 #include "fci_arm_runtime.h"
+#include "wirelink/platform.h"
 
 #include <array>
 #include <atomic>
@@ -106,10 +107,10 @@ struct FciArmStatusSnapshot {
 };
 
 struct FciWirelinkEndpointConfig {
-    // Zero selects a fresh process-local session. Tests and applications that
-    // need deterministic wire images may still provide an explicit non-zero
-    // session identifier.
-    std::uint64_t m_session_id{};
+    // Read once by initialize(); failures are returned without a weak fallback.
+    // Override for a board identity source or deterministic tests. The source
+    // must supply a fresh nonzero identity for each new endpoint.
+    wl_session_source_t m_session_source{wl_platform_environment().session};
     std::uint16_t m_max_retries{2};
     std::uint32_t m_ack_timeout_ms{20};
 };

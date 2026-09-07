@@ -26,6 +26,7 @@ set(WIRELINK_BUILD_ASTRIAL_USB_ADAPTER ON CACHE BOOL "" FORCE)
 set(WIRELINK_BUILD_ASTRIAL_ADAPTER ON CACHE BOOL "" FORCE)
 set(WIRELINK_BUILD_ASIO_UDP_ADAPTER ON CACHE BOOL "" FORCE)
 set(WIRELINK_BUILD_HOST_RUNTIME ON CACHE BOOL "" FORCE)
+set(WIRELINK_BUILD_PLATFORM ON CACHE BOOL "" FORCE)
 set(WIRELINK_ASIO_INCLUDE_DIR
     "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/astrial/3rdparty/asio/include"
     CACHE PATH "" FORCE)
@@ -54,6 +55,11 @@ endif()
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake")
 fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
+# Asio is header-only but its inline types are shared across the final binary.
+# Astrial may select io_uring via asio_standalone; compile the UDP adapter with
+# that exact target too. Mixing epoll/io_uring definitions causes ODR violations
+# (notably socket-close hangs in unoptimized/sanitized builds).
+target_link_libraries(wirelink_asio_udp PRIVATE asio_standalone)
 find_package(Threads REQUIRED)
 
 add_subdirectory(src)
@@ -69,7 +75,7 @@ if(BUILD_EXAMPLES)
 endif()
 
 if(BUILD_PYFLORID)
-    find_package(pybind11 REQUIRED)
     find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
+    find_package(pybind11 REQUIRED)
     add_subdirectory(pyflorid)
 endif()

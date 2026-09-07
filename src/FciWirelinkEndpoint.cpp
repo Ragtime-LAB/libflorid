@@ -5,7 +5,6 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include <random>
 
 namespace florid::detail {
 
@@ -23,30 +22,10 @@ std::uint64_t s_mixSessionEntropy(std::uint64_t s_value) noexcept {
     return s_value ^ (s_value >> 31U);
 }
 
-std::uint64_t s_makeSessionId(const void* s_instance) noexcept {
-    static std::atomic<std::uint64_t> s_counter{1};
-    const auto s_wall_count = static_cast<std::uint64_t>(
-        std::chrono::system_clock::now().time_since_epoch().count());
-    const auto s_steady_count = static_cast<std::uint64_t>(
-        std::chrono::steady_clock::now().time_since_epoch().count());
-    std::uint64_t s_entropy =
-        s_wall_count ^ s_steady_count ^
-        static_cast<std::uint64_t>(
-            reinterpret_cast<std::uintptr_t>(s_instance)) ^
-        s_counter.fetch_add(1, std::memory_order_relaxed);
-    try {
-        std::random_device s_random;
-        s_entropy ^= static_cast<std::uint64_t>(s_random()) << 32U;
-        s_entropy ^= static_cast<std::uint64_t>(s_random());
-    } catch (...) {
-        // Independent clocks, ASLR, and the process-local counter remain a
-        // useful fallback on platforms without a usable random_device.
-    }
-    const std::uint64_t s_session_id = s_mixSessionEntropy(s_entropy);
-    return s_session_id == 0U ? UINT64_C(1) : s_session_id;
-}
-
 std::uint32_t s_rpcOperationSeed(std::uint64_t s_session_id) noexcept {
+    // Revision-7 FCI uses field-mapped RPC, not managed RPC v2. Randomizing
+    // its initial operation ID reduces restart collisions but is not a full
+    // client-session echo check; keep this until a coordinated schema change.
     const std::uint64_t s_mixed = s_mixSessionEntropy(
         s_session_id ^ UINT64_C(0x5250432d4f504944));
     const std::uint32_t s_seed = static_cast<std::uint32_t>(s_mixed) ^
@@ -318,9 +297,10 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         if (m_initialized) return FciEndpointStatus::kBusy;
     }
 
-    const std::uint64_t s_session_id =
-        s_config.m_session_id == 0U ? s_makeSessionId(this)
-                                    : s_config.m_session_id;
+    std::uint64_t s_session_id{};
+    const auto s_session_result =
+        wl_session_next(s_config.m_session_source, 0U, &s_session_id);
+    if (s_session_result != WL_OK) return s_endpointStatus(s_session_result);
 
     fci_arm_runtime_config_t s_runtime_config;
     int s_result = fci_arm_runtime_config_defaults(&s_runtime_config);
@@ -1340,6 +1320,7 @@ FciEndpointStatus FciWirelinkEndpoint::s_endpointStatus(int s_result) noexcept {
         case WL_ERR_BUSY:
         case WL_ERR_WOULD_BLOCK: return FciEndpointStatus::kBusy;
         case WL_ERR_INVALID_ARG: return FciEndpointStatus::kInvalidArgument;
+        case WL_ERR_NOT_SUPPORTED: return FciEndpointStatus::kUnsupported;
         case WL_ERR_NO_DATA: return FciEndpointStatus::kNoData;
         case WL_ERR_CANCELLED: return FciEndpointStatus::kCancelled;
         case WL_ERR_NOT_INITIALIZED:

@@ -13,6 +13,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  linux:
+    name: Linux Sanitizer (io_uring ${{ matrix.io_uring }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        io_uring: ['ON', 'OFF']
+    steps:
+      - name: Check out libflorid
+        uses: actions/checkout@v5
+
+      - name: Check out required submodules
+        run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+
+      - name: Check out paired ABI 26 compiler
+        uses: actions/checkout@v5
+        with:
+          repository: starwey604/wlc
+          ref: c6b6a8fa560a15c45d564aad0afd197b13682de8
+          path: .tools/wlc
+
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev liburing-dev clang ninja-build
+
+      - name: Build paired compiler
+        run: cargo build --release --locked --manifest-path .tools/wlc/Cargo.toml
+
+      - name: Configure
+        run: >-
+          cmake -S . -B build/host-sanitize -G Ninja
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
+          -DASTRIAL_IO_URING=${{ matrix.io_uring }}
+          -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc"
+          -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+          "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
+          "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
+
+      - name: Build and test
+        run: |
+          cmake --build build/host-sanitize --parallel 2
+          ctest --test-dir build/host-sanitize --output-on-failure
+
   windows:
     name: Windows MSVC (${{ matrix.linkage }})
     runs-on: windows-latest
@@ -36,6 +79,16 @@ jobs:
       - name: Check out required submodules
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
+      - name: Check out paired ABI 26 compiler
+        uses: actions/checkout@v5
+        with:
+          repository: starwey604/wlc
+          ref: c6b6a8fa560a15c45d564aad0afd197b13682de8
+          path: .tools/wlc
+
+      - name: Build paired compiler
+        run: cargo build --release --locked --manifest-path .tools/wlc/Cargo.toml
+
       - name: Set up MSVC command line
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -49,7 +102,10 @@ jobs:
           git -C "$env:VCPKG_INSTALLATION_ROOT" fetch --depth=1 origin 9e593bb18ea69cc5095e012465dcd675a822ed0d
 
       - name: Configure
-        run: cmake --preset ${{ matrix.configure_preset }}
+        run: >-
+          cmake --preset ${{ matrix.configure_preset }}
+          -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc.exe"
+          -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 
       - name: Build and test Release
         run: |

@@ -20,7 +20,7 @@
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
 | CMake | 3.20+ |
-| Wirelink + `wlc` | 兼容生成 ABI 25 的配对版本（未发布 dev） |
+| Wirelink + `wlc` | 兼容生成 ABI 26 的配对版本（未发布 dev） |
 | 构建系统 | Ninja（推荐）或 Make |
 | 操作系统 | Linux、macOS 或 Windows（Astrial/libusb USB Bulk） |
 
@@ -57,12 +57,19 @@ ctest --test-dir build
 默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`。
 
 默认使用 `3rdparty/wirelink`；联合开发才用 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` 覆盖。
-当前 dev 固定 Wirelink `3df748826ad3a3b0dbdf642b68fe98221310343d`，
-配对 WLC `afa5dfd186be1f747dc6d0cbcfc54c79654bf5f7`（生成 ABI 25）。
+当前 dev 固定 Wirelink `10083e065eb7c79e196b66dff882fffbb95bd0f2`，
+配对 WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8`（生成 ABI 26）。
 按 [Wirelink 安装篇](3rdparty/wirelink/docs/installation-cn.md) 单独安装编译器，
 不依赖嵌套 WLC worktree，也不假定已有匹配的公开发行包。
 FCI 保留显式 operation/status 字段映射，本轮没有切换托管 RPC 的线上格式。
 两端须用配对编译器重建；FCI host 源码只生成到构建目录，不提交生成物。
+
+端点初始化默认通过 `Wirelink::platform` 获取新身份，应用不用选择 session ID。
+底层集成或测试可覆盖 `FciWirelinkEndpointConfig::m_session_source`，传入
+`wl_session_source_t` 函数指针；仅初始化时调用，必须为每个新端点提供非零新身份。
+来源失败会返回错误，不再用时间或地址降级生成身份。RPC deadline 仍统一使用原有
+executor 单调时钟。显式映射 FCI 保留调用编号随机起点；仅升级依赖，**不会**自动获得
+托管 RPC v2 的客户端身份回送校验。
 
 ## 快速开始
 
