@@ -35,7 +35,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: >-
-          vcpkg install --triplet x64-windows-static
+          vcpkg install --triplet x64-windows-static-md
           --x-install-root=C:/vcpkg/installed
 
       - name: Set up host Rust for automatic WLC bootstrap
@@ -47,8 +47,9 @@ jobs:
         env:
           CIBW_ENVIRONMENT_WINDOWS: >-
             CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-            -DVCPKG_TARGET_TRIPLET=x64-windows-static
-            -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed"
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
+            -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed
+            -DWIRELINK_WLC_CACHE_DIR=C:/pyflorid-wlc-cache"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4

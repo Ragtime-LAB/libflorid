@@ -30,6 +30,10 @@ classifiers = [
 [tool.scikit-build]
 cmake.version = ">=3.21"
 cmake.build-type = "Release"
+# MSVC's compiler server can outlive the build and hold its working directory.
+# Keep builds outside the backend's temporary-directory cleanup, and separate
+# Python ABI/platform variants so their CMake caches are never shared.
+build-dir = "build/python/{wheel_tag}"
 wheel.packages = []
 sdist.inclusion-mode = "explicit"
 sdist.include = [

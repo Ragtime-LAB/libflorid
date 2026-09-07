@@ -31,6 +31,12 @@ runtime dependencies. For offline builds, supply
 The sdist includes Wirelink and the FCI/Astrial sources, but not downloaded Cargo
 dependencies or a WLC binary. No source build is claimed to be offline by default.
 
+Native build files are retained in `build/python/{wheel_tag}` (one directory per
+Python ABI/platform); they are not included in the sdist or wheel. This also
+avoids removing MSVC's working directory while its compiler server is still
+running. Windows wheel CI uses vcpkg `x64-windows-static-md`: libusb is static,
+while the C runtime matches CPython's dynamic CRT.
+
 See the top-level `README.md` for the full SDK documentation.
 
 USB Bulk discovery and connection are available directly from Python:
