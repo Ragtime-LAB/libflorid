@@ -65,7 +65,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 
 **Model/Kinematics**: `Model<Traits>` — `forwardKinematics`, `zeroJacobian`, `bodyJacobian`, `pose`, `mass`, `coriolis`, `gravity`. Two CasADi-generated traits: `WillowTraits` and `PantheraTraits` (both include safety params like `collision_lower`, `cartesian_impedance`, `watchdog_timeout_ms`).
 
-**MPC**: `CartesianMPCSolver<WillowMPCTraits>`, wraps acados OCP. Enable via `-DBUILD_MPC=ON`. C solver sources in `generated/c_generated_code/`.
+**MPC**: `CartesianMPCSolver<WillowMPCTraits>`, position-only acados OCP. Enable via `-DBUILD_MPC=ON`. C solver sources in `generated/c_generated_code/`. Column-major target translation is `[12..14]`; orientation and Cartesian gains are unused. Five 4 ms intervals; command stage 1 as JointPVT. See `docs/mpc.md` for limits and fallback behavior. `test_cartesian_mpc` exercises the actual solver without hardware when MPC/tests are enabled.
 
 ## Conventions
 
@@ -81,6 +81,12 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 | `scripts/urdf2mpc.py` | `generated/` C code + `WillowMPCTraits.hpp` | CasADi + Pinocchio + acados_template |
 
 Both run offline; generated files are committed.
+
+MPC C/C++ adapter templates live in `scripts/templates/`. Run
+`python3 scripts/urdf2mpc.py --wrappers-only` after changing them (NumPy only).
+Changing model/cost expressions requires full URDF generation, including the
+gravity reference function. Host CI compares regenerated adapters and runs MPC
+under ASan/UBSan with GENERIC BLASFEO/HPIPM.
 
 FCI bindings are checked in under `generated/wirelink/` and verified by CMake
 without WLC. For schema/profile updates, configure with `-DLF_ENABLE_WLC=ON`

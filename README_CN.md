@@ -11,8 +11,11 @@
 - **编译期动力学**：`Model<WillowTraits>` / `Model<PantheraTraits>` 提供正运动学、位姿、零位/体坐标雅可比、质量矩阵、科氏力与重力——由 `scripts/urdf2traits.py` 从 URDF 生成，编译期求解，运行时零分配。
 - **电机寄存器**：按关节（1–6 为臂关节，7 为夹爪）读写控制环增益与保护参数、保存到 Flash、设置零点。
 - **设备管理**：读取/更新 `DeviceInfo` 与 `DeviceSettings`，读取 `ArmDiagnostics`，配置重连策略、错误恢复、负载/EE 坐标系及关节/笛卡尔阻抗。
-- **可选 MPC**：基于 acados 求解器的 `florid::CartesianMPCSolver<WillowMPCTraits>`（`-DBUILD_MPC=ON` 时构建）。
+- **可选位置 MPC**：基于 acados 的 `florid::CartesianMPCSolver<WillowMPCTraits>`（`-DBUILD_MPC=ON`）。跟踪 Willow 末关节的位置；此 OCP 不包含姿态跟踪和笛卡尔阻抗增益。
+
 - **Python 绑定**：通过 pip 安装 `pyflorid`（pybind11），以 snake_case 命名暴露同样的 API。
+
+矩阵布局、4 ms 控制周期、模型限制、失败回退和离线验证见 [Willow 位置 MPC](docs/mpc.md)。
 
 ## 系统要求
 

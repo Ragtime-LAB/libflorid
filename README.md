@@ -22,8 +22,12 @@
   by firmware, including any normalization, and leaves its cache unchanged on
   rejection. Diagnostics, error recovery, homing, and motor registers share
   the same typed API.
-- **Optional MPC**: `florid::CartesianMPCSolver<WillowMPCTraits>` over the acados solver (build with `-DBUILD_MPC=ON`).
+- **Optional position MPC**: `florid::CartesianMPCSolver<WillowMPCTraits>` over acados (`-DBUILD_MPC=ON`). Tracks Willow end-joint position; orientation and Cartesian impedance gains are not part of this OCP.
+
 - **Python bindings**: install `pyflorid` via pip (pybind11), expose the same API with snake_case names.
+
+See [Willow position MPC](docs/mpc.md) for matrix layout, the 4 ms control period,
+solver limits, failure behavior and offline verification.
 
 ## System Requirements
 

@@ -36,3 +36,10 @@ add_test(NAME wirelink_snapshot
 # Transport shutdown must remain bounded, including backend-mismatch failures.
 set_tests_properties(transport_pipeline wirelink_executor fci_wirelink_endpoint
     usb_discovery PROPERTIES TIMEOUT 30)
+
+if(BUILD_MPC)
+    add_executable(test_cartesian_mpc test_cartesian_mpc.cpp)
+    target_link_libraries(test_cartesian_mpc PRIVATE florid)
+    add_test(NAME cartesian_mpc COMMAND test_cartesian_mpc)
+    set_tests_properties(cartesian_mpc PROPERTIES TIMEOUT 30)
+endif()

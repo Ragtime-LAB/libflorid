@@ -2,7 +2,10 @@
 #define FLORID_MPC_CARTESIAN_MPC_HPP
 
 #include "florid/ControlTypes.hpp"
-#include <memory>
+#include "florid/Exceptions.hpp"
+#include <algorithm>
+#include <cmath>
+#include <cstring>
 
 namespace florid {
 
@@ -17,21 +20,40 @@ public:
     explicit CartesianMPCSolver(const MPCConfig& cfg = MPCConfig{});
     ~CartesianMPCSolver();
 
+    CartesianMPCSolver(const CartesianMPCSolver&) = delete;
+    CartesianMPCSolver& operator=(const CartesianMPCSolver&) = delete;
+    CartesianMPCSolver(CartesianMPCSolver&&) = delete;
+    CartesianMPCSolver& operator=(CartesianMPCSolver&&) = delete;
+
+    // Position-only MPC. T_ref is column-major, translation at [12..14].
+    // Rotation and Cartesian impedance gains are not part of this OCP.
     JointPVT solve(const float* q, const float* dq, const float* T_ref);
+    JointPVT holdPosition(const float* q) const;
+    [[deprecated("This is a position hold, not inverse kinematics; use holdPosition")]]
     JointPVT fallbackIK(const float* q, const float* T_ref);
+    // 0: success; positive: acados failure; -1: not run; -2: invalid solution.
+    int lastStatus() const noexcept { return m_status; }
 
 private:
-    void* m_capsule;
+    void* m_capsule = nullptr;
     MPCConfig m_cfg;
+    int m_status = -1;
 };
 
 // ── 模板实现 ──
 
 template <typename MPCTraits>
 CartesianMPCSolver<MPCTraits>::CartesianMPCSolver(const MPCConfig& cfg)
-    : m_capsule(MPCTraits::create())
-    , m_cfg(cfg)
-{}
+    : m_cfg(cfg) {
+    static_assert(MPCTraits::kDOF == 6 && MPCTraits::kNX == 12);
+    if (!std::isfinite(cfg.current_limit_norm) || cfg.current_limit_norm <= 0.0f ||
+        cfg.current_limit_norm > 1.0f || !std::isfinite(cfg.velocity_excitation) ||
+        cfg.velocity_excitation < 1.0f) {
+        throw CommandException("Invalid MPC current limit or velocity excitation");
+    }
+    m_capsule = MPCTraits::create();
+    if (!m_capsule) throw ControlException("MPC initialization returned no solver");
+}
 
 template <typename MPCTraits>
 CartesianMPCSolver<MPCTraits>::~CartesianMPCSolver() {
@@ -43,6 +65,18 @@ CartesianMPCSolver<MPCTraits>::~CartesianMPCSolver() {
 template <typename MPCTraits>
 JointPVT CartesianMPCSolver<MPCTraits>::solve(const float* q, const float* dq, const float* T_ref) {
     JointPVT s_out{};
+    if (!q || !dq || !T_ref) throw CommandException("MPC inputs must not be null");
+    for (int i = 0; i < MPCTraits::kDOF; ++i) {
+        if (!std::isfinite(q[i]) || !std::isfinite(dq[i]))
+            throw CommandException("MPC joint state must be finite");
+    }
+    for (int i = 0; i < 16; ++i) {
+        if (!std::isfinite(T_ref[i]))
+            throw CommandException("MPC target must be finite");
+    }
+    if (std::abs(T_ref[3]) > 1e-5f || std::abs(T_ref[7]) > 1e-5f ||
+        std::abs(T_ref[11]) > 1e-5f || std::abs(T_ref[15] - 1.0f) > 1e-5f)
+        throw CommandException("MPC target must be a column-major homogeneous transform");
 
     float x0[MPCTraits::kNX];
     std::memcpy(x0,        q,  MPCTraits::kDOF * sizeof(float));
@@ -53,16 +87,29 @@ JointPVT CartesianMPCSolver<MPCTraits>::solve(const float* q, const float* dq, c
     float pos_ref[3]{ T_ref[12], T_ref[13], T_ref[14] };
     MPCTraits::setReference(m_capsule, pos_ref);
 
-    int status = MPCTraits::solve(m_capsule);
-    if (status != 0) {
-        return fallbackIK(q, T_ref);
+    m_status = MPCTraits::solve(m_capsule);
+    if (m_status != 0) {
+        return holdPosition(q);
     }
 
     MPCTraits::getOptimalQ(m_capsule, s_out.m_q);
-    MPCTraits::getOptimalDq(m_capsule, s_out.m_dq_limit);
+    float s_dq[MPCTraits::kDOF];
+    MPCTraits::getOptimalDq(m_capsule, s_dq);
 
     for (int i = 0; i < MPCTraits::kDOF; ++i) {
-        s_out.m_dq_limit[i] = MPCTraits::kDqLimit[i] * m_cfg.velocity_excitation;
+        if (!std::isfinite(s_out.m_q[i]) || !std::isfinite(s_dq[i]) ||
+            s_out.m_q[i] < MPCTraits::kQLower[i] - 1e-4f ||
+            s_out.m_q[i] > MPCTraits::kQUpper[i] + 1e-4f ||
+            std::abs(s_dq[i]) > MPCTraits::kDqLimit[i] + 1e-4f) {
+            m_status = -2;
+            return holdPosition(q);
+        }
+        s_out.m_q[i] = std::clamp(s_out.m_q[i], MPCTraits::kQLower[i], MPCTraits::kQUpper[i]);
+        // JointPVT expects a nonnegative speed ceiling, not signed velocity.
+        const float s_speed = std::max(std::abs(s_dq[i]),
+            std::abs(s_out.m_q[i] - q[i]) / MPCTraits::kDt);
+        s_out.m_dq_limit[i] = std::min(MPCTraits::kDqLimit[i],
+            std::max(s_speed * m_cfg.velocity_excitation, 1e-4f));
         s_out.m_current_limit_norm[i] = m_cfg.current_limit_norm;
     }
 
@@ -70,14 +117,21 @@ JointPVT CartesianMPCSolver<MPCTraits>::solve(const float* q, const float* dq, c
 }
 
 template <typename MPCTraits>
-JointPVT CartesianMPCSolver<MPCTraits>::fallbackIK(const float* q, const float* T_ref) {
+JointPVT CartesianMPCSolver<MPCTraits>::holdPosition(const float* q) const {
     JointPVT s_out{};
+    if (!q) throw CommandException("MPC hold state must not be null");
     std::memcpy(s_out.m_q, q, MPCTraits::kDOF * sizeof(float));
     for (int i = 0; i < MPCTraits::kDOF; ++i) {
-        s_out.m_dq_limit[i] = MPCTraits::kDqLimit[i] * m_cfg.velocity_excitation;
+        if (!std::isfinite(q[i])) throw CommandException("MPC hold state must be finite");
+        s_out.m_dq_limit[i] = MPCTraits::kDqLimit[i];
         s_out.m_current_limit_norm[i] = m_cfg.current_limit_norm;
     }
     return s_out;
+}
+
+template <typename MPCTraits>
+JointPVT CartesianMPCSolver<MPCTraits>::fallbackIK(const float* q, const float*) {
+    return holdPosition(q);
 }
 
 } // namespace florid

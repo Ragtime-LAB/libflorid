@@ -1,2 +1,5 @@
 # Preserve WLC's exact output, including its trailing blank line.
 generated/wirelink/** text eol=lf whitespace=-blank-at-eof
+
+# Preserve CasADi-generated source comments verbatim.
+generated/c_generated_code/** whitespace=-blank-at-eol

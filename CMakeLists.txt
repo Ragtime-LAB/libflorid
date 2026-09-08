@@ -37,7 +37,6 @@ if(BUILD_MPC)
     set(ACADOS_INSTALL_DIR "${ACADOS_SOURCE_DIR}" CACHE PATH "acados install directory")
     add_subdirectory(3rdparty/acados ${CMAKE_BINARY_DIR}/acados
         EXCLUDE_FROM_ALL)
-    add_compile_definitions(FLORID_HAS_MPC)
 endif()
 
 set(FCI_PROTOCOL_WIRELINK_ROLE host CACHE STRING

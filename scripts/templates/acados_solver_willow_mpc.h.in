@@ -5,12 +5,12 @@
 #include "acados_c/ocp_nlp_interface.h"
 #include "acados_c/external_function_interface.h"
 
-#define WILLOW_MPC_NX 12
-#define WILLOW_MPC_NU 6
-#define WILLOW_MPC_NY 15
-#define WILLOW_MPC_NYN 9
-#define WILLOW_MPC_N 5
-#define WILLOW_MPC_DT 0.004
+#define WILLOW_MPC_NX ${nx}
+#define WILLOW_MPC_NU ${nu}
+#define WILLOW_MPC_NY ${ny}
+#define WILLOW_MPC_NYN ${ny_e}
+#define WILLOW_MPC_N ${horizon}
+#define WILLOW_MPC_DT ${dt}
 
 #ifdef __cplusplus
 extern "C" {
