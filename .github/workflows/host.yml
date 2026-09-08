@@ -36,11 +36,9 @@ jobs:
       - name: Check out required submodules
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
-      - name: Check out MPC runtime dependencies
+      - name: Check vendored MPC runtime integrity and size
         if: matrix.mpc == 'ON'
-        run: |
-          git submodule update --init 3rdparty/acados
-          git -C 3rdparty/acados submodule update --init external/blasfeo external/hpipm
+        run: python3 scripts/vendor_acados.py --check
 
       - name: Check out paired ABI 26 compiler
         if: matrix.wlc == 'ON'
@@ -76,8 +74,8 @@ jobs:
           -DLF_ENABLE_WLC=${{ matrix.wlc }}
           -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc"
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
-          "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
-          "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
+          "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -O1"
+          "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -O1"
 
       - name: Build and test
         env:
@@ -91,17 +89,24 @@ jobs:
         run: cmake --build build/host-sanitize --target lf_check_wirelink
 
   windows:
-    name: Windows MSVC (${{ matrix.linkage }})
+    name: Windows MSVC (${{ matrix.linkage }}, MPC ${{ matrix.mpc }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - linkage: dynamic
+            mpc: 'OFF'
             configure_preset: windows-msvc-vcpkg
             release_preset: windows-release
             debug_preset: windows-debug
           - linkage: static
+            mpc: 'OFF'
+            configure_preset: windows-msvc-vcpkg-static
+            release_preset: windows-static-release
+            debug_preset: windows-static-debug
+          - linkage: static
+            mpc: 'ON'
             configure_preset: windows-msvc-vcpkg-static
             release_preset: windows-static-release
             debug_preset: windows-static-debug
@@ -128,6 +133,7 @@ jobs:
       - name: Configure
         run: >-
           cmake --preset ${{ matrix.configure_preset }}
+          -DBUILD_MPC=${{ matrix.mpc }}
           -DLF_ENABLE_WLC=OFF -DWLC_EXECUTABLE=C:/wlc-must-not-run.exe
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 

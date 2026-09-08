@@ -3,3 +3,6 @@ generated/wirelink/** text eol=lf whitespace=-blank-at-eof
 
 # Preserve CasADi-generated source comments verbatim.
 generated/c_generated_code/** whitespace=-blank-at-eol
+
+# Keep the pinned upstream byte snapshots identical on every platform.
+3rdparty/acados_runtime/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

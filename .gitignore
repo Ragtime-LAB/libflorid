@@ -8,3 +8,5 @@ __pycache__
 build_*
 build-*
 launch.json
+# Optional maintainer checkout for model generation; builds use acados_runtime.
+/3rdparty/acados/

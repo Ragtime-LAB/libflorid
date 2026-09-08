@@ -1,0 +1,2368 @@
+{
+  "blasfeo_backends": [
+    "GENERIC",
+    "X64_INTEL_CORE",
+    "X64_INTEL_HASWELL",
+    "ARMV8A_ARM_CORTEX_A53",
+    "ARMV8A_ARM_CORTEX_A57",
+    "ARMV8A_APPLE_M1"
+  ],
+  "files": {
+    "LICENSE": {
+      "bytes": 1326,
+      "sha256": "43c978e77d8d3721cbd701539724b3460e68f9d0dddfad76902237dc706f7fcc"
+    },
+    "acados/dense_qp/dense_qp_common.c": {
+      "bytes": 21308,
+      "sha256": "b5612b9e1ec8ef60809c1717e0a9314284da0b9c518b52978fd9f4a60d16e59a"
+    },
+    "acados/dense_qp/dense_qp_common.h": {
+      "bytes": 5954,
+      "sha256": "53747fce3ec73be8b4d3355f00620cc44f382e5f0786cf65905c75c9c3954461"
+    },
+    "acados/dense_qp/dense_qp_daqp.h": {
+      "bytes": 3757,
+      "sha256": "c5285273db4cbb4d442a1e5f1f2b139859a396633cdae93ca7e31e091bab2dd7"
+    },
+    "acados/dense_qp/dense_qp_hpipm.c": {
+      "bytes": 12975,
+      "sha256": "7a597d15cec0503e8c775a6ec5ba170d8e9a46e7b2ef77f9467d6c26f73e10bb"
+    },
+    "acados/dense_qp/dense_qp_hpipm.h": {
+      "bytes": 3227,
+      "sha256": "a7671972af8b3cf48f487175dbc636536716a130c4bf91030d12d5e43e320e5e"
+    },
+    "acados/dense_qp/dense_qp_ooqp.h": {
+      "bytes": 3918,
+      "sha256": "9794fe8e953489d48f31a3120d09b1e82ca3e87b7a7d3ea8b6ee8cd269db4f32"
+    },
+    "acados/dense_qp/dense_qp_qore.h": {
+      "bytes": 4539,
+      "sha256": "cf27f833a6db4021954fb3128b26c71468c1f3675b62ca05dce399e87f07079e"
+    },
+    "acados/dense_qp/dense_qp_qpoases.h": {
+      "bytes": 4636,
+      "sha256": "a59a3d412946a7e0f341e41e3c8ae9dbda414a2a46cd6e417424f57897621590"
+    },
+    "acados/ocp_nlp/ocp_nlp_common.c": {
+      "bytes": 171616,
+      "sha256": "3c65be88336df6f15d78130e5f67fdf6c6793c1a366a4e3a6c25ca45920a74ea"
+    },
+    "acados/ocp_nlp/ocp_nlp_common.h": {
+      "bytes": 27833,
+      "sha256": "682ce1b717f960afc394cdeea606979e1a69b87fbceee5c045016a6d7bf94d60"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_bgh.c": {
+      "bytes": 63889,
+      "sha256": "10a8921292f80dcb15cd95d7db7e94da487856385b8d8f216b0f7d103c1f41ac"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_bgh.h": {
+      "bytes": 10393,
+      "sha256": "0ba96bda46c5d3c98b978dec7b3a1487486bee56574b7a2086305e0338641ca3"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_bgp.c": {
+      "bytes": 50874,
+      "sha256": "c516bb405add7b01fcb4831bfaafe31d1d29e7d7ca0de957088082d6b827024c"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_bgp.h": {
+      "bytes": 8276,
+      "sha256": "59fab11ffdb38befe59806ecc945bdcd8e7d141a85d487f3b3e4a177dec905da"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_common.c": {
+      "bytes": 2211,
+      "sha256": "a614d50f83aee34dc2220d14934f894fbbb160fb1c863c2be31b19f816eddaa0"
+    },
+    "acados/ocp_nlp/ocp_nlp_constraints_common.h": {
+      "bytes": 5768,
+      "sha256": "6c8051b97815deb9243354c7fc6ac440c437a3c8ed25f9c9f3f98fb05458ffbe"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_common.c": {
+      "bytes": 2115,
+      "sha256": "cd5a13bcb0f4452b60d32107055f7c8710ab36ffd758eaa58c3948b5b1f039b3"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_common.h": {
+      "bytes": 6030,
+      "sha256": "af49988a6f79daa5207de43c3c20ef793f5c53015c201b91661618fd06fb7730"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_conl.c": {
+      "bytes": 34878,
+      "sha256": "f8124be3e208f0c6be75070f6ea0c7693b96fcd4b03de7dcab3b4daf6a216b70"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_conl.h": {
+      "bytes": 8323,
+      "sha256": "faf6ca1f2e2925658e2a629dbb001dbbc555b5398b6b9490fa6bd1e6b5c8a040"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_external.c": {
+      "bytes": 38808,
+      "sha256": "ef608cf967f48a276ad7572f61b1c2ac3271be2adce9c2956f5952bdfdb06526"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_external.h": {
+      "bytes": 8396,
+      "sha256": "bb7dba7657a39b46c6fd8499425ade75d86ece7f0d6ec26ebba1eaf57093bab3"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_ls.c": {
+      "bytes": 35747,
+      "sha256": "0152bd8a300cbd901973f3324b9c4a60958a559b48018d4d1e6ca19bd175b858"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_ls.h": {
+      "bytes": 10155,
+      "sha256": "31ee3d93bd19b903f48c7ec0d1498b5b3c4760e53a8ff57ad62e3a625d425025"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_nls.c": {
+      "bytes": 36633,
+      "sha256": "46d531b1f86da8a9eb90e6b3c34212fb911f0b2edafe6f42da35b56ce83c3a27"
+    },
+    "acados/ocp_nlp/ocp_nlp_cost_nls.h": {
+      "bytes": 8643,
+      "sha256": "98ec7d2a7c659db89b6ca28ddc0ef9282c7297de20ec8a1512b68b6119eda50e"
+    },
+    "acados/ocp_nlp/ocp_nlp_ddp.c": {
+      "bytes": 37477,
+      "sha256": "254c3f22da7eb6c4a4e844c8f4efe6e9b76a2a6cb1b50c0a80c777db984eb60d"
+    },
+    "acados/ocp_nlp/ocp_nlp_ddp.h": {
+      "bytes": 4809,
+      "sha256": "f87c1b8373f8e4e9166e772eeeb38af09171be0532a60206e97d5af516837968"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_common.c": {
+      "bytes": 2283,
+      "sha256": "7e0d8bef1edd4fb3b84fe671828ef4aa1b871b16b892c1e616f8d7f362b5deb9"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_common.h": {
+      "bytes": 6344,
+      "sha256": "8f108002559a7b3d6cbc328951da7ba4726d36c9e648c6326385449e2c7645b8"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_cont.c": {
+      "bytes": 39893,
+      "sha256": "e195bf1c00e6e1b584bf4d93bc15329dbf7e07af11bbe49021c50ed1332476e8"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_cont.h": {
+      "bytes": 7712,
+      "sha256": "2dc3371f2d9f3d5a9030b58f765d5f875bed9b5208de5e6d76e0580f4316eeaf"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_disc.c": {
+      "bytes": 34154,
+      "sha256": "0fad61025b99d0350f9a1b4d5086564691f32ee4b1e7a8394c3e0f45a244b2b6"
+    },
+    "acados/ocp_nlp/ocp_nlp_dynamics_disc.h": {
+      "bytes": 7399,
+      "sha256": "8a7e45540150cdc8f5156c0022c7189493359a584be700b4621eba5539072f46"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_common.c": {
+      "bytes": 4819,
+      "sha256": "567db6a4bfb7bea02bdd5e86b1670448008e514fe9dd3bf9237dbd58ef461206"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_common.h": {
+      "bytes": 4034,
+      "sha256": "fe67a042f1d2ffdec011c992ac37d25913b1981754c13ef9d0f90deb6aab6aab"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c": {
+      "bytes": 10170,
+      "sha256": "c9a57dd78ebffa4a3b63ebd164f6c485ee689e221531ef011c251ebc8d463ed4"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_fixed_step.h": {
+      "bytes": 4037,
+      "sha256": "c8f5807ee746e7f05becfe6c567acc691365476f700072204815874b8aa16ef5"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_funnel.c": {
+      "bytes": 27097,
+      "sha256": "d865f8bc1fadbfbf0c4406fd717ec9c9ee03b16eed1f2d3892da74ddd2ca3895"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_funnel.h": {
+      "bytes": 7418,
+      "sha256": "649a9a595eb4b4b91304a1ad11b68dc7e596eacf8b05d8e882e26af8a379c1d9"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_merit_backtracking.c": {
+      "bytes": 36007,
+      "sha256": "fb6dc17f9584fe0b1168f1a935d2bd22739dd6019103bf76729b73c49ae060e1"
+    },
+    "acados/ocp_nlp/ocp_nlp_globalization_merit_backtracking.h": {
+      "bytes": 4916,
+      "sha256": "eeb92ccf8d8608a8f4a6c7807be08dc5fdbb2eaf988da03ba34081fafdcf3757"
+    },
+    "acados/ocp_nlp/ocp_nlp_qpscaling.c": {
+      "bytes": 22513,
+      "sha256": "b8302c00ee72aa10ff460fd2cfc5c27c5043cc91705c95218d86b6d3aa850175"
+    },
+    "acados/ocp_nlp/ocp_nlp_qpscaling.h": {
+      "bytes": 3871,
+      "sha256": "d548d14265f315c6ecbed330e1a597eccd627341dcb9102ae20c1b5456d2fe50"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_common.c": {
+      "bytes": 6324,
+      "sha256": "31f81a94b005a3a98832d4343bd3baeb640cfbd04e90e9a542e8ade782ecc3df"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_common.h": {
+      "bytes": 4883,
+      "sha256": "59014c717f3dc2f2eefe3bd44f4d12628842d5fb15e5ec6438e22f59aa07175f"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_convexify.c": {
+      "bytes": 32688,
+      "sha256": "44ea9fcb64d1f9e3bd2fbf1f90ba52b4be03368258cf9eadf05bb68cbc8340ae"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_convexify.h": {
+      "bytes": 4358,
+      "sha256": "5ca4649d277adaf5f61c5a2f701646853652be228d746f31ebc815065fb29390"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_glm.c": {
+      "bytes": 8331,
+      "sha256": "9569020529c7e239d5509445369e500bad3453b45e3bd6a5af3ddaf335ace77e"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_glm.h": {
+      "bytes": 3068,
+      "sha256": "8892156d50023e165924eccd12142d6340b0af53e37f7d0aeb5e70c9b5418c49"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_mirror.c": {
+      "bytes": 9878,
+      "sha256": "1413f740a67e1e039ad857e80411da1d67b9e0d1550ce3fb7e1bfb5c70bcb9a7"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_mirror.h": {
+      "bytes": 3489,
+      "sha256": "eabd0271a24678ddcef3ff65de186424c94b5396f993973bd3216e1ef7ac890b"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_noreg.c": {
+      "bytes": 6307,
+      "sha256": "26190c6e7ae6008d6da979ea2ea3d249ca522594249d1df286dc12aa93cd5bab"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_noreg.h": {
+      "bytes": 3050,
+      "sha256": "1d5ecdfb12d34c0940f8cc472b139f51e7bb5465869803e2c9aefd0141a9e539"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_project.c": {
+      "bytes": 9913,
+      "sha256": "b80748e93bf5eda07a832d666ea94e97e69fdbe82a050f89729963b3a13c063e"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_project.h": {
+      "bytes": 3501,
+      "sha256": "2db0efd4c95a439b7f2c0245c1dd5b3a42ebcd8b5ae8d9b3a133cd7974781d16"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_project_reduc_hess.c": {
+      "bytes": 18059,
+      "sha256": "54b342eccd981f29ca8d6eaf4c69df9274c5ccf17c0797647403aaaa530ca205"
+    },
+    "acados/ocp_nlp/ocp_nlp_reg_project_reduc_hess.h": {
+      "bytes": 4004,
+      "sha256": "702844a0201422be4df414a99f430a91cb57b68c28a534e2ae3bcba0c2222194"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp.c": {
+      "bytes": 36371,
+      "sha256": "cec925a1ad2951fa8d63fb2b6c18dce9250e0f6beb124f6dd8c2b050bd48d155"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp.h": {
+      "bytes": 4620,
+      "sha256": "798fa5b6a128929bae3f364362fbc399b3f8ba83563527aa921a0ad5d40f6d70"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp_rti.c": {
+      "bytes": 52316,
+      "sha256": "fa56ddfdc2e9c2948f35a1707b404a064b1598099b45e72f6b471f559525f7a6"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp_rti.h": {
+      "bytes": 4725,
+      "sha256": "f702db215bcc61f2184fc8bbf2a266e711f37905becfd9944b03d98a8dbffcdb"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp_with_feasible_qp.c": {
+      "bytes": 78905,
+      "sha256": "b803c6d3fa8c94e5bc7da4e8f2c34f4d8d646608b56c0ca4e99dc44109fd0559"
+    },
+    "acados/ocp_nlp/ocp_nlp_sqp_with_feasible_qp.h": {
+      "bytes": 7130,
+      "sha256": "e774c987bd1d1b48621f8a696b0d92815d4d256fb704b15d8d5c5c929ce2361a"
+    },
+    "acados/ocp_qp/ocp_qp_clarabel.h": {
+      "bytes": 3718,
+      "sha256": "ba64e2ecf0ab726b55a27ad6d2a5efc212cd4b73665b916298c4c3aabaaf5299"
+    },
+    "acados/ocp_qp/ocp_qp_common.c": {
+      "bytes": 26654,
+      "sha256": "94202fda5b79d83533279815700c80f9f4f06e0e8db3f11ffc2cf1f0ea7d4e33"
+    },
+    "acados/ocp_qp/ocp_qp_common.h": {
+      "bytes": 7949,
+      "sha256": "c7179ff9f597121e0bdf665ad0cce6c85d9da36a1737b4c21cfa4b8e51c30de1"
+    },
+    "acados/ocp_qp/ocp_qp_common_frontend.c": {
+      "bytes": 18218,
+      "sha256": "20f62070e6761476d2d5de01b9bd2465027ecde67b74fb1450586c48ec1e17f6"
+    },
+    "acados/ocp_qp/ocp_qp_common_frontend.h": {
+      "bytes": 3330,
+      "sha256": "afc11225e0f6a99468c2730da34f86115eb702602b56593a897452f607d227b1"
+    },
+    "acados/ocp_qp/ocp_qp_full_condensing.c": {
+      "bytes": 19811,
+      "sha256": "5cb14265bb0a3b7052231d71235f84303df4b83f84e461ab7f7d7434c138e74b"
+    },
+    "acados/ocp_qp/ocp_qp_full_condensing.h": {
+      "bytes": 4069,
+      "sha256": "6c669426b80dff6757a6107af5c2817cfe766cb7a6cfc32da84b49536e1b8267"
+    },
+    "acados/ocp_qp/ocp_qp_hpipm.c": {
+      "bytes": 16975,
+      "sha256": "494667b435186a0b0646998b37fa10bd3a783f7e7c58dc9a20822038c18680fe"
+    },
+    "acados/ocp_qp/ocp_qp_hpipm.h": {
+      "bytes": 3274,
+      "sha256": "7126979797399bde86126987dcfe5f760e8cfacebadbe6432b01fa32b7d0a2e4"
+    },
+    "acados/ocp_qp/ocp_qp_hpmpc.h": {
+      "bytes": 4229,
+      "sha256": "b302cd60988ed96da4d61a2a6f304dc827916ceac90f2fbd1cc948735362d611"
+    },
+    "acados/ocp_qp/ocp_qp_ooqp.h": {
+      "bytes": 4319,
+      "sha256": "8494362038960a46d3fdaa2490d16e4597e36734af1d97a58209a38bd8bc6325"
+    },
+    "acados/ocp_qp/ocp_qp_osqp.h": {
+      "bytes": 3265,
+      "sha256": "41282912f948e251f88450cf2438870723a9a298be1dc07e1377994bd6d0a0c8"
+    },
+    "acados/ocp_qp/ocp_qp_partial_condensing.c": {
+      "bytes": 22441,
+      "sha256": "3b0ccecbb05d07dfd7d2ab04c62461bbafebf08eab3255ae8e3f344a3a2912ee"
+    },
+    "acados/ocp_qp/ocp_qp_partial_condensing.h": {
+      "bytes": 4076,
+      "sha256": "707ae74a71e01a5f133759c0cf6a432b1ad780b28153791c0ba43f110af5f649"
+    },
+    "acados/ocp_qp/ocp_qp_qpdunes.h": {
+      "bytes": 3893,
+      "sha256": "c0f7cacec0cc9639bda7a2016c90bfe1a9835cdda15da35480fcdbd1a47dd685"
+    },
+    "acados/ocp_qp/ocp_qp_xcond_solver.c": {
+      "bytes": 26370,
+      "sha256": "688e067b3790e224b4a29ee71725bec2946323ced8305bd7be420ce2880521fc"
+    },
+    "acados/ocp_qp/ocp_qp_xcond_solver.h": {
+      "bytes": 7304,
+      "sha256": "9055ed898e75a187bc5e6cde2e79a15bf9f764a039e2179abd26090cf791c6ea"
+    },
+    "acados/sim/sim_collocation_utils.c": {
+      "bytes": 18333,
+      "sha256": "a8e74528b088e02ef7a1ce986a4077548c2c17c3beb8667e499c2bd11c9e1a71"
+    },
+    "acados/sim/sim_collocation_utils.h": {
+      "bytes": 2866,
+      "sha256": "e161d243fbdf8dcc5bfee5a2a6f3657d086ba69fc82c8e688b636b625e80f51c"
+    },
+    "acados/sim/sim_common.c": {
+      "bytes": 16051,
+      "sha256": "1c95d933f6e6fff33bbb13d5ebdaaa5098c2ff618082ec06c4625ef5f1d29468"
+    },
+    "acados/sim/sim_common.h": {
+      "bytes": 7116,
+      "sha256": "762c4a3f6a6f33b34f56999e296f067d690f7894d9c08d9bc247b0895601a477"
+    },
+    "acados/sim/sim_erk_integrator.c": {
+      "bytes": 31821,
+      "sha256": "dc454809b9c21c10c213684e68a41dea6e84ac4f1a460635e6d30dcf23fe3eae"
+    },
+    "acados/sim/sim_erk_integrator.h": {
+      "bytes": 4404,
+      "sha256": "6544cd4e2db999eed66389307b3e51468b1cd51ef501a3a2b0a43406df07fb37"
+    },
+    "acados/sim/sim_gnsf.c": {
+      "bytes": 125049,
+      "sha256": "1dd59574436724240fc3deed113d665f0f6d214300b4b08f5a582d8f01c544fb"
+    },
+    "acados/sim/sim_gnsf.h": {
+      "bytes": 10158,
+      "sha256": "6829335d8febc2599d65edc9c42e07168ff53fc04f90e8359417b8f9a5269714"
+    },
+    "acados/sim/sim_irk_integrator.c": {
+      "bytes": 87769,
+      "sha256": "ee204c7c39b9fc9c78946a651529fcdac9f1d0c26d2afe2f0b2a6a9baf200090"
+    },
+    "acados/sim/sim_irk_integrator.h": {
+      "bytes": 9093,
+      "sha256": "da8fe680a3183995edc0999fa9b92a703794d4737a63ffa5e1e662cc9f6e442f"
+    },
+    "acados/sim/sim_lifted_irk_integrator.c": {
+      "bytes": 31076,
+      "sha256": "7fd6aa92065a0ddd49ea275856c738dc497352352c2bde409b340bef17f840c3"
+    },
+    "acados/sim/sim_lifted_irk_integrator.h": {
+      "bytes": 5214,
+      "sha256": "9b3691077bae7e7f7f7317dbea4ff1cb27c790a3871c9168b258fc3663b7e244"
+    },
+    "acados/utils/external_function_generic.c": {
+      "bytes": 44647,
+      "sha256": "ddfdd3f2d24db50046b78d99f8c36dd4f3af9da3ee9cb0e9d9b37de69e02e22e"
+    },
+    "acados/utils/external_function_generic.h": {
+      "bytes": 13673,
+      "sha256": "d27b536502252b95b99ff35acfc6bab260544268efb535fe520414fdb8410815"
+    },
+    "acados/utils/math.c": {
+      "bytes": 34887,
+      "sha256": "8cd493b7e75a71d02fcc80110dfd05c6830489908d213153a548b5a121247821"
+    },
+    "acados/utils/math.h": {
+      "bytes": 4024,
+      "sha256": "6d6249cec5c6cd13e25ffdfc8404e827f2eef2e9224e711e1237813c97a16f92"
+    },
+    "acados/utils/mem.c": {
+      "bytes": 7070,
+      "sha256": "5221807352d056d99e96ee1bb53e372bed265f09e77c8b3f3d0152153ff10ea5"
+    },
+    "acados/utils/mem.h": {
+      "bytes": 3732,
+      "sha256": "c955cf6b6c1d7419539070d4ab260de5aecdeec87ba27d553c2048542e53f11c"
+    },
+    "acados/utils/print.c": {
+      "bytes": 29292,
+      "sha256": "7fbc3e304db20260a07bc2b8d08b3162b7b03e418e00e99d9906d998338ec59e"
+    },
+    "acados/utils/print.h": {
+      "bytes": 4001,
+      "sha256": "b2e9d31e6f62215f0a92a6992cf713e3fa5aa113d788248f344e052678d6f132"
+    },
+    "acados/utils/strsep.h": {
+      "bytes": 2752,
+      "sha256": "c02adf9b2652b584bd29d36ea30bfa37acf1b24d96a67b223d47edb7a6a2dfae"
+    },
+    "acados/utils/timing.c": {
+      "bytes": 4123,
+      "sha256": "7cca0889742802a2bd5e4e5ee5e7f5e8d599c23d7fa19d6e4da8f3b3042c1a08"
+    },
+    "acados/utils/timing.h": {
+      "bytes": 3133,
+      "sha256": "9abfc56ad3ce01a4357eb4f224ae5a764b1a4bcc0de76293923f85239e198e5c"
+    },
+    "acados/utils/types.h": {
+      "bytes": 3639,
+      "sha256": "d9c223c0a8e19ba004f1bbeb7f59de4ced93b709e00680cf87a9c23600668877"
+    },
+    "external/blasfeo/LICENSE.txt": {
+      "bytes": 1456,
+      "sha256": "03bf34700337cb892d143a84398e43319a11cab1494fd78aa047b55972129542"
+    },
+    "external/blasfeo/auxiliary/blasfeo_processor_features.c": {
+      "bytes": 8093,
+      "sha256": "d6f311eade1c4c703be1405d019d97984b267a1b61fc7e81fed79cadee9b770d"
+    },
+    "external/blasfeo/auxiliary/blasfeo_stdlib.c": {
+      "bytes": 6772,
+      "sha256": "ef13ecb3ea5a1df2aab714590dd8114ff2a776dd6bc85695abeba5e82da202d7"
+    },
+    "external/blasfeo/auxiliary/d_aux_common.c": {
+      "bytes": 5688,
+      "sha256": "e45f49dcd169eaeaae17d4e7b93c8af960efb678f9a6afc2e0433bec6c5c59dc"
+    },
+    "external/blasfeo/auxiliary/d_aux_ext_dep.c": {
+      "bytes": 4851,
+      "sha256": "c03642942e2ae8b58b158ecc21abfe105c98532cbfe2acf94bdc7b18e20462b8"
+    },
+    "external/blasfeo/auxiliary/d_aux_ext_dep_common.c": {
+      "bytes": 4003,
+      "sha256": "43e0ea15f75b6a7d7446268c41e1dc7f5d8f84d109ddc5493c4272ed07812999"
+    },
+    "external/blasfeo/auxiliary/d_aux_lib4.c": {
+      "bytes": 104380,
+      "sha256": "f432413f4b18213aa7125ba30c4113b76a54bf1a111a4b950752859fb4d65a61"
+    },
+    "external/blasfeo/auxiliary/d_aux_ref.c": {
+      "bytes": 8965,
+      "sha256": "8f236d67449aa0dc12aed1c3cdbd4f636026a057db924abce1d892459447211d"
+    },
+    "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c": {
+      "bytes": 4815,
+      "sha256": "4abefd72466568cdee7b8b26930b7c75ced1328c11badfb0aa9e2f8c64f306b7"
+    },
+    "external/blasfeo/auxiliary/memory.c": {
+      "bytes": 5324,
+      "sha256": "278690066efa0fa9812b84fcc25740cf4c5ec7bb083753f6731c15e086d679cc"
+    },
+    "external/blasfeo/auxiliary/timing.c": {
+      "bytes": 7067,
+      "sha256": "4dbd6a1cbec4f61cc05338545f606a6fb47d14caf7b04fd7f207ec0076f1af15"
+    },
+    "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c": {
+      "bytes": 5472,
+      "sha256": "6bd2d89a2d19505d8177d462851237d13295a52b26dd0f6bde5d567b7bb24cda"
+    },
+    "external/blasfeo/auxiliary/x_aux_ext_dep.c": {
+      "bytes": 8533,
+      "sha256": "9fbd942f18181394e8628b82ddccb830b3fef763412a1bbde33c1b0644184910"
+    },
+    "external/blasfeo/auxiliary/x_aux_ext_dep_common.c": {
+      "bytes": 6559,
+      "sha256": "c26c47fa19025ec6215802b58e52e9cc50dccbf34c1a506ccfe6ad10102da57f"
+    },
+    "external/blasfeo/auxiliary/x_aux_ref.c": {
+      "bytes": 42901,
+      "sha256": "e86eaec96a59636b584786700d039f96fc24ae29a25a8291a5fe078ff2e1359b"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c": {
+      "bytes": 16585,
+      "sha256": "3358e7c2a61698ffeeb04f46361b879bd66c3dc71bcbedb2af22c2f5e50eb39d"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c": {
+      "bytes": 3622,
+      "sha256": "26fb473ef9c9ba4555119441457a595e8aba2b1a8d182e43c53712d1853ca714"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c": {
+      "bytes": 54172,
+      "sha256": "a35172c749e4c90dc57a16d34708fa40766d58e6c0590b0ee738ba5f25db3e53"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c": {
+      "bytes": 7457,
+      "sha256": "b3533f4ffd8359d2d467227c5dd55f290548b6d00843c056532651569359492d"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c": {
+      "bytes": 207301,
+      "sha256": "4b15a14a157fe1748ea2c89fd66e23f11125605a9a65b52925e46a841c17853c"
+    },
+    "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c": {
+      "bytes": 139123,
+      "sha256": "d5b2871d0e46a026b1ec413c80af7ff44b7e5d9a7de2baf2589ed98a9bc236b3"
+    },
+    "external/blasfeo/blasfeo_hp_pm/x_blas2_diag_lib.c": {
+      "bytes": 4120,
+      "sha256": "c04f39f68d69de54c7b1f34dd96019ea147d75f725865c7af29e8548b9694048"
+    },
+    "external/blasfeo/blasfeo_ref/d_blas1_ref.c": {
+      "bytes": 4459,
+      "sha256": "207755309484b918c1764fabac188690af7690eb07e81190d562773fce4ff83f"
+    },
+    "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c": {
+      "bytes": 3641,
+      "sha256": "e7ab60935901fc3133765ca9ea50cbc457d818350998ae7fe15210d069be8c8b"
+    },
+    "external/blasfeo/blasfeo_ref/d_blas2_ref.c": {
+      "bytes": 5403,
+      "sha256": "7c5ac4b6cef67933e9f346f54250f81c40f1eb7d78354fe105c4e08fd72235ce"
+    },
+    "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c": {
+      "bytes": 4199,
+      "sha256": "92999177e11a79300a060bd2d078201a2db62ab5b164dcf6ca048b088d3e97ca"
+    },
+    "external/blasfeo/blasfeo_ref/d_blas3_ref.c": {
+      "bytes": 7762,
+      "sha256": "c2b5c3a9a5ac8aa96192a1a1ff2fe35d39849abeaad96f6d9dcfee42007b3cc6"
+    },
+    "external/blasfeo/blasfeo_ref/d_lapack_ref.c": {
+      "bytes": 5809,
+      "sha256": "62ef78b0aed78537f43ef3b993ace936d7f98a0d9df6780cdb6487007b3eda8b"
+    },
+    "external/blasfeo/blasfeo_ref/x_blas1_ref.c": {
+      "bytes": 8895,
+      "sha256": "043ec1bf9fde5ed0001dacf71a405dfc16103046a85ea727927105e3194c920a"
+    },
+    "external/blasfeo/blasfeo_ref/x_blas2_diag_ref.c": {
+      "bytes": 4180,
+      "sha256": "060b30683c57efd25f7d83b6a09c7400d0bed90dc9133f320c617aa133858011"
+    },
+    "external/blasfeo/blasfeo_ref/x_blas2_ref.c": {
+      "bytes": 41493,
+      "sha256": "fc3ad07534934722ef1fe9726fd092fc077909c09a655f9abb948442da59c0a4"
+    },
+    "external/blasfeo/blasfeo_ref/x_blas3_diag_ref.c": {
+      "bytes": 7604,
+      "sha256": "8d5bba02c1f7ceba7f3380c59403213c182beaba0a1a9394bf7400bcc71b9a41"
+    },
+    "external/blasfeo/blasfeo_ref/x_blas3_ref.c": {
+      "bytes": 146946,
+      "sha256": "734e2aed854115ae92821d240a08648357db3f92c7d29f771d2430bf09306189"
+    },
+    "external/blasfeo/blasfeo_ref/x_lapack_ref.c": {
+      "bytes": 92851,
+      "sha256": "baf26fec654898444070f715b9bb907d975c939e02070f732776a24a7e328938"
+    },
+    "external/blasfeo/blasfeo_target.h.in": {
+      "bytes": 1550,
+      "sha256": "aa57523eb7b2c4df88d611718fb2fa1b03c5799e1baf48a88840bdcad12e4d6e"
+    },
+    "external/blasfeo/include/blasfeo.h": {
+      "bytes": 3923,
+      "sha256": "b2c8c29ab257b73ca06cdbdf6941835c67256d0201573ae6be1f1763a793a8ae"
+    },
+    "external/blasfeo/include/blasfeo_align.h": {
+      "bytes": 3725,
+      "sha256": "cbb0c347852fa62dc42fd467a81aaccafe56837837205498f72a1b40c8153a20"
+    },
+    "external/blasfeo/include/blasfeo_block_size.h": {
+      "bytes": 15901,
+      "sha256": "030000d09c64e865705c709a0ce7a75e039a5455a5a5029ce910e32a73bb3dec"
+    },
+    "external/blasfeo/include/blasfeo_common.h": {
+      "bytes": 10398,
+      "sha256": "64dd9e1757501121feaa93b73883af4b75930f004727cef38abe5573e0b4d59a"
+    },
+    "external/blasfeo/include/blasfeo_d_aux.h": {
+      "bytes": 13942,
+      "sha256": "6d50a949a7a276bbc36e3f7cde4abdfe4dc17ce357a4fa01092e0a544c4efb2b"
+    },
+    "external/blasfeo/include/blasfeo_d_aux_ext_dep.h": {
+      "bytes": 7975,
+      "sha256": "6740f8337ac1a4832d6341563a89ed8eb3acdb447b79f6033f193d5888d2b2cc"
+    },
+    "external/blasfeo/include/blasfeo_d_aux_ext_dep_ref.h": {
+      "bytes": 5490,
+      "sha256": "50cbb8e67994a8e1a8e4a488fd179c9ad2075e4809601e5a82e9a73549398012"
+    },
+    "external/blasfeo/include/blasfeo_d_aux_old.h": {
+      "bytes": 5728,
+      "sha256": "69cab442ed00763485bf203a6330e1c6591c176c881e2cab84d2530978baae05"
+    },
+    "external/blasfeo/include/blasfeo_d_aux_ref.h": {
+      "bytes": 12584,
+      "sha256": "cc8f3ac11b291983789867ed64df32ac97ea92662bb05780208a2f5779582ee8"
+    },
+    "external/blasfeo/include/blasfeo_d_aux_test.h": {
+      "bytes": 14062,
+      "sha256": "a597a1f9d9ae96acd387cd6259c21d34dd03adc1d930dee3166fd0b0002ccb4a"
+    },
+    "external/blasfeo/include/blasfeo_d_blas.h": {
+      "bytes": 3555,
+      "sha256": "a0f2d1d4fc0b5a41f8aadecf774e6a78c4cd3043c29798f834a8b84dccb39b8a"
+    },
+    "external/blasfeo/include/blasfeo_d_blas_api.h": {
+      "bytes": 13277,
+      "sha256": "d8e1c0000c339fdd824e7cacfd956d4623735a3c47f4a875a9ab35df535cea56"
+    },
+    "external/blasfeo/include/blasfeo_d_blasfeo_api.h": {
+      "bytes": 37484,
+      "sha256": "9396f9210dcdc618bc8c90fc9c1f85bda303d16f52edfd8bf118369188ae6dce"
+    },
+    "external/blasfeo/include/blasfeo_d_blasfeo_api_ref.h": {
+      "bytes": 16855,
+      "sha256": "edceee138b322a1274822a9f776ad575d278b04d5f665b264d6bca8b7ce39f90"
+    },
+    "external/blasfeo/include/blasfeo_d_blasfeo_hp_api.h": {
+      "bytes": 4973,
+      "sha256": "e061c997f5356ae2f1201fffecd22fca034f45fe88e1a0b3c6e867508e138e25"
+    },
+    "external/blasfeo/include/blasfeo_d_blasfeo_ref_api.h": {
+      "bytes": 25232,
+      "sha256": "370d8342eb180f1434cea041139b3f84febc92e419f1918eef672cfe769165fc"
+    },
+    "external/blasfeo/include/blasfeo_d_kernel.h": {
+      "bytes": 157709,
+      "sha256": "6171290da9a3ffe6a4c6ebee6ad379dc27811964743be96e11307f1d1b3ae9c5"
+    },
+    "external/blasfeo/include/blasfeo_i_aux_ext_dep.h": {
+      "bytes": 3972,
+      "sha256": "27691bab7235b11a0df7bf7d66f993dd36edffaa8b5e1f61099681b884ec5836"
+    },
+    "external/blasfeo/include/blasfeo_m_aux.h": {
+      "bytes": 4036,
+      "sha256": "7d33a31ba11069ae3548a9eb564d179ae21426fb0e4443f5fcda4f8ef521d54a"
+    },
+    "external/blasfeo/include/blasfeo_memory.h": {
+      "bytes": 3663,
+      "sha256": "c99782d8f4b11e96aa73c6bbde7bc91419f1453a1d4d2736885bb1656be8b91a"
+    },
+    "external/blasfeo/include/blasfeo_naming.h": {
+      "bytes": 4260,
+      "sha256": "58005fa04cee53e05361cb31e19195e9ce713718811f5118b15b48b975c6a5c2"
+    },
+    "external/blasfeo/include/blasfeo_processor_features.h": {
+      "bytes": 5651,
+      "sha256": "e0113b518068e42552b704ee17736634bd8acd97dcdce080e8788556d750d0f7"
+    },
+    "external/blasfeo/include/blasfeo_s_aux.h": {
+      "bytes": 12653,
+      "sha256": "570b9cf44f6652b20c10c6325e8a543d0e2913d8d7e7f61e7e45f25897897925"
+    },
+    "external/blasfeo/include/blasfeo_s_aux_ext_dep.h": {
+      "bytes": 7931,
+      "sha256": "570db47584f38a2126a5a52dad6e05eeb068dcbdfee23fe705fff649b78c6aa2"
+    },
+    "external/blasfeo/include/blasfeo_s_aux_ext_dep_ref.h": {
+      "bytes": 5340,
+      "sha256": "1141cec9515ea3f374c9deecfb10ff26a07e1096c4b92086b8d2a531cbe5196f"
+    },
+    "external/blasfeo/include/blasfeo_s_aux_old.h": {
+      "bytes": 5583,
+      "sha256": "f70c5e7e6efcec36aab4269cc7ac929398dfbee3ea8690f61d68e193ce8ab4f2"
+    },
+    "external/blasfeo/include/blasfeo_s_aux_ref.h": {
+      "bytes": 11204,
+      "sha256": "79bfd780bcb874a3277d3f6fe7903b354312a1a1273e220cf19f2e6656920c7f"
+    },
+    "external/blasfeo/include/blasfeo_s_aux_test.h": {
+      "bytes": 13091,
+      "sha256": "37ed335d52190e7a21533b1a00caee9c95f964dff21c73334e7c8fc220096ad3"
+    },
+    "external/blasfeo/include/blasfeo_s_blas.h": {
+      "bytes": 3555,
+      "sha256": "780a11c0d8c9c6201ae164bd0fb2cbc63d0e490c6e661d021fde06df13227cb8"
+    },
+    "external/blasfeo/include/blasfeo_s_blas_api.h": {
+      "bytes": 7283,
+      "sha256": "a3e3ccb86f37da3eb0e897b5ed718a7c46079dcf3e440017e2b703aa1d34ce7a"
+    },
+    "external/blasfeo/include/blasfeo_s_blasfeo_api.h": {
+      "bytes": 29184,
+      "sha256": "40826f6ea178d58293cba3e52221398550d8a32df8669c5c0b83db108e11791a"
+    },
+    "external/blasfeo/include/blasfeo_s_blasfeo_api_ref.h": {
+      "bytes": 14671,
+      "sha256": "d032001fd13205ddc36f369979a7528d3c9807b73b26d571e90d49a832ee18fb"
+    },
+    "external/blasfeo/include/blasfeo_s_blasfeo_ref_api.h": {
+      "bytes": 25049,
+      "sha256": "1bdf9a09b9a9f77c9fbaae5926b545633b1d0b56db7d6023eb24cb984f649e0b"
+    },
+    "external/blasfeo/include/blasfeo_s_kernel.h": {
+      "bytes": 63147,
+      "sha256": "764dfdf83fb427d075ed0e44285bc7d02ecc4ad4bdd78b614b110da27b75cafd"
+    },
+    "external/blasfeo/include/blasfeo_stdlib.h": {
+      "bytes": 3838,
+      "sha256": "5bea1c4dab6d07da5065ad39ec518ab0dc3fd6d34da008b3c8477bb6a7fa624a"
+    },
+    "external/blasfeo/include/blasfeo_timing.h": {
+      "bytes": 5293,
+      "sha256": "e71d6dfcc7cc43580c3fea7ad48433cd5794c72f25ad84e935b6315599ad92b9"
+    },
+    "external/blasfeo/include/blasfeo_v_aux_ext_dep.h": {
+      "bytes": 4589,
+      "sha256": "b747b79ab9fd6b97413c4ed558a967ea43b1729d0a6cab7417e02ce70e5e0eb9"
+    },
+    "external/blasfeo/include/d_blas.h": {
+      "bytes": 5805,
+      "sha256": "a5d2c6fb9f65fd2da78b95a61bfd16018932d1823380903e28eef391d5c04c1c"
+    },
+    "external/blasfeo/include/d_blas_64.h": {
+      "bytes": 5701,
+      "sha256": "cd90f321abb9717b137611717710815233d5c973bf5ecfa1fee59a392131c465"
+    },
+    "external/blasfeo/include/s_blas.h": {
+      "bytes": 5737,
+      "sha256": "030979290245be33fdeea461833b03bd245eb0385bf938215a0a87bcc60b9f99"
+    },
+    "external/blasfeo/include/s_blas_64.h": {
+      "bytes": 5652,
+      "sha256": "78a20dd1ef18b0ecc1b0f8d217e0dfc91ac09da5a947fd093c723f349a07dbe3"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_d_aux_lib.S": {
+      "bytes": 7838,
+      "sha256": "cb9c268af291edcc51c12b7c579dba8d623021bf511233a7ffee9990a5cb6777"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_12x4_lib.S": {
+      "bytes": 100457,
+      "sha256": "70c839763a58d4adebbe303abdf07e7edf4d9ba7a7300f2fab67af1dad28e3c1"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_12x4_lib4.S": {
+      "bytes": 121087,
+      "sha256": "8ae3169701aecbdf3ede231687ff7f706e45c31321b23adedafce31fd4e2a967"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_4x4_lib.S": {
+      "bytes": 422462,
+      "sha256": "5f74ad19ca15b5ddc1db3f27cf060029ca3d724dfdc79127e031d1da84c16897"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_4x4_lib4.S": {
+      "bytes": 94330,
+      "sha256": "2d3faf2e719a0bad555d430ad24657cceb9043ff1be46e639369deabf96d099d"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_8x4_lib.S": {
+      "bytes": 943420,
+      "sha256": "af16a09a5d02c4cb3603ace253d486a77ac285ae39d39318ffaa6ebcac113832"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemm_8x4_lib4.S": {
+      "bytes": 150596,
+      "sha256": "ef900d12a655a6738534663aa2f439019f1b35c907003308b03475831fa233e8"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemv_4_lib.S": {
+      "bytes": 13443,
+      "sha256": "3a7f005769249377c23ffe94809fa2e247e49ab763a4a5662c31a4e746923230"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgemv_4_lib4.S": {
+      "bytes": 23061,
+      "sha256": "8ee743816394b60ba3ea86094814aac2e3af8d1873291e4ec741b815616c455f"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dger_lib.S": {
+      "bytes": 5832,
+      "sha256": "09f0ac76e9b8e81b04f4cabcd70b87c358360182194d7cd9221a7196b46c9fa5"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dger_lib4.S": {
+      "bytes": 5885,
+      "sha256": "8c7cedbeecfbb1ea1b88a2018136a432bd9fb4ce9171e0846c35d0889057d33d"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgetr_lib.S": {
+      "bytes": 15302,
+      "sha256": "cc6d22f207ddb6ead45e6e4593ce7f73dc19e30a19530174d2cfcb0dc5416341"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgetrf_pivot_lib.c": {
+      "bytes": 7943,
+      "sha256": "63f4b1ef83ce431dc0b21dea3d0e37b7086a6d3c8e4eca6b2e9f96ef4352c0ac"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dgetrf_pivot_lib4.c": {
+      "bytes": 11108,
+      "sha256": "e0a892893ac2e63afc5ad72a543f2b3afe8c19c20c348d4bf91dfed131a7aedb"
+    },
+    "external/blasfeo/kernel/armv8a/kernel_dpack_lib4.S": {
+      "bytes": 22150,
+      "sha256": "3259e71dd14415ae006ec9aeb3f77224c564e09cc96b6b392cf5a987d0ab301d"
+    },
+    "external/blasfeo/kernel/avx/kernel_d_aux_lib.S": {
+      "bytes": 9994,
+      "sha256": "ee8f51153e75a26bc5c05dd61b09d2e1e8f6ea7fdb59ff2b5dcb2ddda98a9150"
+    },
+    "external/blasfeo/kernel/avx/kernel_dgecp_lib4.c": {
+      "bytes": 77982,
+      "sha256": "b973a7740711963b0391948c316c87d0b10d4d8457d01ea824f8b8b0897ffa49"
+    },
+    "external/blasfeo/kernel/avx/kernel_dgemm_diag_lib4.c": {
+      "bytes": 20581,
+      "sha256": "c91afb948840ab4fbf65257911573e296b948170fce189b886f881a54c1a5ea5"
+    },
+    "external/blasfeo/kernel/avx/kernel_dgeqrf_4_lib4.c": {
+      "bytes": 133491,
+      "sha256": "6a85f831e8f94f2c732b43734c2c4e74d493e8696defb4f4b153532adf9f83d2"
+    },
+    "external/blasfeo/kernel/avx/kernel_dgetr_lib.S": {
+      "bytes": 26498,
+      "sha256": "5f6618c6f52d79405a15ceb54fd4e5b2a9fa13c128301ff0ea9a1db7cf0e9b42"
+    },
+    "external/blasfeo/kernel/avx/kernel_dpack_lib4.S": {
+      "bytes": 124319,
+      "sha256": "9be5a9de1c55c195f0751e3ef1680f56279d2a00ec22294c14e8c203030ff404"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgebp_lib4.S": {
+      "bytes": 74261,
+      "sha256": "b0987e9aecbf2d8a9958a1b789ba55c7b12d80d2a2cb51838c4fe6ad95713d30"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgelqf_4_lib4.S": {
+      "bytes": 286803,
+      "sha256": "cf48498a8a8ab64a6f546f1f9fb3178c19f97d5a1cf71eb379d835b884e8818d"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_12x4_lib.S": {
+      "bytes": 721828,
+      "sha256": "67130c0988df1cfae6d8d3644b8f1ee19980b1119c7dd5db7127e4bc71a5ad9d"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_12x4_lib4.S": {
+      "bytes": 484883,
+      "sha256": "09894dfce5dac0ee37384d2f6edd133320936c7e29f8984225905ed82c792a48"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_4x4_lib.S": {
+      "bytes": 347229,
+      "sha256": "3b64f45ce384703270cba47b4e4eccf4d09402e86f140492563582c118df0c72"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_4x4_lib4.S": {
+      "bytes": 221735,
+      "sha256": "4ef0e27c0fa1d2aeabf0385eb241e0be0b96343006ab3aef7a7f4a3be2911f20"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_8x4_lib.S": {
+      "bytes": 553908,
+      "sha256": "5a29500219a3dcaa786b4d51bfb4bbe46c809920bd7694c80fcdca8942b5d37f"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_8x4_lib4.S": {
+      "bytes": 331720,
+      "sha256": "6f9e25d6f2145e257f637ca23841089eef3d6f632136ef8144dd163355019925"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_8x8_lib.S": {
+      "bytes": 36859,
+      "sha256": "590c91abae6abcc056693bdcaba24d4914f7c0a84a329435527e9d2ec17dde96"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemm_8x8_lib4.S": {
+      "bytes": 138298,
+      "sha256": "4be458ae95b8cb9cf2060260f35d1d44dc0439a3b2ce8cd258f69257a6f3c2da"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemv_4_lib.S": {
+      "bytes": 20064,
+      "sha256": "b6b54c5204b68638451af4e77fd16cf57887b000ee38f4b0334950efc3a2af91"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemv_4_lib4.S": {
+      "bytes": 80074,
+      "sha256": "23c5f5707dfc11e0e358a7e963fad1003c8e3bb8c433b57ea9d392ffbffa98dd"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgemv_8_lib4.S": {
+      "bytes": 32317,
+      "sha256": "260c01e91e9431d9e45d14fe064ddfddab0d416a2dae467fac91dad5f1881313"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dger_lib.S": {
+      "bytes": 6695,
+      "sha256": "81c5b39d21b3a02bcae72dab3ea74e317c0758ca5fe5fddb5253c88b83de09d8"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dger_lib4.S": {
+      "bytes": 8580,
+      "sha256": "604a428a99939faafc914d501f2123956acf9ec3cb80c2d12a5c47f5052462b6"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgetr_lib4.c": {
+      "bytes": 24954,
+      "sha256": "11e674ad58c73b91fe80a46178ee4f39332b4ef0ea6563f8b65377e3be9e6e98"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgetrf_pivot_lib.c": {
+      "bytes": 139528,
+      "sha256": "0acd7a4ced3b244b4ba2d53342692a79a92b253cf6734d4bb2ba3ce29134c857"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dgetrf_pivot_lib4.c": {
+      "bytes": 149137,
+      "sha256": "cffc0569c9e475ef6f32e6e0b7e5113bc8a9c8cbf15e7a93556fc815d4b83165"
+    },
+    "external/blasfeo/kernel/avx2/kernel_dsymv_6_lib4.S": {
+      "bytes": 21999,
+      "sha256": "40a6b32f132f499d2d84c0f417df1fe967ebbd33967043abc3e8634a2d7e1e12"
+    },
+    "external/blasfeo/kernel/generic/kernel_align_generic.c": {
+      "bytes": 3828,
+      "sha256": "172845cbef6655e98f14b59dcb69014ca3a21db12ace3c438d65a8e6c41dc53c"
+    },
+    "external/blasfeo/kernel/generic/kernel_d_aux_lib.c": {
+      "bytes": 3665,
+      "sha256": "09fa7eabab6ccedccc95d364312e98f43acd527b694113845195b54347e39e01"
+    },
+    "external/blasfeo/kernel/generic/kernel_daxpy_lib.c": {
+      "bytes": 3824,
+      "sha256": "71abfa34e256a5f436480077d6d2fa6ab9b55c2f28ad48d0203145cf8c8b8f32"
+    },
+    "external/blasfeo/kernel/generic/kernel_ddot_lib.c": {
+      "bytes": 3964,
+      "sha256": "694364b110c79b018402c8f31617512c5959b69194209f3a123401b0a830fccd"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c": {
+      "bytes": 24374,
+      "sha256": "132ddf9d11277dab1385e866163b95e99ef056bde6b277e11096bb3d3e06e913"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib.c": {
+      "bytes": 515896,
+      "sha256": "b1081e076c279c22679ed09feae570ed3e75c1aa10f087113969e3a2f57626bc"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c": {
+      "bytes": 178129,
+      "sha256": "9f6c95991b0990f91cf2546259d9c25d5fdb1459061f687f761cfcc1d4b6117a"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c": {
+      "bytes": 23842,
+      "sha256": "79edf54589b521737fb2c7878a187187cd784c88dca94a2c5b0a485a535392d3"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgemv_4_lib.c": {
+      "bytes": 15567,
+      "sha256": "1285c84dc0200b5e0808cd9f9550c1cd52c1f21b0a708e997b94c09945bbed99"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c": {
+      "bytes": 34435,
+      "sha256": "5b0a6b166419620dee1ec2c34ee681aa15b90fe2e6288eabb690e33640311174"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c": {
+      "bytes": 138514,
+      "sha256": "eb56d0a1a7af3f2c0c397fbd46a62e739ccf3c78586a431dc753d0f345c7afa0"
+    },
+    "external/blasfeo/kernel/generic/kernel_dger_lib.c": {
+      "bytes": 9656,
+      "sha256": "4261615889c4ccd310c9545906a15468bd321a6aa3e8a1c6880f6d852e74b091"
+    },
+    "external/blasfeo/kernel/generic/kernel_dger_lib4.c": {
+      "bytes": 3546,
+      "sha256": "aaf170a3b39df793f308a9bf85e1b17910adb523f77c73441f9b3a237bc78968"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgetr_lib.c": {
+      "bytes": 5028,
+      "sha256": "d02d6f1fc901a7bad9a9d7b3de78db28df3798f9589fe52d13a5bc513ed611b6"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c": {
+      "bytes": 9825,
+      "sha256": "663b535af1dd8f98de6460a88b2df04f90232fcc0eb9a0e90630a170c7141417"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib.c": {
+      "bytes": 17054,
+      "sha256": "5bf4433011c9513c4f8bd369c62491100f5f2afaa000c8ab4715d2137df94c62"
+    },
+    "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c": {
+      "bytes": 17422,
+      "sha256": "183d6b238fa5d104259420b2af44489f1bf6ae926850254f4141af1194988859"
+    },
+    "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c": {
+      "bytes": 5471,
+      "sha256": "676429d28f8c8257a6f73a24c9531fa74c763e89da32df678ca0b200e254a679"
+    },
+    "external/blasfeo/kernel/generic/kernel_dpack_lib4.c": {
+      "bytes": 23100,
+      "sha256": "f538bb42b2172235de0aa04760740aab0b83e9baea7e47ee96a1ed9f0287be76"
+    },
+    "external/blasfeo/kernel/generic/kernel_dsymv_4_lib.c": {
+      "bytes": 28610,
+      "sha256": "63bebe62803c464dfbd9c2dd3fda3822689378221e8db704f15fd04e5ede2686"
+    },
+    "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c": {
+      "bytes": 19206,
+      "sha256": "f318a7cedc9471a6e3727aa1a8ff4fa1433505e3194335faba7e1efc1c9b051a"
+    },
+    "external/blasfeo/kernel/sse3/kernel_align_x64.S": {
+      "bytes": 8401,
+      "sha256": "08f7be862b0db4b62e6f50c35d424ece687e058c13f1cf4310a137c9cdd3687e"
+    },
+    "external/blasfeo/kernel/sse3/kernel_dgemm_4x4_lib.S": {
+      "bytes": 13417,
+      "sha256": "5683efd24743cd949503f8d8a5c15b4f9068f6310c49e63e8abf8d31acc7d59c"
+    },
+    "external/blasfeo/kernel/sse3/kernel_dgemm_4x4_lib4.S": {
+      "bytes": 140386,
+      "sha256": "2ca4f9f53048a66abc7767d63c8063842361dc06523b00e1d407b094762398f5"
+    },
+    "external/blasfeo/kernel/sse3/kernel_dgemv_4_lib4.S": {
+      "bytes": 33445,
+      "sha256": "afe0b45c02424d3bfe346b5b63ffec72ba4e86638378a65e26c77494ebf7d619"
+    },
+    "external/hpipm/LICENSE.txt": {
+      "bytes": 1462,
+      "sha256": "9d35e846dd1c2f122c7edf1512cf2952c14574c3b773be76c3d1e4ad749d9d07"
+    },
+    "external/hpipm/auxiliary/aux_mem.c": {
+      "bytes": 4560,
+      "sha256": "bd12de9c5501edae8db161364c526abd19b363e8cb07334a3d9785094d4f094c"
+    },
+    "external/hpipm/auxiliary/aux_string.c": {
+      "bytes": 3592,
+      "sha256": "dfc0c7d6a6f1f561384a4bee1c9d898e0f2a81b9cd7c3abd2247f76ed60fe229"
+    },
+    "external/hpipm/auxiliary/timing.c": {
+      "bytes": 3568,
+      "sha256": "1e292378bab92273bca55e54fff4470a577654918c93294650698522bd04cf7f"
+    },
+    "external/hpipm/cond/d_cast_qcqp.c": {
+      "bytes": 5091,
+      "sha256": "253d1965c5e8fd5b0d05e9ee9204596caf7c1e55f983e07ca528cfbe20f79e45"
+    },
+    "external/hpipm/cond/d_cond.c": {
+      "bytes": 6018,
+      "sha256": "a408f0831cd3daeabc3353b7ca19a7f7f0c2886cbede9957e2b4ffd90b2532af"
+    },
+    "external/hpipm/cond/d_cond_aux.c": {
+      "bytes": 5341,
+      "sha256": "1b9daac7e330dd0939c74104ceb1e5335b6e7a741427f3664ad900556e7a2487"
+    },
+    "external/hpipm/cond/d_cond_qcqp.c": {
+      "bytes": 7033,
+      "sha256": "1888bc475464cc591b5bf42890c4861f154270d0591c00d48d8c7b3d6072290c"
+    },
+    "external/hpipm/cond/d_part_cond.c": {
+      "bytes": 6634,
+      "sha256": "0247fa73ad773d80966e2d16b332cda97d7c7b5b5d450f67a82c624af9f21bc1"
+    },
+    "external/hpipm/cond/d_part_cond_qcqp.c": {
+      "bytes": 7248,
+      "sha256": "e0f30f4c6fd17c96f0f18af44aaaaf4f51b15b6370b2120cd59148e38dbfc35d"
+    },
+    "external/hpipm/cond/x_cast_qcqp.c": {
+      "bytes": 6836,
+      "sha256": "7be75ea790b5d0c4a1effe06e0d9bef51ef9160e0f1a300df549f7e585845702"
+    },
+    "external/hpipm/cond/x_cond.c": {
+      "bytes": 14998,
+      "sha256": "6768936693a77800fd044839ba228dc6d38d166d3556092d9b003dc0b3897cd5"
+    },
+    "external/hpipm/cond/x_cond_aux.c": {
+      "bytes": 76227,
+      "sha256": "0f05b746583d6621da605c0b5ba104dd6bb2f80a71ed22116dc4b066e1b12af4"
+    },
+    "external/hpipm/cond/x_cond_qcqp.c": {
+      "bytes": 28604,
+      "sha256": "124543e18cd96f3b5b6d395c730a9e52cad6815270801e7da295590d4e44819e"
+    },
+    "external/hpipm/cond/x_part_cond.c": {
+      "bytes": 30368,
+      "sha256": "9433f626cd6089375dc4c61b064ee9c6cf609a24dcc61b583af7c1cbb7a0242a"
+    },
+    "external/hpipm/cond/x_part_cond_qcqp.c": {
+      "bytes": 29938,
+      "sha256": "3e3b9c649c80d34c2d848e6c2bb0647f50d10eecbcf8781bf4109efb54d096db"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp.c": {
+      "bytes": 7590,
+      "sha256": "989e7337a256cf7efc677314fb364d635a53ab2206e8d1fc11151acccddf794e"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp_dim.c": {
+      "bytes": 4994,
+      "sha256": "e7fceaf9860181376c9b1875ec6545bc561be927cef193586687ba1f7c2f4fa6"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp_ipm.c": {
+      "bytes": 12741,
+      "sha256": "34c526ebaaa1287eee37186444b16a05bd38c1ed0396f4df161a14a5c6f73bd4"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp_res.c": {
+      "bytes": 5047,
+      "sha256": "6be36c700853c0c36f4e536dacd732ad024fc739d135346aabe6b9c715014c1f"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp_sol.c": {
+      "bytes": 4762,
+      "sha256": "2a7a13a1a2d3898c03c51b3e5e9130aee857463e47f599e76eabdf7384fa9526"
+    },
+    "external/hpipm/dense_qp/d_dense_qcqp_utils.c": {
+      "bytes": 4398,
+      "sha256": "a893e6ae1b773a30289aea17c28f3693928b0698961c1a6d0eb59920d728c373"
+    },
+    "external/hpipm/dense_qp/d_dense_qp.c": {
+      "bytes": 7602,
+      "sha256": "f1ca04125d9047759171a9ce476436d10f6a96f07e1aff8009c6be9191495611"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_dim.c": {
+      "bytes": 4329,
+      "sha256": "8790a297dea8e746c84817c731b70c565718fc6f90d7f57b0170f15a2b4d2235"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_ipm.c": {
+      "bytes": 11113,
+      "sha256": "99f60046e27cae1d3d9f343b63dd63ff795178219b6bcbeef13fb10b68a0bd6a"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_kkt.c": {
+      "bytes": 6881,
+      "sha256": "0b2771bd48ba1c7c11ab347c353ecc162801430a461f3233f6d15cf0a2660711"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_res.c": {
+      "bytes": 5079,
+      "sha256": "7727fb66e227b9f58a6b89b9bd29f6343cbb74306a97175f145e6e98eb597f09"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_seed.c": {
+      "bytes": 4799,
+      "sha256": "972b925aff17415d27e7dd4154483fc6f70a2eae527154c337bae194bd5f4234"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_sol.c": {
+      "bytes": 5561,
+      "sha256": "cfbae8a173c49eaebf4da6d7c3604a5ab31c673769852a546cf5cc392abcb107"
+    },
+    "external/hpipm/dense_qp/d_dense_qp_utils.c": {
+      "bytes": 4729,
+      "sha256": "795bbfc19e4cea9a4d145faa9b8f2114b48a7cc1f38b0082e9877770b55e0097"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp.c": {
+      "bytes": 23266,
+      "sha256": "1914e0a396868706e7a12f015acde4e9795bf50403da9d03ce12e81b67a692ac"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp_dim.c": {
+      "bytes": 6988,
+      "sha256": "c2491f04497abca33148e697cbacfaedef6a1ecabdc5cf8d540fa93e9d914d24"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp_ipm.c": {
+      "bytes": 43209,
+      "sha256": "467b05f7fa69119c6f8928333f3f6bb15d8b419879865eea2de65ff3dab75397"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp_res.c": {
+      "bytes": 14103,
+      "sha256": "a8d9ceefc1bcdbfdce19f0764e89a2f44037afd2ed7632bd48f473ad0b3cdb44"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp_sol.c": {
+      "bytes": 7706,
+      "sha256": "66a9d1664c67c69fc36b6c9729b89ba622d47ed695169be1fa01ac785bf67727"
+    },
+    "external/hpipm/dense_qp/x_dense_qcqp_utils.c": {
+      "bytes": 6229,
+      "sha256": "4b53b5c9ec7f924c715ee6b86cded1ed86045a1ba244748412e34803f26cd76f"
+    },
+    "external/hpipm/dense_qp/x_dense_qp.c": {
+      "bytes": 29561,
+      "sha256": "964073aad1f7886a74afca27d11399fb0bb48922cbb5111a8de38bcd8a8a9fe0"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_dim.c": {
+      "bytes": 5826,
+      "sha256": "32e46d8dbe753460310f1ab425d1ed587c8227c62c7845c859bd5015a04fc0f9"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_ipm.c": {
+      "bytes": 80162,
+      "sha256": "05c1affae108b13421d1ddda18d07d1ab5a859cda37506a9e913b3325f2d0190"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_kkt.c": {
+      "bytes": 64018,
+      "sha256": "6b0a2795b16ae1a1dddf0f85670ff2cfa19eeb18dfd0f4678c2d6fddab1434cd"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_res.c": {
+      "bytes": 16856,
+      "sha256": "197662bc7ec8c5e28e4e1158475d7b5970b3f483b21bfca51a60a6f10e5eca62"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_seed.c": {
+      "bytes": 8395,
+      "sha256": "70d7612394165e35d0b3c3f9a990517645849a557d12191a4d3010fe37df3bd7"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_sol.c": {
+      "bytes": 12103,
+      "sha256": "4015be321f19fa56ede8f751c999a9a6bf6e1b6cb8b900e851362599bf09e9bf"
+    },
+    "external/hpipm/dense_qp/x_dense_qp_utils.c": {
+      "bytes": 29304,
+      "sha256": "8d504188ea53d73d19b3264cd20d731f08ab8f07e752485e1eebd2b24755743c"
+    },
+    "external/hpipm/include/hpipm_aux_mem.h": {
+      "bytes": 3651,
+      "sha256": "90365d09a7f9fa09ce515dea6eb3a8946cca7544b789de2044519b17ab6ae221"
+    },
+    "external/hpipm/include/hpipm_aux_string.h": {
+      "bytes": 3639,
+      "sha256": "a167cd18f14bae11a2376d05081e819b0c1d134200224fd5db94ff5b2289b353"
+    },
+    "external/hpipm/include/hpipm_common.h": {
+      "bytes": 4124,
+      "sha256": "de0d39593cd8987503d3c88a4f0dee1ed3d20b52f9887f290b1cd87522b19360"
+    },
+    "external/hpipm/include/hpipm_d_cast_qcqp.h": {
+      "bytes": 3997,
+      "sha256": "8f6385b6db0d716c1aad4a499d54f92d8de13ead3263f9f2e2256cbf4f385299"
+    },
+    "external/hpipm/include/hpipm_d_cond.h": {
+      "bytes": 7159,
+      "sha256": "558b652e0fdb28b68be676d34e766781eae44fb03d4a3dbca120078c5b3787d0"
+    },
+    "external/hpipm/include/hpipm_d_cond_aux.h": {
+      "bytes": 6132,
+      "sha256": "eaaf81b97b3eb79920278322dc34684faff6c550e4a3dd03e3eb6febf09d734e"
+    },
+    "external/hpipm/include/hpipm_d_cond_qcqp.h": {
+      "bytes": 6969,
+      "sha256": "2377fbf5aaab4adae0c010053bb048a209627f1bcb58c1ea1f6f105512d3b793"
+    },
+    "external/hpipm/include/hpipm_d_core_qp_ipm.h": {
+      "bytes": 5828,
+      "sha256": "d23b25c57e3b5f08b858791540d9a0e1da129d8d43c5e500e6a1d8e040565f12"
+    },
+    "external/hpipm/include/hpipm_d_core_qp_ipm_aux.h": {
+      "bytes": 4504,
+      "sha256": "b7d270498735f1a3df234c56e2fb77f40cd600ecbc0508ba12acabeeb6814764"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp.h": {
+      "bytes": 8680,
+      "sha256": "e9825eec6d1238b9d19f87082c20ca40747c667e8d247a5e43debce6882e8800"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp_dim.h": {
+      "bytes": 5154,
+      "sha256": "bb0df2ab0b97e9e15eb723deeb76c3e8a993c6f49fb5d88db18cce8a767a4f9f"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp_ipm.h": {
+      "bytes": 10537,
+      "sha256": "25f78a7eedb5db7f865f4cb71021db96534b0881bc93b995faa6198551d6ebfd"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp_res.h": {
+      "bytes": 5630,
+      "sha256": "385a09e484eccbf9774dbc69b0bfcdc9cd206c4a89b80143e2b0d24c3479349a"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp_sol.h": {
+      "bytes": 4834,
+      "sha256": "41b85c24bc50a08e3278547333691ce0d381776498988769f5feed7b1c36c12d"
+    },
+    "external/hpipm/include/hpipm_d_dense_qcqp_utils.h": {
+      "bytes": 4523,
+      "sha256": "650e4a8da31f9978c1f79c49a8c5c09e6072eb822d861a721797318ff0ec251d"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp.h": {
+      "bytes": 9797,
+      "sha256": "f88e15c2775d9b6a4f3edbc29cb605dfed00d41e57ed9d9746ad1e52e212d61a"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_dim.h": {
+      "bytes": 4947,
+      "sha256": "869392cfef223a4cec00d7de01eb2632c00d008a3f478f4f724ac5c0f4ecaa28"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_ipm.h": {
+      "bytes": 14021,
+      "sha256": "f9e63c82856b07d33ebf47cf0328aed795ee2a95f1c30e8f73add092f17ece59"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_kkt.h": {
+      "bytes": 4864,
+      "sha256": "9e81519972e9d7d3079413783600f3c3ce3d3fad6bf56118728da8fc3672cab2"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_res.h": {
+      "bytes": 5755,
+      "sha256": "3902ed4609910ef4ad561ed6c941c3c0b8aae160c63a11a7b17e467d7985c750"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_seed.h": {
+      "bytes": 4992,
+      "sha256": "45733768460ae562bccce1ef0bf0667ee5ce3a775b2837eb2cdb6b8a05c97133"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_sol.h": {
+      "bytes": 6173,
+      "sha256": "4661cf25ed69de1016a300f6ce936fe01cbbcd11ce0b2e0edc4478d62b3db522"
+    },
+    "external/hpipm/include/hpipm_d_dense_qp_utils.h": {
+      "bytes": 4818,
+      "sha256": "5f746f80650a4043a495b1fdf9af41818da9e6b33503ae69745cf3fb64715717"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp.h": {
+      "bytes": 13570,
+      "sha256": "dc73296a229e9ff0220be7505d9a9adf19441a1f4331267ba72022a08e55b8c7"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_dim.h": {
+      "bytes": 5989,
+      "sha256": "70d412ac692f9afbae40c2026461a6d2d2b90424737e233752ce1940a90ff7b0"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_ipm.h": {
+      "bytes": 11154,
+      "sha256": "f8c83178e6987449bc8ed6adf266c140235bf46f2a347c9be2fe9a563a1b1eec"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_red.h": {
+      "bytes": 6228,
+      "sha256": "fe6903c24ad7a7498dc48b1b91f07477160d55619e9564331c3a030baaf9d3b8"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_res.h": {
+      "bytes": 5951,
+      "sha256": "1c296ad0bf00e489f666c44548e09973329ebe3c20fc34c8673daffb510f798a"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_sol.h": {
+      "bytes": 5541,
+      "sha256": "52d5a4b8fd98bc41cb1d8d6509fa2c4b607258983231700e1941eccee143d151"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qcqp_utils.h": {
+      "bytes": 4472,
+      "sha256": "5c87e7818c80f45358cd12ce6c525d75625738da3378036d89ce52a3d34e3e29"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp.h": {
+      "bytes": 13996,
+      "sha256": "08b931e8c81aea1a92da569f791fd0d1cd2d30faa916fd57e416e0c5330a3a8f"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_dim.h": {
+      "bytes": 6325,
+      "sha256": "ba2836908322d22a4b7c64609be0581bbf7cb087b748713eb02b55bfd3454934"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_ipm.h": {
+      "bytes": 15363,
+      "sha256": "35de7dea558fb08365e7e13245777097d8ca9700b2bdf437cc950851000eceff"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_kkt.h": {
+      "bytes": 4405,
+      "sha256": "19335f6b64dd3ac0fe52d12fbdd497568ce4124e1e323c5c4fedc0912d2d9f45"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_red.h": {
+      "bytes": 6714,
+      "sha256": "c2a24ea476a06ce298b5546d8e3d300334ad48b47068f82860e277f6137aa560"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_res.h": {
+      "bytes": 7520,
+      "sha256": "c673e9546b660ff4cce43d323a707a723b2478d79c15ff619121fd5b4de72d8c"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_seed.h": {
+      "bytes": 5625,
+      "sha256": "88c6e0b9bf99d8d68854815d67eda41dca7164b7710852afc24d19249c12c37a"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_sol.h": {
+      "bytes": 7668,
+      "sha256": "4df2f0c103e4ad6797e4c98772f73f9fe1979e3d967130f12e1e34d1972b168c"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_solver.h": {
+      "bytes": 7522,
+      "sha256": "048e092c82c3713f54ece1db6d841e852053eaffc73badb2938635a283a43667"
+    },
+    "external/hpipm/include/hpipm_d_ocp_qp_utils.h": {
+      "bytes": 4826,
+      "sha256": "d2a53dd41dec1c3b70e3bf5614832ecfd1721fde98294829f8d79f01e23859b7"
+    },
+    "external/hpipm/include/hpipm_d_part_cond.h": {
+      "bytes": 6657,
+      "sha256": "32be149a2d47cc13b6e003463eef7029edbe3cf0bb8543d6ab62dd6a3a6d6e4b"
+    },
+    "external/hpipm/include/hpipm_d_part_cond_qcqp.h": {
+      "bytes": 5829,
+      "sha256": "bb601e43c9d21692df82c210b7e17744bfaa72ca4cb34af6c207bd48d8e4199a"
+    },
+    "external/hpipm/include/hpipm_d_sim_erk.h": {
+      "bytes": 6732,
+      "sha256": "6d24ec0af426764a7208004f98425dc2ff029f1aadba60eb727f96aa20621901"
+    },
+    "external/hpipm/include/hpipm_d_sim_rk.h": {
+      "bytes": 4146,
+      "sha256": "89c533a6ee1ea1347bbe0a82fa914b6b2643fdc3be259ba0f223c90f7646c181"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp.h": {
+      "bytes": 10027,
+      "sha256": "4c86334eb688848b9e4da8b7bd6c2768637cf7c2c86214505fc210d4ada24784"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp_dim.h": {
+      "bytes": 5529,
+      "sha256": "46221c23e32b08e3730762a5c13aeaf690688c6e9fbf97588266e16772641a9c"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp_ipm.h": {
+      "bytes": 11509,
+      "sha256": "43c43bd7babfeceee3db55f06c148dd1714f3f49f6bdcf4d1204a52723402a87"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp_res.h": {
+      "bytes": 5742,
+      "sha256": "671d1cd563a9ba3f4e7013421f65c83660837714827e35ec53892c1629f4ae3d"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp_sol.h": {
+      "bytes": 5119,
+      "sha256": "1cf1d82cc0d1120e5a0c65352be68bb9d15f90ba03cd79ee97a7e3f1d3133baf"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qcqp_utils.h": {
+      "bytes": 4703,
+      "sha256": "49b6b07fb7fa4f6c17c23b23ba238f25ff872a3c093c1c80e551ad9cde263dc8"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp.h": {
+      "bytes": 9945,
+      "sha256": "5c826a00a5fbfe39675ea9fdff38fe830a878fb3b855ed84e29b0c85bdea8d2c"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_dim.h": {
+      "bytes": 5398,
+      "sha256": "0ad3ca7ba51822617ef2ba34ed029604ac65d9a8267cdd63e5d04deb4a3df1e5"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_ipm.h": {
+      "bytes": 11607,
+      "sha256": "f8654768723e2726d83663c0ebd0aab64822baa974cb8a8897c5f8260c6fd590"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_kkt.h": {
+      "bytes": 4424,
+      "sha256": "2c6e7c95ce96f0044e49e0690a0abb2fe8b8de9656f8cd50ab71b69c3b8897af"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_res.h": {
+      "bytes": 5926,
+      "sha256": "dca97ce5c8b2138f6f6c4dad175ade6547b970d7b96efd98f1c812fa8893fde5"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_sol.h": {
+      "bytes": 5316,
+      "sha256": "8c1dfb4b4726a8fb20a64944cf3d089cdc2985d60a445c3d2f839f9cf0d1df37"
+    },
+    "external/hpipm/include/hpipm_d_tree_ocp_qp_utils.h": {
+      "bytes": 4646,
+      "sha256": "b08fda1dc0baaef29481afaadf02c8d1c91ce507c3bc990b3af180f3ec35c833"
+    },
+    "external/hpipm/include/hpipm_m_dense_qp.h": {
+      "bytes": 3777,
+      "sha256": "326dbfe8f18eb8244bce134407d48372d4d6ace92420678aece3ff6e203e9d26"
+    },
+    "external/hpipm/include/hpipm_m_dense_qp_dim.h": {
+      "bytes": 3809,
+      "sha256": "7e85fce42f651748e7d45bfe2451c76735dc43afb2e70681c24112bf658a9d84"
+    },
+    "external/hpipm/include/hpipm_m_ocp_qp.h": {
+      "bytes": 3625,
+      "sha256": "5f0e4c43e0fd520399fdeef343d0442b8efbf41fb31231c912d9858357bd426e"
+    },
+    "external/hpipm/include/hpipm_m_ocp_qp_ipm_hard.h": {
+      "bytes": 6224,
+      "sha256": "ed246fa59b3cf7cd4905ddc34dc1cf4c30f075f5326c9e489084bd6a4a489dd4"
+    },
+    "external/hpipm/include/hpipm_m_ocp_qp_kkt.h": {
+      "bytes": 3734,
+      "sha256": "8648b5d2ae88e15206a67257e06fd4be0e206bdb3b7947dc7c236a8e539eb01f"
+    },
+    "external/hpipm/include/hpipm_s_cast_qcqp.h": {
+      "bytes": 3998,
+      "sha256": "9ab36a17dfa9fba4f73942964bb8d33e3c652342739930eb6b987e1af4960fdc"
+    },
+    "external/hpipm/include/hpipm_s_cond.h": {
+      "bytes": 7161,
+      "sha256": "7ca1acdb37d0dfaaf4d0be4c9dfa81543a09d692ec8b0da7e16df0ea3c4b4d18"
+    },
+    "external/hpipm/include/hpipm_s_cond_aux.h": {
+      "bytes": 6143,
+      "sha256": "559314fdbd4f99c3c2069925a5e19dc03176c099fa25082646e8c6b7666fa10e"
+    },
+    "external/hpipm/include/hpipm_s_cond_qcqp.h": {
+      "bytes": 6970,
+      "sha256": "958c269a0972c0934c8ec7400f4ce4a79cd791b8bcd2242826563db25c040ba5"
+    },
+    "external/hpipm/include/hpipm_s_core_qp_ipm.h": {
+      "bytes": 5782,
+      "sha256": "9a3667be55d0168f430781a648232b0c6df68a40be4c75b5917b0cb03861a006"
+    },
+    "external/hpipm/include/hpipm_s_core_qp_ipm_aux.h": {
+      "bytes": 4496,
+      "sha256": "e4f0929c8153d303c61cf8b1b7764350c5a3ff6656f989b6d00e05c5983fbe88"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp.h": {
+      "bytes": 8632,
+      "sha256": "c053eeaef7973ff1f85ea194e82c77b93efa22c4d13f00a364fdb487333159dd"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp_dim.h": {
+      "bytes": 5156,
+      "sha256": "48f14d3c94351bf6f0cc7c51d631ccb59650f6d6de41ec74f0453f5e811fe40a"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp_ipm.h": {
+      "bytes": 10565,
+      "sha256": "3a3efd3f19bc99c09f0bbcbe45602f4c6ab44c7db177ae64785bf82f2d1a58c7"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp_res.h": {
+      "bytes": 5625,
+      "sha256": "2d3a0f9663142ccc2311148f49ce70e5bab8540e132c6b81c96795ee6230646b"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp_sol.h": {
+      "bytes": 4828,
+      "sha256": "1fcb96c933330c5bae7fe8c529b9c909286983be4de4294b3145a44abb8ab2a8"
+    },
+    "external/hpipm/include/hpipm_s_dense_qcqp_utils.h": {
+      "bytes": 4526,
+      "sha256": "0a25411e37dba41127137ebcd5e68ff9931926cf00621a6749c462a2ccbb4826"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp.h": {
+      "bytes": 9578,
+      "sha256": "1975a40c28a005f0c6f04f418104119250948e71cb80ca59bb09022e96960331"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_dim.h": {
+      "bytes": 4949,
+      "sha256": "cf63785a185dd68a66029515d0a0d4ede9233eed420ba468ac1159d92af1d7e9"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_ipm.h": {
+      "bytes": 13897,
+      "sha256": "9543fe75bfe6fc0544599aa8b6a509f5d06c399a333bab695dbeb212eceaec0c"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_kkt.h": {
+      "bytes": 4864,
+      "sha256": "d1443a897116255a405f2cf63d7a4a0d1aac30667ac2a782126a476b6d404ec0"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_res.h": {
+      "bytes": 5734,
+      "sha256": "60f11effad8cb2b7e746d2bfb96b1d9f8e5bf10fa49cd37b76302b9916c811f9"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_seed.h": {
+      "bytes": 4983,
+      "sha256": "ec1c4b1bf6fdcad194f4cb4bdef65246c8d962ced7a41f8f963aecaf6cc54789"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_sol.h": {
+      "bytes": 6141,
+      "sha256": "35d1c4c5465b627f0421c83ad261074d90f2f002c43b2f598351df3e7d450ceb"
+    },
+    "external/hpipm/include/hpipm_s_dense_qp_utils.h": {
+      "bytes": 4819,
+      "sha256": "5b907d7554431192da8c639026323f1778e65003e9a4bc3f20e9eb4798677193"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp.h": {
+      "bytes": 13483,
+      "sha256": "b80202fb8e5bcc0ef118389522980a5bb65209da3beab3b676ffdced004b0a3e"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_dim.h": {
+      "bytes": 5978,
+      "sha256": "83350c9fb42ce11b68eb987f6a53f877c2bf8b2a94da74608aa5bd7bbd668886"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_ipm.h": {
+      "bytes": 11123,
+      "sha256": "6ce8c7fb327e05c9420d21bf41c6886a4a7df67e4185f6166e76f7025eb78b5c"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_red.h": {
+      "bytes": 6227,
+      "sha256": "5183caa0068f35238fe70ae8c1d8917524aade93139638eb183e8ac74b537f81"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_res.h": {
+      "bytes": 5942,
+      "sha256": "6f69c7f710bd4d457bc3345ff4e754baa1b6ac6d1f9960c3bdf188008629d9a0"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_sol.h": {
+      "bytes": 5527,
+      "sha256": "5f1b41cde9c735f8c8d5e1262b2f7e889d5681a14fe68c180443155bc04f1bcc"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qcqp_utils.h": {
+      "bytes": 4473,
+      "sha256": "21db0deac015a9c561a198b7e14fe3b4f708a565f5ae7f672765b24a5576e338"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp.h": {
+      "bytes": 13863,
+      "sha256": "e9a28ab14a2b49dad34ad4025dd26ea0ed943d73dba5b12af0f6330959a6b4da"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_dim.h": {
+      "bytes": 6324,
+      "sha256": "f600bcd2f6f11ee5bcf1d6cbfe6fdb1bdfe7c23b3245122222ad15ab87c68077"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_ipm.h": {
+      "bytes": 15314,
+      "sha256": "7cb6d9c84a8b508d714833f3aa44c64bf09e49062260485aa3e298a711be5a35"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_kkt.h": {
+      "bytes": 4405,
+      "sha256": "6eba9293b9e9e915ef6fdb6410055dc0839303db7ce11f1bd0d5243d80db06dd"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_red.h": {
+      "bytes": 6713,
+      "sha256": "58ff2c9015ea1267a47e91f45a7eccfd9e4def0dabd7da536548384aec0525d1"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_res.h": {
+      "bytes": 7478,
+      "sha256": "f43b662ef7ac89c8e767f42bddc53de40efe3630d357a99924bc280675fed8ef"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_seed.h": {
+      "bytes": 5610,
+      "sha256": "67c8074c8a803ceaa7c8c522e642ffc60c7d92585eeed4fe90832d201aaf97c4"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_sol.h": {
+      "bytes": 7597,
+      "sha256": "d948efd7513d01f665bdf8d8c7fae1ea895c99bede12e6713346667924bbc0bf"
+    },
+    "external/hpipm/include/hpipm_s_ocp_qp_utils.h": {
+      "bytes": 4827,
+      "sha256": "69957629b0a1bf8936fe6b4c8374cba0dfdb13e9a0d10e8653031159b7ba059e"
+    },
+    "external/hpipm/include/hpipm_s_part_cond.h": {
+      "bytes": 6632,
+      "sha256": "b5c459b045c32d750da352c76847a6522427556f42b96910971b170d67613fc7"
+    },
+    "external/hpipm/include/hpipm_s_part_cond_qcqp.h": {
+      "bytes": 5830,
+      "sha256": "6f899dd22808eb564d98e17bf0e7aeeda324b405691513bd3f26b9be03545602"
+    },
+    "external/hpipm/include/hpipm_s_sim_erk.h": {
+      "bytes": 6665,
+      "sha256": "efded9dc131787ae3722d53f392014c374f2e9a6a8f7afb578c94a2c0a6e478f"
+    },
+    "external/hpipm/include/hpipm_s_sim_rk.h": {
+      "bytes": 4141,
+      "sha256": "6eeafe603e83ce8674e64cad0730a17db5b72c3f06fd92d2619bc3da870eb8b6"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp.h": {
+      "bytes": 9932,
+      "sha256": "03c836ddfd30e9cade511e04d51049222842b5c6f772734e8715739870abe1c7"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp_dim.h": {
+      "bytes": 5505,
+      "sha256": "77c30e047326fccd55375795a3531a99d32bbc11c9334bec0a861df09215a2de"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp_ipm.h": {
+      "bytes": 11478,
+      "sha256": "09b698f28bd29bd252b4057cf281f85413df2c9bfd481327585d74b0bfc1beac"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp_res.h": {
+      "bytes": 5737,
+      "sha256": "788f51172bcdeb98e755d80b70dcc091d577befeee3a37800aa00cf27f404aca"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp_sol.h": {
+      "bytes": 5000,
+      "sha256": "39f5d3a5bbf218d01bb78f2d6bc5c6e532e3a901520a60ef977957a915fbe509"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qcqp_utils.h": {
+      "bytes": 4710,
+      "sha256": "fe0f154140aa99aa0b31163b377f917d6cb2fece0576478ec1dd4a1b485dd5d8"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp.h": {
+      "bytes": 9873,
+      "sha256": "edfd6f60033f8abdb579c2ecc5786bb8d5ac11f1ec719d8d595dbb529c726cc8"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_dim.h": {
+      "bytes": 5398,
+      "sha256": "c870eb26afc76fc3a51460745084d481ec0f8fd1fbf182b109eda870935ee9da"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_ipm.h": {
+      "bytes": 11619,
+      "sha256": "945ac411174fec7b011706602c7fb4852b9b4f1e88fad6b43ab404c12bad1fbf"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_kkt.h": {
+      "bytes": 4424,
+      "sha256": "0ffa51d1975d60d586bbbf79fb387ecf18ca4f3424a92bb9755dfbe26600b19f"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_res.h": {
+      "bytes": 5904,
+      "sha256": "e472efa1358c15c0a3e605710025975bcd3f7fd22da29e818b46d7bc68ac67ce"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_sol.h": {
+      "bytes": 5190,
+      "sha256": "f95cde0f13ae6d6aba59c4feb7e1da1e87e895042f4bcf72e9eb8e25f1cc9578"
+    },
+    "external/hpipm/include/hpipm_s_tree_ocp_qp_utils.h": {
+      "bytes": 4647,
+      "sha256": "d4c4934e05ea98ed0998cfbe80b57d91f80b66290b53bccc645f5b75a682a445"
+    },
+    "external/hpipm/include/hpipm_scenario_tree.h": {
+      "bytes": 4058,
+      "sha256": "27c00a6065c9cbeee143555401e878bfab9e80f25cd812cdc4bd44c38eb83dfe"
+    },
+    "external/hpipm/include/hpipm_timing.h": {
+      "bytes": 3709,
+      "sha256": "31337a5ec884d40016ef77f0df4a707547ab009f3b64d0543863feaf51c80d42"
+    },
+    "external/hpipm/include/hpipm_tree.h": {
+      "bytes": 3839,
+      "sha256": "48a4bfd29fe90ae56c596baf16cc966c807ceaba205ac4726d34f2e8926ce63c"
+    },
+    "external/hpipm/interfaces/c/d_ocp_qp_solver.c": {
+      "bytes": 9088,
+      "sha256": "fbd0264c58670d778be1f28e868f3dd341a382d12171808770e6ed03c14e32db"
+    },
+    "external/hpipm/interfaces/c/x_ocp_qp_solver.c": {
+      "bytes": 15758,
+      "sha256": "5b3fed2b7487aaf235b85205fa01f87c84ed950c945dc014d67ae8859707713d"
+    },
+    "external/hpipm/ipm_core/d_core_qp_ipm.c": {
+      "bytes": 3794,
+      "sha256": "19ad6038f852aeaccfe23dd43730ab45fef3e50382d9a55e4405a45c31b663b8"
+    },
+    "external/hpipm/ipm_core/d_core_qp_ipm_aux.c": {
+      "bytes": 4141,
+      "sha256": "3bedbc6b1d934389309fc68994cf88f2f88297b33a063c101689221f58a52422"
+    },
+    "external/hpipm/ipm_core/x_core_qp_ipm.c": {
+      "bytes": 5748,
+      "sha256": "cf9b3002b6a8de9b78fc672e6cf0e80699ee8e9ab184a76461e33a68410af229"
+    },
+    "external/hpipm/ipm_core/x_core_qp_ipm_aux.c": {
+      "bytes": 18358,
+      "sha256": "b74de34d86ad0fc7726f59b26b85d9fe5a2452a6d7324deb0ea18875c03268d4"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp.c": {
+      "bytes": 9765,
+      "sha256": "09ef783df1ebe12185433c7438e5550eef30ed19d0a6b44936bbe22bdb0e7fdf"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp_dim.c": {
+      "bytes": 5204,
+      "sha256": "faee41cdd87e276a95d3e2eb3620811d53b29d07f1bb918d8bcf20a62da21ed3"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp_ipm.c": {
+      "bytes": 12322,
+      "sha256": "5364fd0d2ddf3494364edf2db2f4b8117d8f6704ed7b3a7114922a23048a962f"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp_res.c": {
+      "bytes": 5341,
+      "sha256": "ee126386319edcdb0cbfb18cbb412f23b1e51bcdd688aae937c1247a8d87306c"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp_sol.c": {
+      "bytes": 5148,
+      "sha256": "158a6af592a1dd77957848970c396920791bad31c32ae8d4cfe63b540e81082a"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qcqp_utils.c": {
+      "bytes": 4531,
+      "sha256": "6931e4176e4ab50caabc5f9058e16f329b5a74af5ac2bc10820f9d528a501ddb"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp.c": {
+      "bytes": 9523,
+      "sha256": "f1cd1543121dad23ff6a8a163406f6c0ce91ca8ad558316b71d7cd73effafe17"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_dim.c": {
+      "bytes": 4868,
+      "sha256": "953a50acb08da13998a04f1332405e4d92cae038226fc6418854aa93f158007a"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_ipm.c": {
+      "bytes": 11214,
+      "sha256": "2ae5936f2179a80837e426cd4bc26ef6af6fe8dbb56d5483c0add55faeccec00"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_kkt.c": {
+      "bytes": 6243,
+      "sha256": "d72f91b186ba7a73d523f318c43bb7b72f06b72002a86b036c3ad8bba2eca55f"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_red.c": {
+      "bytes": 5863,
+      "sha256": "3226de3ff8412809793a7f32df7fbcaa02f650fbf55fac07b7e43f76ead5b0d2"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_res.c": {
+      "bytes": 6197,
+      "sha256": "82ca656b7291ae18d5385fd10b30ee122871b7b97e7a9ea17a0abec6c5217ffb"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_seed.c": {
+      "bytes": 5742,
+      "sha256": "f00aa741379059bcba38c11292a7085c4ae9e29675112631d78c766e1fbbe9e0"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_sol.c": {
+      "bytes": 6087,
+      "sha256": "b01c6609f69a49cbb070f8f6316a9a48575604d003526006eee7bbbbdd534f7c"
+    },
+    "external/hpipm/ocp_qp/d_ocp_qp_utils.c": {
+      "bytes": 4784,
+      "sha256": "9c554480fc9c752c39847395d544b79a4dda5ae7ba9ba5cfcfe55854e9e2dce0"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp.c": {
+      "bytes": 52045,
+      "sha256": "b84305aefc94d814afeb9ae09b2a7c4feb6baf8ff12e83f5415b61585682f305"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp_dim.c": {
+      "bytes": 10585,
+      "sha256": "74f4a52b02564c12b2cf299857eee56805125c3300d5a663a11abb44899e4e35"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp_ipm.c": {
+      "bytes": 52878,
+      "sha256": "744f25ecddef5489cdce5b0d588300a8219f957ebdef086139e03bab9ccbd480"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp_res.c": {
+      "bytes": 18809,
+      "sha256": "8717d08dfadb79abb960cb282a43b76d1f6ac763da2994f24231cd1a7381dd83"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp_sol.c": {
+      "bytes": 12813,
+      "sha256": "6352a527b7c293f072c19c62c2bbd071ce74971e17a7a459f168b3976a2a14e6"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qcqp_utils.c": {
+      "bytes": 44015,
+      "sha256": "934e41705b1ecc5641fc1d58eea9f4990c137a8b52cdfc8aff7b29302e22fcba"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp.c": {
+      "bytes": 53725,
+      "sha256": "2b7c669af127d3d46c753b5a7e46308b018665db5b754d499c1d9ac3d77f06ff"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_dim.c": {
+      "bytes": 11382,
+      "sha256": "86c7d5d11b92434212143a57285112f7660780f554add5f0b7c6d4a2e668b437"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_ipm.c": {
+      "bytes": 89233,
+      "sha256": "69c7c7c4215b83549256b0b27a306a7fc1a3d299fb97a01b67eaf5ac1a96bb0f"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_kkt.c": {
+      "bytes": 63589,
+      "sha256": "34b0acb5221b1d493c79f85fa5e9b116c8c188378bb306c27335dfe25afdcbb2"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_red.c": {
+      "bytes": 38803,
+      "sha256": "82317b7e36d3445f0053bbb33c8e9a773ce3333b545042f60b58196c9e1c08b7"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_res.c": {
+      "bytes": 28802,
+      "sha256": "59dd0db886b8934f446e94960394f1f8300758d4ce174ed466ea9c249b429bf8"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_seed.c": {
+      "bytes": 12834,
+      "sha256": "8ed308290462c6242ef66e15b977f3f0630cbf85bc51a9f9b4e5fcb4332e3b19"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_sol.c": {
+      "bytes": 21094,
+      "sha256": "63fba8a8291fc44fe21723e0168e750b2fd2c02602aac27f72a5b26b18a0520b"
+    },
+    "external/hpipm/ocp_qp/x_ocp_qp_utils.c": {
+      "bytes": 47071,
+      "sha256": "78acea3cf7067ccd3d8809c43623a14a5fe7b08a9bd0b1bfaf981f7c8e657191"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp.c": {
+      "bytes": 7924,
+      "sha256": "71f6381ac441ee4352087e32c8e8b7666f85c6fa2452257adee4ff10ecc7631a"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_dim.c": {
+      "bytes": 5202,
+      "sha256": "06c84cf745423c15ce51e90988248239fbba86f0a4d836bb7599b1588164adde"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_ipm.c": {
+      "bytes": 13397,
+      "sha256": "39ff2f74d0bfe6f2c6ea9844632e13b841bafbee50301520c97c0027be145118"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_res.c": {
+      "bytes": 5551,
+      "sha256": "95a9de23f69be2f06decabe7f206c4d2ee063bdea736a5391d1fa2599a3d5afc"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_sol.c": {
+      "bytes": 4860,
+      "sha256": "c95d1d29dabe8cf7938e49beb9b95641889168fce62c38ddc6aa3b40b920f301"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_utils.c": {
+      "bytes": 4706,
+      "sha256": "d2119c3954bce2f9e83ab330af1f494d5a94c8695dfcfb88fcb92965ab684aef"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp.c": {
+      "bytes": 7833,
+      "sha256": "d2671b55b4a7dada600dd6c3b3617a3dd42bd8c4d3f95433e07bf76cbfab681f"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_dim.c": {
+      "bytes": 4480,
+      "sha256": "c108718494a940b02ba0fad47ff8689f0b2c1061254a7d4ec9f2dbe9ff88447c"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_ipm.c": {
+      "bytes": 9498,
+      "sha256": "f426de56c5c8ce9c060d6619772c9cd57f0bdbd158f6bc8fccde58aa0940b175"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_kkt.c": {
+      "bytes": 6219,
+      "sha256": "533bd8e26c34198c8e507c22a7ec4c1ee026e0c74e3604ceb5b9aeca194ba6d3"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_res.c": {
+      "bytes": 5093,
+      "sha256": "c595ee527eb1b00f6a916a0ed8e4dfe4e3e1ac338239c5cc6188324bd4e6d4e4"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_sol.c": {
+      "bytes": 4789,
+      "sha256": "a9607fd5143b62f91512eab4989da3ac904cb886114ee05916a81dec18f09510"
+    },
+    "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_utils.c": {
+      "bytes": 4588,
+      "sha256": "421ff625570345a25aa1749d5848edcf2b83609c0f524cef6021259262e41922"
+    },
+    "external/hpipm/tree_ocp_qp/scenario_tree.c": {
+      "bytes": 5690,
+      "sha256": "2a06ef6a69ebf0ab6508d65a739e8949ccf3afc83d08dbd5c2361224d242dd52"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp.c": {
+      "bytes": 35245,
+      "sha256": "fadada56e12f89a9843004412ea1f682b532a9dc1e48f72c1f7ee00bc9a9b27c"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp_dim.c": {
+      "bytes": 8612,
+      "sha256": "28945ef14fbac70376b08e88009fd98f3ff39db724674de34b2e3acd72deb4a5"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp_ipm.c": {
+      "bytes": 49528,
+      "sha256": "254dc16b9f44b3de721c4985c5909b964221fe1fd840a86e87228b304a94ef07"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp_res.c": {
+      "bytes": 18630,
+      "sha256": "cfffa7b611495c4fee43b407eaf8a8b48247d81ded255c96bd3d98975916839c"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp_sol.c": {
+      "bytes": 10363,
+      "sha256": "dfcdf46e747230dd034d0b0f7faaf02d8a285f922b57b36c7c4ab87c3492e48e"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qcqp_utils.c": {
+      "bytes": 10035,
+      "sha256": "aa53f70ca5e84220f28d9247d9c9ab0312f62b1d4b64a39a817d739789a069e4"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp.c": {
+      "bytes": 36188,
+      "sha256": "733fcae0f3249cf20a3510871494a3de094a33273dc4dd4aaed245a8ca39ef49"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_dim.c": {
+      "bytes": 7796,
+      "sha256": "43b67b914096697b6fa1a3195a26e3982d5100697574d55d8c3f334807662c77"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_ipm.c": {
+      "bytes": 78019,
+      "sha256": "c01b244c586fa8d4ffa9c62b8ce449c97595ebb23bb3dde7b0be3e22edd0264e"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_kkt.c": {
+      "bytes": 31127,
+      "sha256": "56f8d44e44fed410beefbde4800df4900f161bb437780cf41b516357b183c51c"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_res.c": {
+      "bytes": 22042,
+      "sha256": "4c284af2163512f6ff3dd0baa817540b99154e1284ba2ba3fa043696ed895225"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_sol.c": {
+      "bytes": 11266,
+      "sha256": "a096c482da1fd15b462fab0706edf8daad0431b4f4b42a78ca8ad43f9c8094d1"
+    },
+    "external/hpipm/tree_ocp_qp/x_tree_ocp_qp_utils.c": {
+      "bytes": 9374,
+      "sha256": "ffa2dd08fc0ff1bb80c69e446fd66f2ddd4c8e998ab3fb894c00a9a08c8aa4c7"
+    },
+    "interfaces/acados_c/condensing_interface.c": {
+      "bytes": 4320,
+      "sha256": "f44c233ec976855235707b53ebda5b3e6454258df568bf7f5e8546147a2c7349"
+    },
+    "interfaces/acados_c/condensing_interface.h": {
+      "bytes": 2777,
+      "sha256": "d32c5ca52726f4c557a1874681394cc278b896cf4acf74d98a01ed9e43369eb2"
+    },
+    "interfaces/acados_c/dense_qp_interface.c": {
+      "bytes": 10444,
+      "sha256": "4743d5eb260595a62f1c19de2e1cba67cd4d169b7247a4c0bb53b2f0c86678ad"
+    },
+    "interfaces/acados_c/dense_qp_interface.h": {
+      "bytes": 3320,
+      "sha256": "b5e18b7dd68ecc3c8c050dcaea954e5220a8441ea6c5ad9baf3943edd65e6b52"
+    },
+    "interfaces/acados_c/external_function_interface.c": {
+      "bytes": 6828,
+      "sha256": "8c2096cb8703e8ecfdd6df6d8c9923c4b76e9cad3344ad243d64cd15605a1af2"
+    },
+    "interfaces/acados_c/external_function_interface.h": {
+      "bytes": 4005,
+      "sha256": "d362147b5e8b2922ced0da9d552e625188229d62a155edb52e593c02d3622648"
+    },
+    "interfaces/acados_c/ocp_nlp_interface.c": {
+      "bytes": 78967,
+      "sha256": "a25d0ba10a9cf9179aed40275254ae784d9d7f07651a5ca5efcb7c9511ae6f3c"
+    },
+    "interfaces/acados_c/ocp_nlp_interface.h": {
+      "bytes": 16895,
+      "sha256": "06f838871cdd2fde8f6653186f0c474cf857989cab032b177d20e69650b44246"
+    },
+    "interfaces/acados_c/ocp_qp_interface.c": {
+      "bytes": 19168,
+      "sha256": "f1c320ad5effc922f9cef86e5f4567894d9452f7783c21f623a4770a4b3178cd"
+    },
+    "interfaces/acados_c/ocp_qp_interface.h": {
+      "bytes": 8743,
+      "sha256": "e96cf5074dc3e85fe4bf901283132bc468395a14442338b10ed0b9da8c4ac624"
+    },
+    "interfaces/acados_c/sim_interface.c": {
+      "bytes": 10428,
+      "sha256": "9a9204bf3131679022304825290e0d4b14290519b3438b4e57bc42d213c8f1cd"
+    },
+    "interfaces/acados_c/sim_interface.h": {
+      "bytes": 4304,
+      "sha256": "8deff86a4d966575157254a71e465a67debcf182b9cf983105f9c9c878175ca0"
+    }
+  },
+  "format": 1,
+  "maximum_bytes": 15000000,
+  "precision": "double",
+  "sources": {
+    "ACADOS": [
+      "acados/dense_qp/dense_qp_common.c",
+      "acados/dense_qp/dense_qp_hpipm.c",
+      "acados/ocp_nlp/ocp_nlp_common.c",
+      "acados/ocp_nlp/ocp_nlp_constraints_bgh.c",
+      "acados/ocp_nlp/ocp_nlp_constraints_bgp.c",
+      "acados/ocp_nlp/ocp_nlp_constraints_common.c",
+      "acados/ocp_nlp/ocp_nlp_cost_common.c",
+      "acados/ocp_nlp/ocp_nlp_cost_conl.c",
+      "acados/ocp_nlp/ocp_nlp_cost_external.c",
+      "acados/ocp_nlp/ocp_nlp_cost_ls.c",
+      "acados/ocp_nlp/ocp_nlp_cost_nls.c",
+      "acados/ocp_nlp/ocp_nlp_ddp.c",
+      "acados/ocp_nlp/ocp_nlp_dynamics_common.c",
+      "acados/ocp_nlp/ocp_nlp_dynamics_cont.c",
+      "acados/ocp_nlp/ocp_nlp_dynamics_disc.c",
+      "acados/ocp_nlp/ocp_nlp_globalization_common.c",
+      "acados/ocp_nlp/ocp_nlp_globalization_fixed_step.c",
+      "acados/ocp_nlp/ocp_nlp_globalization_funnel.c",
+      "acados/ocp_nlp/ocp_nlp_globalization_merit_backtracking.c",
+      "acados/ocp_nlp/ocp_nlp_qpscaling.c",
+      "acados/ocp_nlp/ocp_nlp_reg_common.c",
+      "acados/ocp_nlp/ocp_nlp_reg_convexify.c",
+      "acados/ocp_nlp/ocp_nlp_reg_glm.c",
+      "acados/ocp_nlp/ocp_nlp_reg_mirror.c",
+      "acados/ocp_nlp/ocp_nlp_reg_noreg.c",
+      "acados/ocp_nlp/ocp_nlp_reg_project.c",
+      "acados/ocp_nlp/ocp_nlp_reg_project_reduc_hess.c",
+      "acados/ocp_nlp/ocp_nlp_sqp.c",
+      "acados/ocp_nlp/ocp_nlp_sqp_rti.c",
+      "acados/ocp_nlp/ocp_nlp_sqp_with_feasible_qp.c",
+      "acados/ocp_qp/ocp_qp_common.c",
+      "acados/ocp_qp/ocp_qp_common_frontend.c",
+      "acados/ocp_qp/ocp_qp_full_condensing.c",
+      "acados/ocp_qp/ocp_qp_hpipm.c",
+      "acados/ocp_qp/ocp_qp_partial_condensing.c",
+      "acados/ocp_qp/ocp_qp_xcond_solver.c",
+      "acados/sim/sim_collocation_utils.c",
+      "acados/sim/sim_common.c",
+      "acados/sim/sim_erk_integrator.c",
+      "acados/sim/sim_gnsf.c",
+      "acados/sim/sim_irk_integrator.c",
+      "acados/sim/sim_lifted_irk_integrator.c",
+      "acados/utils/external_function_generic.c",
+      "acados/utils/math.c",
+      "acados/utils/mem.c",
+      "acados/utils/print.c",
+      "acados/utils/timing.c",
+      "interfaces/acados_c/condensing_interface.c",
+      "interfaces/acados_c/dense_qp_interface.c",
+      "interfaces/acados_c/external_function_interface.c",
+      "interfaces/acados_c/ocp_nlp_interface.c",
+      "interfaces/acados_c/ocp_qp_interface.c",
+      "interfaces/acados_c/sim_interface.c"
+    ],
+    "BLASFEO_ARMV8A_APPLE_M1": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/armv8a/kernel_d_aux_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_4x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_8x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemv_4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dger_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetr_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/armv8a/kernel_dpack_lib4.S",
+      "external/blasfeo/kernel/generic/kernel_align_generic.c",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c"
+    ],
+    "BLASFEO_ARMV8A_ARM_CORTEX_A53": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/armv8a/kernel_d_aux_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_12x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_4x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_8x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemv_4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dger_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetr_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/armv8a/kernel_dpack_lib4.S",
+      "external/blasfeo/kernel/generic/kernel_align_generic.c",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c"
+    ],
+    "BLASFEO_ARMV8A_ARM_CORTEX_A57": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/armv8a/kernel_d_aux_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_4x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemm_8x4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgemv_4_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dger_lib4.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetr_lib.S",
+      "external/blasfeo/kernel/armv8a/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/armv8a/kernel_dpack_lib4.S",
+      "external/blasfeo/kernel/generic/kernel_align_generic.c",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c"
+    ],
+    "BLASFEO_GENERIC": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/generic/kernel_align_generic.c",
+      "external/blasfeo/kernel/generic/kernel_d_aux_lib.c",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c"
+    ],
+    "BLASFEO_X64_INTEL_CORE": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/generic/kernel_d_aux_lib.c",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_4x4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c",
+      "external/blasfeo/kernel/sse3/kernel_align_x64.S",
+      "external/blasfeo/kernel/sse3/kernel_dgemm_4x4_lib4.S",
+      "external/blasfeo/kernel/sse3/kernel_dgemv_4_lib4.S"
+    ],
+    "BLASFEO_X64_INTEL_HASWELL": [
+      "external/blasfeo/auxiliary/blasfeo_processor_features.c",
+      "external/blasfeo/auxiliary/blasfeo_stdlib.c",
+      "external/blasfeo/auxiliary/d_aux_common.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep.c",
+      "external/blasfeo/auxiliary/d_aux_ext_dep_common.c",
+      "external/blasfeo/auxiliary/d_aux_lib4.c",
+      "external/blasfeo/auxiliary/d_aux_ref.c",
+      "external/blasfeo/auxiliary/i_aux_ext_dep_lib.c",
+      "external/blasfeo/auxiliary/memory.c",
+      "external/blasfeo/auxiliary/timing.c",
+      "external/blasfeo/auxiliary/v_aux_ext_dep_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas1_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_diag_lib.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas2_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_diag_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_blas3_lib4.c",
+      "external/blasfeo/blasfeo_hp_pm/d_lapack_lib4.c",
+      "external/blasfeo/blasfeo_ref/d_blas1_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas2_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_diag_ref.c",
+      "external/blasfeo/blasfeo_ref/d_blas3_ref.c",
+      "external/blasfeo/blasfeo_ref/d_lapack_ref.c",
+      "external/blasfeo/kernel/avx/kernel_d_aux_lib.S",
+      "external/blasfeo/kernel/avx/kernel_dgecp_lib4.c",
+      "external/blasfeo/kernel/avx/kernel_dgemm_diag_lib4.c",
+      "external/blasfeo/kernel/avx/kernel_dgeqrf_4_lib4.c",
+      "external/blasfeo/kernel/avx/kernel_dgetr_lib.S",
+      "external/blasfeo/kernel/avx/kernel_dpack_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgebp_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgelqf_4_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemm_12x4_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemm_4x4_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemm_8x4_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemm_8x8_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemv_4_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgemv_8_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dger_lib4.S",
+      "external/blasfeo/kernel/avx2/kernel_dgetr_lib4.c",
+      "external/blasfeo/kernel/avx2/kernel_dgetrf_pivot_lib4.c",
+      "external/blasfeo/kernel/avx2/kernel_dsymv_6_lib4.S",
+      "external/blasfeo/kernel/generic/kernel_daxpy_lib.c",
+      "external/blasfeo/kernel/generic/kernel_ddot_lib.c",
+      "external/blasfeo/kernel/generic/kernel_dgemv_4_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dger_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dpack_buffer_lib4.c",
+      "external/blasfeo/kernel/generic/kernel_dsymv_4_lib4.c",
+      "external/blasfeo/kernel/sse3/kernel_align_x64.S"
+    ],
+    "HPIPM": [
+      "external/hpipm/auxiliary/aux_mem.c",
+      "external/hpipm/auxiliary/aux_string.c",
+      "external/hpipm/auxiliary/timing.c",
+      "external/hpipm/cond/d_cast_qcqp.c",
+      "external/hpipm/cond/d_cond.c",
+      "external/hpipm/cond/d_cond_aux.c",
+      "external/hpipm/cond/d_cond_qcqp.c",
+      "external/hpipm/cond/d_part_cond.c",
+      "external/hpipm/cond/d_part_cond_qcqp.c",
+      "external/hpipm/dense_qp/d_dense_qcqp.c",
+      "external/hpipm/dense_qp/d_dense_qcqp_dim.c",
+      "external/hpipm/dense_qp/d_dense_qcqp_ipm.c",
+      "external/hpipm/dense_qp/d_dense_qcqp_res.c",
+      "external/hpipm/dense_qp/d_dense_qcqp_sol.c",
+      "external/hpipm/dense_qp/d_dense_qcqp_utils.c",
+      "external/hpipm/dense_qp/d_dense_qp.c",
+      "external/hpipm/dense_qp/d_dense_qp_dim.c",
+      "external/hpipm/dense_qp/d_dense_qp_ipm.c",
+      "external/hpipm/dense_qp/d_dense_qp_kkt.c",
+      "external/hpipm/dense_qp/d_dense_qp_res.c",
+      "external/hpipm/dense_qp/d_dense_qp_seed.c",
+      "external/hpipm/dense_qp/d_dense_qp_sol.c",
+      "external/hpipm/dense_qp/d_dense_qp_utils.c",
+      "external/hpipm/interfaces/c/d_ocp_qp_solver.c",
+      "external/hpipm/ipm_core/d_core_qp_ipm.c",
+      "external/hpipm/ipm_core/d_core_qp_ipm_aux.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp_dim.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp_ipm.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp_res.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp_sol.c",
+      "external/hpipm/ocp_qp/d_ocp_qcqp_utils.c",
+      "external/hpipm/ocp_qp/d_ocp_qp.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_dim.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_ipm.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_kkt.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_red.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_res.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_seed.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_sol.c",
+      "external/hpipm/ocp_qp/d_ocp_qp_utils.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_dim.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_ipm.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_res.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_sol.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qcqp_utils.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_dim.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_ipm.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_kkt.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_res.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_sol.c",
+      "external/hpipm/tree_ocp_qp/d_tree_ocp_qp_utils.c",
+      "external/hpipm/tree_ocp_qp/scenario_tree.c"
+    ]
+  },
+  "upstream": {
+    "acados": {
+      "checkout": ".",
+      "commit": "4c23274e49e1304cf3c859d59ea6694ce36305a7",
+      "license": "LICENSE",
+      "prefix": "",
+      "url": "https://github.com/acados/acados"
+    },
+    "blasfeo": {
+      "checkout": "external/blasfeo",
+      "commit": "d6251233923c9b475fe894fb729fb63ab693e301",
+      "license": "LICENSE.txt",
+      "prefix": "external/blasfeo",
+      "url": "https://github.com/giaf/blasfeo"
+    },
+    "hpipm": {
+      "checkout": "external/hpipm",
+      "commit": "e3a56c1caddd7f12d125d84f337b9a9e5c186271",
+      "license": "LICENSE.txt",
+      "prefix": "external/hpipm",
+      "url": "https://github.com/giaf/hpipm"
+    }
+  },
+  "upstream_bytes": 13510490
+}

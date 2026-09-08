@@ -32,7 +32,6 @@
 | 工具 | 用途 |
 |---|---|
 | pybind11 + NumPy（≥ 2.0）头文件 | Python 绑定（`-DBUILD_PYFLORID=ON`） |
-| acados | MPC（`-DBUILD_MPC=ON`） |
 | WLC（ABI 26） | 重新生成 FCI 绑定（`-DLF_ENABLE_WLC=ON`） |
 | Python 3.9+ + CasADi + Pinocchio（带 CasADi 绑定） | 从 URDF 重新生成 traits / MPC 源码 |
 
@@ -40,14 +39,16 @@
 
 ```bash
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
-# 仅 BUILD_MPC=ON 时需要：
-git submodule update --init --recursive 3rdparty/acados
 ```
 
 - `protocol/` → FCI `.wl` schema 与 host/firmware binding profile
 - `3rdparty/astrial`（跨平台串口及原生 USB Bulk 后端）
 - `3rdparty/wirelink`（链路核心、桌面适配器和 host runtime）
-- `3rdparty/acados` — 仅在 `-DBUILD_MPC=ON` 时需要
+
+MPC 使用的 acados、HPIPM、BLASFEO 运行库源码已放入
+[`3rdparty/acados_runtime`](3rdparty/acados_runtime/README.md)，
+含许可证和版本记录约 13.64 MB。启用 `-DBUILD_MPC=ON` 即可直接编译，
+无需额外初始化 acados 子模块、安装 acados 或运行 Python 生成器。
 
 ## 构建与测试
 
@@ -178,7 +179,7 @@ C++ 中以 `s_` 前缀命名的方法绑定为 snake_case 名称（`firmware_per
 ├──────────────────────────────────────────────────────┤
 │  src/                 实现（Arm/ArmImpl/...）          │
 │  protocol/            FCI .wl schema + binding profile│
-│  3rdparty/            astrial（USB 串口）, acados      │
+│  3rdparty/            astrial, wirelink, acados_runtime│
 │  generated/           FCI 绑定 + acados 求解器/traits │
 │  pyflorid/            Python 绑定（pybind11）          │
 └──────────────────────────────────────────────────────┘
@@ -201,7 +202,7 @@ cmake -S . -B build \
     -DBUILD_TESTS=ON       # 单元测试（mock 传输，无需硬件）
     -DBUILD_EXAMPLES=ON    # 示例程序（默认 ON）
     -DBUILD_PYFLORID=ON    # Python 绑定（需 Python + NumPy 开发头文件）
-    -DBUILD_MPC=ON         # acados MPC（拉取 generated/ + 3rdparty/acados）
+    -DBUILD_MPC=ON         # MPC（使用仓库内的 acados_runtime 源码）
     -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -265,4 +266,5 @@ libflorid 采用 ISC 许可证。
 
 - `protocol/` → FCI Wirelink schema 与 binding profile
 - `3rdparty/astrial`（USB 串口；附带 asio、tl-expected、readerwriterqueue）
-- `3rdparty/acados`（MPC，仅在 `-DBUILD_MPC=ON` 时）
+- [`3rdparty/acados_runtime`](3rdparty/acados_runtime/README.md)（acados、HPIPM、
+  BLASFEO；BSD-2-Clause，仅在 `-DBUILD_MPC=ON` 时编译）

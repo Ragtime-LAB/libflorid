@@ -42,13 +42,19 @@ available when using the solver directly.
 ## Build and offline checks
 
 ```sh
-git submodule update --init 3rdparty/acados
-git -C 3rdparty/acados submodule update --init external/blasfeo external/hpipm
 cmake -S . -B build/mpc -DBUILD_MPC=ON -DBUILD_TESTS=ON \
-  -DBUILD_SHARED_LIBS=OFF -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC
+  -DCMAKE_BUILD_TYPE=Release
 cmake --build build/mpc --parallel
 ctest --test-dir build/mpc --output-on-failure
 ```
+
+The acados/HPIPM/BLASFEO C runtime is checked in under
+`3rdparty/acados_runtime/` (approximately 13.64 MB). MPC needs no additional
+submodules or code generation. The default `BLASFEO_TARGET=GENERIC` is portable;
+an optimized backend can be chosen for the deployment CPU. See the
+[runtime README](../3rdparty/acados_runtime/README.md) for supported targets,
+version pins, licenses and the offline size/integrity check. The runtime libraries
+are always static/PIC, including when libflorid itself is built shared.
 
 The MPC tests cover solver lifetime, SDK/model consistency, stationary holding,
 position tracking with an ideal joint-position servo, all prediction-stage
@@ -67,17 +73,22 @@ python3 scripts/urdf2mpc.py --wrappers-only --outdir generated
 
 To regenerate the model, cost and gravity functions too, use the original
 `Ragtime_Willow_description.urdf`, CasADi, Pinocchio with CasADi bindings, and
-`acados_template` from the pinned acados submodule:
+`acados_template` from a separate acados checkout matching the runtime pin:
 
 ```sh
-export ACADOS_SOURCE_DIR="$PWD/3rdparty/acados"
+git clone --filter=blob:none --no-checkout https://github.com/acados/acados /path/to/acados
+git -C /path/to/acados checkout 4c23274e49e1304cf3c859d59ea6694ce36305a7
+export ACADOS_SOURCE_DIR="/path/to/acados"
 export PYTHONPATH="$ACADOS_SOURCE_DIR/interfaces/acados_template"
 python3 scripts/urdf2mpc.py --urdf /path/to/Ragtime_Willow_description.urdf \
   --outdir generated
 ```
 
 This invokes CasADi code generation and the local templates; it does not require
-Tera. Commit the generated code with its generator changes. Changing a model or
+Tera or acados's nested submodules. This maintainer checkout is only needed for
+full model regeneration and is not part of the normal CMake build. Existing local
+`3rdparty/acados/` checkouts may be kept for this purpose; that path is now ignored.
+Commit the generated code with its generator changes. Changing a model or
 the cost expressions requires full regeneration; `--wrappers-only` cannot change
 those expressions. CasADi/Pinocchio version changes may change generated C text,
 so retain a consistent generation environment when updating snapshots.

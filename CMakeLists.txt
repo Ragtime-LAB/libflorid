@@ -33,10 +33,7 @@ set(WIRELINK_ASIO_INCLUDE_DIR
     CACHE PATH "" FORCE)
 
 if(BUILD_MPC)
-    set(ACADOS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/acados" CACHE PATH "acados source directory")
-    set(ACADOS_INSTALL_DIR "${ACADOS_SOURCE_DIR}" CACHE PATH "acados install directory")
-    add_subdirectory(3rdparty/acados ${CMAKE_BINARY_DIR}/acados
-        EXCLUDE_FROM_ALL)
+    add_subdirectory(3rdparty/acados_runtime EXCLUDE_FROM_ALL)
 endif()
 
 set(FCI_PROTOCOL_WIRELINK_ROLE host CACHE STRING

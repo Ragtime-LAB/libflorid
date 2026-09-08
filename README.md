@@ -44,7 +44,6 @@ Optional build-time tools:
 | Tool | Purpose |
 |---|---|
 | pybind11 + NumPy (≥ 2.0) headers | Python bindings (`-DBUILD_PYFLORID=ON`) |
-| acados | MPC (`-DBUILD_MPC=ON`) |
 | WLC (ABI 26) | Regenerating FCI bindings (`-DLF_ENABLE_WLC=ON`) |
 | Python 3.9+ + CasADi + Pinocchio (with CasADi bindings) | Regenerating traits / MPC sources from URDF |
 
@@ -52,14 +51,16 @@ Optional build-time tools:
 
 ```bash
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
-# Only when configuring with BUILD_MPC=ON:
-git submodule update --init --recursive 3rdparty/acados
 ```
 
 - `protocol/` → FCI `.wl` schemas and host/firmware binding profiles
 - `3rdparty/astrial` (cross-platform serial and native USB Bulk backend)
 - `3rdparty/wirelink` (link core, desktop adapters, and host runtime)
-- `3rdparty/acados` — only needed when `-DBUILD_MPC=ON`
+
+MPC's acados/HPIPM/BLASFEO runtime is checked in under
+[`3rdparty/acados_runtime`](3rdparty/acados_runtime/README.md), approximately
+13.64 MB with licenses and metadata. `-DBUILD_MPC=ON` uses this source directly;
+no additional submodule, installed acados or Python generator is required.
 
 ## Build & Test
 
@@ -236,7 +237,7 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 ├──────────────────────────────────────────────────────┤
 │  src/                implementation (Arm/ArmImpl/...)  │
 │  protocol/           FCI .wl schemas + binding profiles│
-│  3rdparty/           astrial (USB Bulk/serial), acados│
+│  3rdparty/           astrial, wirelink, acados_runtime│
 │  generated/          FCI bindings + acados/traits    │
 │  pyflorid/           Python bindings (pybind11)       │
 └──────────────────────────────────────────────────────┘
@@ -259,7 +260,7 @@ cmake -S . -B build \
     -DBUILD_TESTS=ON       # Unit tests (mock transport; no hardware needed)
     -DBUILD_EXAMPLES=ON    # Example programs (default ON)
     -DBUILD_PYFLORID=ON    # Python bindings via pybind11 (needs Python + NumPy dev)
-    -DBUILD_MPC=ON         # MPC via acados (pulls in generated/ + 3rdparty/acados)
+    -DBUILD_MPC=ON         # MPC via the checked-in acados_runtime
     -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -324,4 +325,5 @@ Third-party code:
 
 - `protocol/` → FCI Wirelink schemas and binding profiles
 - `3rdparty/astrial` (USB serial; vendors asio, tl-expected, readerwriterqueue)
-- `3rdparty/acados` (MPC, only when `-DBUILD_MPC=ON`)
+- [`3rdparty/acados_runtime`](3rdparty/acados_runtime/README.md) (acados, HPIPM,
+  BLASFEO; BSD-2-Clause, compiled only when `-DBUILD_MPC=ON`)

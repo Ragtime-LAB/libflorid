@@ -54,12 +54,8 @@ if(BUILD_MPC)
     target_include_directories(florid PRIVATE
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/willow_mpc_model"
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/willow_mpc_cost"
-        "${ACADOS_SOURCE_DIR}/include"
-        "${ACADOS_SOURCE_DIR}/interfaces"
-        "${ACADOS_SOURCE_DIR}/external/blasfeo/include"
-        "${ACADOS_SOURCE_DIR}/external/hpipm/include"
     )
-    target_link_libraries(florid PUBLIC acados)
+    target_link_libraries(florid PUBLIC florid::acados)
 
     target_sources(florid PRIVATE
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/acados_solver_willow_mpc.c"

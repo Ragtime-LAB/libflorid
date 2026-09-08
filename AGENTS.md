@@ -15,13 +15,14 @@ cd build && ctest --output-on-failure   # single test, no hardware
 | `BUILD_TESTS` | OFF | Single test via CTest, no hardware needed |
 | `BUILD_EXAMPLES` | ON | 9 executables (10 with `BUILD_MPC`) |
 | `BUILD_PYFLORID` | OFF | Needs pybind11 + NumPy |
-| `BUILD_MPC` | OFF | Enables acados solver (submodule with nested submodules) |
+| `BUILD_MPC` | OFF | Enables the checked-in acados C runtime; no extra submodules |
 | `LF_ENABLE_WLC` | OFF | Compile checked-in FCI bindings; ON generates with matching host WLC |
 
 `pip install .` builds the `pyflorid` wheel (scikit-build-core sets
 `-DBUILD_PYFLORID=ON` automatically via `pyproject.toml` at the repo root).
 Python CI/CD lives in `.github/workflows/` (`wheels.yml`, `publish-pypi.yml`),
-built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
+built with cibuildwheel; MPC stays OFF for bindings. The source distribution
+includes the vendored runtime.
 
 ## Submodules
 
@@ -30,7 +31,6 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 |---|---|
 | `protocol/` | FCI `.wl` schemas, WLC profiles, and generated Wirelink component targets |
 | `3rdparty/astrial/` | Cross-platform serial library (ASIO, io_uring on Linux) |
-| `3rdparty/acados/` | MPC solver; needs `--recurse-submodules` (blasfeo, hpipm nested) |
 
 ## Key targets
 
@@ -87,6 +87,14 @@ MPC C/C++ adapter templates live in `scripts/templates/`. Run
 Changing model/cost expressions requires full URDF generation, including the
 gravity reference function. Host CI compares regenerated adapters and runs MPC
 under ASan/UBSan with GENERIC BLASFEO/HPIPM.
+
+The MPC C runtime is vendored in `3rdparty/acados_runtime/` with original upstream
+bytes and BSD licenses. Verify with `python3 scripts/vendor_acados.py --check`;
+all files plus metadata must stay within 15,000,000 bytes. Update using the pinned
+Git objects via `--source /path/to/acados`, then rerun MPC and MPC-OFF checks.
+The default BLASFEO backend is GENERIC; optional optimized targets are documented
+in the runtime README. `3rdparty/acados/` is now an ignored maintainer checkout,
+not a submodule or build input. Leave any existing local changes there intact.
 
 FCI bindings are checked in under `generated/wirelink/` and verified by CMake
 without WLC. For schema/profile updates, configure with `-DLF_ENABLE_WLC=ON`

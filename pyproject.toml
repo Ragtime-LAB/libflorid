@@ -46,6 +46,7 @@ sdist.include = [
   "protocol/**",
   "3rdparty/astrial/**",
   "3rdparty/wirelink/**",
+  "3rdparty/acados_runtime/**",
   "generated/**",
   "pyflorid/**",
 ]
