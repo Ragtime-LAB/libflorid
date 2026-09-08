@@ -1,0 +1,2 @@
+# Preserve WLC's exact output, including its trailing blank line.
+generated/wirelink/** text eol=lf whitespace=-blank-at-eof

@@ -22,14 +22,14 @@ dependencies):
 pip install .
 ```
 
-Source builds also need a matching WLC (ABI 26) on PATH, or host Rust/Cargo
-supporting edition 2024. Wirelink's CMake fallback fetches a SHA-256-verified
-pinned source commit and builds WLC with locked dependencies; it does not use an
-older same-version release binary. Rust and WLC are build tools, not wheel
-runtime dependencies. For offline builds, supply
-`CMAKE_ARGS="-DWLC_EXECUTABLE=/absolute/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF"`.
-The sdist includes Wirelink and the FCI/Astrial sources, but not downloaded Cargo
-dependencies or a WLC binary. No source build is claimed to be offline by default.
+Source builds use the checked-in C/H bindings by default (`LF_ENABLE_WLC=OFF`)
+and do not find, download, or execute WLC/Rust. The sdist includes these bindings,
+their verification manifest, Wirelink, and the FCI/Astrial sources. CMake rejects
+stale or modified bindings. Native and Python build dependencies are still needed.
+To regenerate bindings while developing the schema, set
+`CMAKE_ARGS="-DLF_ENABLE_WLC=ON -DWLC_EXECUTABLE=/absolute/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF"`
+with the matching ABI 26 compiler. See the root README for the
+`lf_update_wirelink` and `lf_check_wirelink` development targets.
 
 Native build files are retained in `build/python/{wheel_tag}` (one directory per
 Python ABI/platform); they are not included in the sdist or wheel. This also

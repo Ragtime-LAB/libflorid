@@ -30,8 +30,8 @@
 | Requirement | Minimum |
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
-| CMake | 3.20+ |
-| Wirelink + `wlc` | Codegen ABI 26-compatible pair (unreleased dev) |
+| CMake | 3.21+ |
+| Wirelink | Bundled source and checked-in ABI 26 bindings |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
@@ -41,6 +41,7 @@ Optional build-time tools:
 |---|---|
 | pybind11 + NumPy (≥ 2.0) headers | Python bindings (`-DBUILD_PYFLORID=ON`) |
 | acados | MPC (`-DBUILD_MPC=ON`) |
+| WLC (ABI 26) | Regenerating FCI bindings (`-DLF_ENABLE_WLC=ON`) |
 | Python 3.9+ + CasADi + Pinocchio (with CasADi bindings) | Regenerating traits / MPC sources from URDF |
 
 ## Submodules
@@ -59,26 +60,46 @@ git submodule update --init --recursive 3rdparty/acados
 ## Build & Test
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON \
-  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 cmake --build build
 ctest --test-dir build
 ```
 
-Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_MPC=OFF`.
+Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_MPC=OFF`,
+`LF_ENABLE_WLC=OFF`.
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
 development. This dev pins Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`
-and requires WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8` (codegen ABI 26).
-Install the compiler separately using the [Wirelink setup guide](3rdparty/wirelink/docs/installation.md);
-no nested WLC worktree or matching public release asset is assumed.
-Alternatively omit both WLC flags: with host Rust/Cargo (edition 2024 support),
-CMake fetches the SHA-256-verified pinned source and builds the compiler locally.
-Source and Python builds require CMake 3.21 or newer; wheels do not require Rust at runtime.
-The FCI schemas retain their explicit operation/status field mappings; this is
-not a migration to managed RPC wire payloads. Rebuild both consumers with the
-paired compiler. Generated FCI sources stay in the build tree.
+and ships its generated arm codec and host runtime in `generated/wirelink/`.
+Normal C++ and Python source builds compile these files without finding,
+downloading, or running WLC/Rust. CMake validates the snapshot's compiler ABI,
+schema/profile hashes and output hashes; stale or modified snapshots fail early.
+
+To change the FCI schema/profile or develop against another Wirelink version,
+enable WLC explicitly. The bundled version pairs with WLC
+`c6b6a8fa560a15c45d564aad0afd197b13682de8` (codegen ABI 26):
+
+```bash
+cmake -S . -B build/wlc -DLF_ENABLE_WLC=ON \
+  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+cmake --build build/wlc
+cmake --build build/wlc --target lf_update_wirelink
+cmake --build build/wlc --target lf_check_wirelink
+```
+
+The normal WLC build writes to `build/wlc/generated/wirelink/`; override the root
+with `-DFCI_PROTOCOL_GENERATED_BASE_DIR=/absolute/output/path`. Only the explicit
+`lf_update_wirelink` target updates `generated/wirelink/` in the repository.
+Commit that directory together with the input/submodule changes. The
+`lf_check_wirelink` target compares fresh output with the snapshot without
+changing it, and runs in CI. These two targets require `LF_ENABLE_WLC=ON`.
+
+See the [Wirelink setup guide](3rdparty/wirelink/docs/installation.md) for WLC.
+When WLC is enabled, omitting its path permits the existing pinned-source Cargo
+bootstrap if host Rust/Cargo is available. The FCI schemas retain their explicit
+operation/status field mappings; changing this build option does not change the
+wire protocol.
 
 Endpoint initialization now obtains a fresh identity from `Wirelink::platform`.
 Applications do not choose session IDs. Advanced integrations/tests may override
@@ -94,12 +115,12 @@ RPC v2's client-session echo validation merely by upgrading the dependency.
 The repository manifest declares the product's native USB dependency. From a
 Developer PowerShell, set the vcpkg root and use the checked-in multi-config
 preset; the configure step installs the pinned libusb version into the build
-tree. Supply the separately installed ABI 26 compiler:
+tree. The default build uses the checked-in bindings:
 
 ```powershell
 git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 $env:VCPKG_ROOT = "C:\src\vcpkg"
-cmake --preset windows-msvc-vcpkg -DWLC_EXECUTABLE=C:/tools/wlc.exe -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+cmake --preset windows-msvc-vcpkg
 cmake --build --preset windows-release --parallel
 ctest --preset windows-release
 ```
@@ -212,7 +233,7 @@ The C++ `s_`-prefixed methods are bound to snake_case names (`firmware_period_us
 │  src/                implementation (Arm/ArmImpl/...)  │
 │  protocol/           FCI .wl schemas + binding profiles│
 │  3rdparty/           astrial (USB Bulk/serial), acados│
-│  generated/          acados solver + WillowMPCTraits  │
+│  generated/          FCI bindings + acados/traits    │
 │  pyflorid/           Python bindings (pybind11)       │
 └──────────────────────────────────────────────────────┘
 ```

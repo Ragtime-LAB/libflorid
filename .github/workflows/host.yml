@@ -14,12 +14,16 @@ concurrency:
 
 jobs:
   linux:
-    name: Linux Sanitizer (io_uring ${{ matrix.io_uring }})
+    name: Linux Sanitizer (io_uring ${{ matrix.io_uring }}, WLC ${{ matrix.wlc }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        io_uring: ['ON', 'OFF']
+        include:
+          - io_uring: 'ON'
+            wlc: 'ON'
+          - io_uring: 'OFF'
+            wlc: 'OFF'
     steps:
       - name: Check out libflorid
         uses: actions/checkout@v5
@@ -28,6 +32,7 @@ jobs:
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
       - name: Check out paired ABI 26 compiler
+        if: matrix.wlc == 'ON'
         uses: actions/checkout@v5
         with:
           repository: starwey604/wlc
@@ -38,6 +43,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev liburing-dev clang ninja-build
 
       - name: Build paired compiler
+        if: matrix.wlc == 'ON'
         run: cargo build --release --locked --manifest-path .tools/wlc/Cargo.toml
 
       - name: Configure
@@ -46,6 +52,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
           -DASTRIAL_IO_URING=${{ matrix.io_uring }}
+          -DLF_ENABLE_WLC=${{ matrix.wlc }}
           -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc"
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
           "-DCMAKE_C_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer"
@@ -55,6 +62,10 @@ jobs:
         run: |
           cmake --build build/host-sanitize --parallel 2
           ctest --test-dir build/host-sanitize --output-on-failure
+
+      - name: Check committed bindings against WLC
+        if: matrix.wlc == 'ON'
+        run: cmake --build build/host-sanitize --target lf_check_wirelink
 
   windows:
     name: Windows MSVC (${{ matrix.linkage }})
@@ -79,16 +90,6 @@ jobs:
       - name: Check out required submodules
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
-      - name: Check out paired ABI 26 compiler
-        uses: actions/checkout@v5
-        with:
-          repository: starwey604/wlc
-          ref: c6b6a8fa560a15c45d564aad0afd197b13682de8
-          path: .tools/wlc
-
-      - name: Build paired compiler
-        run: cargo build --release --locked --manifest-path .tools/wlc/Cargo.toml
-
       - name: Set up MSVC command line
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -104,7 +105,7 @@ jobs:
       - name: Configure
         run: >-
           cmake --preset ${{ matrix.configure_preset }}
-          -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc.exe"
+          -DLF_ENABLE_WLC=OFF -DWLC_EXECUTABLE=C:/wlc-must-not-run.exe
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 
       - name: Build and test Release

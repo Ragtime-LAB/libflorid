@@ -16,6 +16,7 @@ cd build && ctest --output-on-failure   # single test, no hardware
 | `BUILD_EXAMPLES` | ON | 9 executables (10 with `BUILD_MPC`) |
 | `BUILD_PYFLORID` | OFF | Needs pybind11 + NumPy |
 | `BUILD_MPC` | OFF | Enables acados solver (submodule with nested submodules) |
+| `LF_ENABLE_WLC` | OFF | Compile checked-in FCI bindings; ON generates with matching host WLC |
 
 `pip install .` builds the `pyflorid` wheel (scikit-build-core sets
 `-DBUILD_PYFLORID=ON` automatically via `pyproject.toml` at the repo root).
@@ -36,7 +37,7 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 | Target | Path | Links |
 |---|---|---|
 | `florid` (lib) | `src/*.cpp` | `fci_protocol` + `astrial` |
-| `fci_protocol::arm` | `protocol/` | Generated ABI-8 host endpoint linked with Wirelink |
+| `fci_protocol::arm` | `generated/wirelink/` by default | ABI-26 host endpoint linked with Wirelink |
 | `astrial` | `3rdparty/astrial/` | Static lib, vendored ASIO |
 | `florid_example_*` | `examples/` | `florid` |
 | `test_transport_pipeline` | `tests/` | `MockTransport`, no hardware |
@@ -81,11 +82,19 @@ built with cibuildwheel; `acados` is excluded (MPC stays OFF for bindings).
 
 Both run offline; generated files are committed.
 
+FCI bindings are checked in under `generated/wirelink/` and verified by CMake
+without WLC. For schema/profile updates, configure with `-DLF_ENABLE_WLC=ON`
+and a matching `WLC_EXECUTABLE`, then build `lf_update_wirelink` to refresh the
+snapshot. Commit the snapshot with the input/submodule changes. Build
+`lf_check_wirelink` to compare fresh WLC output against the checked-in files.
+Normal WLC output stays in the build tree; `FCI_PROTOCOL_GENERATED_BASE_DIR`
+can override its root. The snapshot is the SDK's standard arm/host recipe.
+
 ## Platform notes
 
 - io_uring auto-detected on Linux (kernel >= 5.15 + liburing). Disable with `-DASTRIAL_IO_URING=OFF`.
 - USB enumeration reads `/sys/class/tty` on Linux.
-- No linter, formatter, or CI config.
+- Host CI checks both FCI build modes and snapshot regeneration; wheel CI uses the snapshot.
 - License: ISC.
-- CMake minimum: 3.20.
-- Root `README.md` is intentionally empty.
+- CMake minimum: 3.21.
+- Build and regeneration instructions are in `README.md` and `README_CN.md`.

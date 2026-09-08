@@ -30,13 +30,23 @@ def main():
         "protocol/cmake/FciProtocolWirelink.cmake",
         "3rdparty/astrial/CMakeLists.txt",
         "3rdparty/wirelink/cmake/WirelinkWlcBootstrap.cmake",
+        "cmake/FloridWirelink.cmake",
+        "generated/wirelink/snapshot.txt",
+        "generated/wirelink/codec/fci_arm.c",
+        "generated/wirelink/host/fci_arm_runtime.c",
     ):
         if not (source / required).is_file():
             raise RuntimeError(f"sdist is missing {required}")
     wheel_dir = work / "wheels"
     environment = os.environ.copy()
     environment["CMAKE_BUILD_PARALLEL_LEVEL"] = "2"
-    environment["CMAKE_ARGS"] = f"-DWIRELINK_WLC_CACHE_DIR={work / 'wlc-cache'}"
+    # An invalid explicit compiler also catches accidental WLC resolution on
+    # CI hosts that happen to have Rust or a compatible WLC on PATH.
+    environment["CMAKE_ARGS"] = (
+        "-DLF_ENABLE_WLC=OFF -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF "
+        "-DWLC_EXECUTABLE=/wlc-must-not-run "
+        "-DWIRELINK_WLC_EXECUTABLE=/wlc-must-not-run"
+    )
     subprocess.run(
         [sys.executable, "-m", "pip", "wheel", "--no-deps", str(source),
          "--wheel-dir", str(wheel_dir)],

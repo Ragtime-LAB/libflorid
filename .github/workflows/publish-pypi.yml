@@ -38,10 +38,6 @@ jobs:
           vcpkg install --triplet x64-windows-static-md
           --x-install-root=C:/vcpkg/installed
 
-      - name: Set up host Rust for automatic WLC bootstrap
-        if: runner.os == 'Windows'
-        uses: dtolnay/rust-toolchain@1.96.1
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.0
         env:
@@ -49,7 +45,7 @@ jobs:
             CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
             -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
             -DVCPKG_INSTALLED_DIR=C:/vcpkg/installed
-            -DWIRELINK_WLC_CACHE_DIR=C:/pyflorid-wlc-cache"
+            -DLF_ENABLE_WLC=OFF -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -80,9 +76,6 @@ jobs:
 
       - name: Install sdist consumer tools
         run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev ninja-build
-
-      - name: Set up host Rust for sdist bootstrap
-        uses: dtolnay/rust-toolchain@1.96.1
 
       - name: Build and import from unpacked sdist
         run: python scripts/ci/check-sdist.py dist/*.tar.gz --work-dir build/sdist-consumer

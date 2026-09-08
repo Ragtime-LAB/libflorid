@@ -11,6 +11,7 @@ option(BUILD_TESTS   "Build unit tests" OFF)
 option(BUILD_EXAMPLES "Build SDK examples" ON)
 option(BUILD_PYFLORID "Build Python bindings via pybind11" OFF)
 option(BUILD_MPC      "Enable MPC via acados" OFF)
+option(LF_ENABLE_WLC "Generate FCI bindings with WLC instead of the checked-in snapshot" OFF)
 set(WIRELINK_SOURCE_DIR "" CACHE PATH
     "Optional Wirelink source-tree override used by libflorid")
 set(WLC_EXECUTABLE "" CACHE FILEPATH
@@ -43,7 +44,7 @@ set(FCI_PROTOCOL_WIRELINK_ROLE host CACHE STRING
     "Generate the host-side FCI Wirelink runtime" FORCE)
 set(FCI_PROTOCOL_GENERATED_BASE_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/generated/wirelink" CACHE PATH
-    "Build-tree location for generated FCI Wirelink artifacts" FORCE)
+    "Output root for FCI Wirelink artifacts when LF_ENABLE_WLC is ON")
 if(NOT WIRELINK_SOURCE_DIR STREQUAL "")
     set(FCI_PROTOCOL_WIRELINK_SOURCE_DIR "${WIRELINK_SOURCE_DIR}" CACHE PATH
         "Wirelink source tree used by fci_protocol" FORCE)
@@ -53,8 +54,8 @@ elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wirelink/CMakeLists.txt")
         "Wirelink source tree used by fci_protocol" FORCE)
 endif()
 
-include("${CMAKE_CURRENT_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake")
-fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FloridWirelink.cmake")
+lf_prepare_wirelink()
 # Asio is header-only but its inline types are shared across the final binary.
 # Astrial may select io_uring via asio_standalone; compile the UDP adapter with
 # that exact target too. Mixing epoll/io_uring definitions causes ODR violations

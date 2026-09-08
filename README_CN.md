@@ -19,8 +19,8 @@
 | 要求 | 最低版本 |
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
-| CMake | 3.20+ |
-| Wirelink + `wlc` | 兼容生成 ABI 26 的配对版本（未发布 dev） |
+| CMake | 3.21+ |
+| Wirelink | 随仓库提供源码与 ABI 26 预生成绑定 |
 | 构建系统 | Ninja（推荐）或 Make |
 | 操作系统 | Linux、macOS 或 Windows（Astrial/libusb USB Bulk） |
 
@@ -30,6 +30,7 @@
 |---|---|
 | pybind11 + NumPy（≥ 2.0）头文件 | Python 绑定（`-DBUILD_PYFLORID=ON`） |
 | acados | MPC（`-DBUILD_MPC=ON`） |
+| WLC（ABI 26） | 重新生成 FCI 绑定（`-DLF_ENABLE_WLC=ON`） |
 | Python 3.9+ + CasADi + Pinocchio（带 CasADi 绑定） | 从 URDF 重新生成 traits / MPC 源码 |
 
 ## 子模块
@@ -48,24 +49,40 @@ git submodule update --init --recursive 3rdparty/acados
 ## 构建与测试
 
 ```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON \
-  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
 cmake --build build
 ctest --test-dir build
 ```
 
-默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`。
+默认值：`BUILD_TESTS=OFF`、`BUILD_EXAMPLES=ON`、`BUILD_PYFLORID=OFF`、`BUILD_MPC=OFF`、
+`LF_ENABLE_WLC=OFF`。
 
 默认使用 `3rdparty/wirelink`；联合开发才用 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` 覆盖。
 当前 dev 固定 Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`，
-配对 WLC `c6b6a8fa560a15c45d564aad0afd197b13682de8`（生成 ABI 26）。
-按 [Wirelink 安装篇](3rdparty/wirelink/docs/installation-cn.md) 单独安装编译器，
-不依赖嵌套 WLC worktree，也不假定已有匹配的公开发行包。
-也可以省略两个 WLC 参数：主机装有支持 Rust 2024 edition 的 Rust/Cargo 时，
-CMake 会获取经过 SHA-256 校验的固定源码并构建工具。源码/Python 构建需要
-CMake 3.21 或更新版本；安装好的 wheel 在运行时不依赖 Rust。
-FCI 保留显式 operation/status 字段映射，本轮没有切换托管 RPC 的线上格式。
-两端须用配对编译器重建；FCI host 源码只生成到构建目录，不提交生成物。
+预生成的 arm codec 和 host runtime 位于 `generated/wirelink/`。
+默认 C++ 和 Python 源码构建直接编译这些文件，不查找、下载或执行 WLC/Rust。
+CMake 检查编译器 ABI、schema/profile 摘要及生成文件摘要；快照过期或被修改时明确报错。
+
+修改 FCI schema/profile 或联合开发 Wirelink 时，显式开启 WLC。当前配套工具为
+`c6b6a8fa560a15c45d564aad0afd197b13682de8`（生成 ABI 26）：
+
+```bash
+cmake -S . -B build/wlc -DLF_ENABLE_WLC=ON \
+  -DWLC_EXECUTABLE=/path/to/wlc -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
+cmake --build build/wlc
+cmake --build build/wlc --target lf_update_wirelink
+cmake --build build/wlc --target lf_check_wirelink
+```
+
+普通 WLC 构建输出到 `build/wlc/generated/wirelink/`，可用
+`-DFCI_PROTOCOL_GENERATED_BASE_DIR=/absolute/output/path` 自定义根目录。
+只有显式执行 `lf_update_wirelink` 才更新仓库中的 `generated/wirelink/`；
+请将该目录与输入文件/子模块更新一起提交。`lf_check_wirelink` 比较重新生成的结果与
+仓库快照，不修改快照，CI 也会运行此检查。两个目标都要求 `LF_ENABLE_WLC=ON`。
+
+工具安装见 [Wirelink 安装篇](3rdparty/wirelink/docs/installation-cn.md)。
+开启 WLC 后若省略工具路径，主机具备 Rust/Cargo 时仍可使用已有的固定源码自动构建流程。
+FCI 保留显式 operation/status 字段映射，切换此构建选项不会改变线上协议。
 
 端点初始化默认通过 `Wirelink::platform` 获取新身份，应用不用选择 session ID。
 底层集成或测试可覆盖 `FciWirelinkEndpointConfig::m_session_source`，传入
@@ -159,7 +176,7 @@ C++ 中以 `s_` 前缀命名的方法绑定为 snake_case 名称（`firmware_per
 │  src/                 实现（Arm/ArmImpl/...）          │
 │  protocol/            FCI .wl schema + binding profile│
 │  3rdparty/            astrial（USB 串口）, acados      │
-│  generated/           acados 求解器 + WillowMPCTraits  │
+│  generated/           FCI 绑定 + acados 求解器/traits │
 │  pyflorid/            Python 绑定（pybind11）          │
 └──────────────────────────────────────────────────────┘
 ```
