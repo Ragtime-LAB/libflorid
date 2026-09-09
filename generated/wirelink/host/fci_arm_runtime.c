@@ -171,6 +171,26 @@ fci_arm_runtime_storage_t fci_arm_runtime_default_storage_descriptor(fci_arm_run
 }
 
 static int fci_arm_runtime_roles_valid(const fci_arm_runtime_config_t *config) {
+  if (config->rpc_server_enabled) return WL_ERR_NOT_SUPPORTED;
+  if (config->acquire_control_lease_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->clear_error_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->clear_faults_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->emergency_stop_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->get_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->get_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->get_motor_feedback_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->home_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->motor_register_read_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->motor_register_write_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->motor_set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->motor_store_parameters_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->release_control_lease_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_arm_control_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_arm_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_gripper_control_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   (void)config;
   return WL_OK;
 }

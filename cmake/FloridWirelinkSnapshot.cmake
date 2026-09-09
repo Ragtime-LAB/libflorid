@@ -7,12 +7,13 @@ function(lf_wirelink_snapshot_error reason)
         "lf_update_wirelink and commit generated/wirelink/ with the schema changes.")
 endfunction()
 
-# Fixed SDK recipe: one arm codec, one host profile, runtime name fci_arm.
+# Fixed SDK recipe: one arm codec, shared services + host profile, name fci_arm.
 # Newline normalization permits Git's Windows CRLF checkouts, including schemas
 # in submodules, without requiring a generator merely to verify the snapshot.
 function(lf_wirelink_snapshot_content source_root snapshot_root out_content)
     set(_inputs
         protocol/schema/wirelink/arm/fci_arm.wl
+        protocol/schema/wirelink/arm/services.bind.wl
         protocol/schema/wirelink/arm/host.bind.wl)
     set(_outputs
         codec/fci_arm.c

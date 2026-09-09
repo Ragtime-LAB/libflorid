@@ -15,7 +15,7 @@ extern "C" {
 #endif
 
 #define FCI_ARM_SCHEMA_IDENTITY UINT64_C(0x7B0F695D2A4ABFB3)
-#define FCI_ARM_BINDING_PROFILE_IDENTITY UINT64_C(0x73973E42BF90BF73)
+#define FCI_ARM_BINDING_PROFILE_IDENTITY UINT64_C(0xD194A0C69A5BCE53)
 #define FCI_ARM_BINDING_PROFILE_VERSION 1U
 #define FCI_ARM_IDENTITY_ALGORITHM "fnv1a64-v1"
 
@@ -23,7 +23,7 @@ extern "C" {
 
 /* Generated capabilities, not application overrides. */
 #define FCI_ARM_RUNTIME_HAS_RPC_CLIENT 1
-#define FCI_ARM_RUNTIME_HAS_RPC_SERVER 1
+#define FCI_ARM_RUNTIME_HAS_RPC_SERVER 0
 
 #define FCI_ARM_RPC_REQUEST_FINGERPRINT_ALGORITHM "fnv1a64-canonical-request-v1"
 
@@ -522,8 +522,6 @@ typedef union {
   motor_feedback_t motor_feedback_latest;
   arm_diagnostics_t arm_diagnostics_latest;
   wl_rpc_client_slot_t rpc_client_slot;
-  wl_rpc_server_pending_slot_t rpc_server_pending_slot;
-  wl_rpc_server_cache_slot_t rpc_server_cache_slot;
 } fci_arm_runtime_default_storage_alignment_t;
 
 #if defined(__cplusplus)
@@ -539,9 +537,6 @@ typedef union {
    ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(motor_feedback_t) + (FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
    ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(arm_diagnostics_t) + (FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
    ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_client_slot_t)) + \
-   218U + \
-   ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_server_pending_slot_t)) + \
-   ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_server_cache_slot_t)) + \
    218U)
 
 typedef union {
@@ -549,25 +544,25 @@ typedef union {
   uint8_t bytes[FCI_ARM_RUNTIME_DEFAULT_STORAGE_CAPACITY];
 } fci_arm_runtime_default_storage_t;
 
-typedef union { acquire_control_lease_request_t request; acquire_control_lease_response_t response; } fci_arm_runtime_acquire_control_lease_decode_detail_t;
-typedef union { clear_error_request_t request; clear_error_response_t response; } fci_arm_runtime_clear_error_decode_detail_t;
-typedef union { clear_faults_request_t request; clear_faults_response_t response; } fci_arm_runtime_clear_faults_decode_detail_t;
-typedef union { emergency_stop_request_t request; emergency_stop_response_t response; } fci_arm_runtime_emergency_stop_decode_detail_t;
-typedef union { get_device_info_request_t request; get_device_info_response_t response; } fci_arm_runtime_get_device_info_decode_detail_t;
-typedef union { get_device_settings_request_t request; get_device_settings_response_t response; } fci_arm_runtime_get_device_settings_decode_detail_t;
-typedef union { get_motor_feedback_request_t request; get_motor_feedback_response_t response; } fci_arm_runtime_get_motor_feedback_decode_detail_t;
-typedef union { home_request_t request; home_response_t response; } fci_arm_runtime_home_decode_detail_t;
-typedef union { motor_register_read_request_t request; motor_register_read_response_t response; } fci_arm_runtime_motor_register_read_decode_detail_t;
-typedef union { motor_register_write_request_t request; motor_register_write_response_t response; } fci_arm_runtime_motor_register_write_decode_detail_t;
-typedef union { motor_set_zero_request_t request; motor_set_zero_response_t response; } fci_arm_runtime_motor_set_zero_decode_detail_t;
-typedef union { motor_store_parameters_request_t request; motor_store_parameters_response_t response; } fci_arm_runtime_motor_store_parameters_decode_detail_t;
-typedef union { release_control_lease_request_t request; release_control_lease_response_t response; } fci_arm_runtime_release_control_lease_decode_detail_t;
-typedef union { set_arm_control_mode_request_t request; set_arm_control_mode_response_t response; } fci_arm_runtime_set_arm_control_mode_decode_detail_t;
-typedef union { set_arm_mode_request_t request; set_arm_mode_response_t response; } fci_arm_runtime_set_arm_mode_decode_detail_t;
-typedef union { set_device_info_request_t request; set_device_info_response_t response; } fci_arm_runtime_set_device_info_decode_detail_t;
-typedef union { set_device_settings_request_t request; set_device_settings_response_t response; } fci_arm_runtime_set_device_settings_decode_detail_t;
-typedef union { set_gripper_control_mode_request_t request; set_gripper_control_mode_response_t response; } fci_arm_runtime_set_gripper_control_mode_decode_detail_t;
-typedef union { set_zero_request_t request; set_zero_response_t response; } fci_arm_runtime_set_zero_decode_detail_t;
+typedef union { acquire_control_lease_response_t response; } fci_arm_runtime_acquire_control_lease_decode_detail_t;
+typedef union { clear_error_response_t response; } fci_arm_runtime_clear_error_decode_detail_t;
+typedef union { clear_faults_response_t response; } fci_arm_runtime_clear_faults_decode_detail_t;
+typedef union { emergency_stop_response_t response; } fci_arm_runtime_emergency_stop_decode_detail_t;
+typedef union { get_device_info_response_t response; } fci_arm_runtime_get_device_info_decode_detail_t;
+typedef union { get_device_settings_response_t response; } fci_arm_runtime_get_device_settings_decode_detail_t;
+typedef union { get_motor_feedback_response_t response; } fci_arm_runtime_get_motor_feedback_decode_detail_t;
+typedef union { home_response_t response; } fci_arm_runtime_home_decode_detail_t;
+typedef union { motor_register_read_response_t response; } fci_arm_runtime_motor_register_read_decode_detail_t;
+typedef union { motor_register_write_response_t response; } fci_arm_runtime_motor_register_write_decode_detail_t;
+typedef union { motor_set_zero_response_t response; } fci_arm_runtime_motor_set_zero_decode_detail_t;
+typedef union { motor_store_parameters_response_t response; } fci_arm_runtime_motor_store_parameters_decode_detail_t;
+typedef union { release_control_lease_response_t response; } fci_arm_runtime_release_control_lease_decode_detail_t;
+typedef union { set_arm_control_mode_response_t response; } fci_arm_runtime_set_arm_control_mode_decode_detail_t;
+typedef union { set_arm_mode_response_t response; } fci_arm_runtime_set_arm_mode_decode_detail_t;
+typedef union { set_device_info_response_t response; } fci_arm_runtime_set_device_info_decode_detail_t;
+typedef union { set_device_settings_response_t response; } fci_arm_runtime_set_device_settings_decode_detail_t;
+typedef union { set_gripper_control_mode_response_t response; } fci_arm_runtime_set_gripper_control_mode_decode_detail_t;
+typedef union { set_zero_response_t response; } fci_arm_runtime_set_zero_decode_detail_t;
 typedef struct {
   size_t storage_size;
   size_t storage_alignment;
@@ -584,7 +579,6 @@ typedef struct {
   wl_latest_t motor_feedback_latest;
   wl_latest_t arm_diagnostics_latest;
   wl_rpc_client_t rpc_client;
-  wl_rpc_server_t rpc_server;
   fci_arm_runtime_rpc_encode_scratch_t rpc_encode_scratch;
   /* One dispatch at a time: bounded services share decode scratch.
    * Views are callback-scoped; deferred work must copy its input. */
@@ -1151,7 +1145,7 @@ static inline wl_err_t fci_arm_endpoint_config_defaults(
   if (config == NULL) return WL_ERR_INVALID_ARG;
   memset(config, 0, sizeof(*config));
   config->link.max_payload_len = FCI_ARM_ENDPOINT_MAX_PAYLOAD;
-  config->link.envelope = WL_ENVELOPE_NATIVE_PACKET;
+  config->link.envelope = WL_ENVELOPE_COBS_STREAM;
   config->link.integrity = WL_INTEGRITY_CRC32C;
   config->environment = environment;
   config->link.ack_timeout_ms = 100U;
@@ -1216,8 +1210,28 @@ static inline wl_err_t fci_arm_endpoint_init_config(
     return WL_ERR_INVALID_STATE;
   if (config->environment.clock.now_ms == NULL || config->link.session_id != 0U)
     return WL_ERR_INVALID_ARG;
-
+  if (config->link.envelope != WL_ENVELOPE_COBS_STREAM) return WL_ERR_NOT_SUPPORTED;
   runtime_config = config->advanced;
+  if (runtime_config.rpc_server_enabled) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.acquire_control_lease_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.clear_error_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.clear_faults_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.emergency_stop_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_motor_feedback_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.home_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.motor_register_read_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.motor_register_write_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.motor_set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.motor_store_parameters_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.release_control_lease_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_arm_control_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_arm_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_gripper_control_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
 
   link_config = config->link;
   result = wl_session_next(config->environment.session,
@@ -1423,6 +1437,66 @@ static inline wl_err_t fci_arm_endpoint_read_arm_diagnostics(fci_arm_endpoint_t 
   if (result != WL_OK) return result;
   *out = *view.value;
   return fci_arm_arm_diagnostics_latest_release(runtime, &view);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_joint_mit_command(fci_arm_endpoint_t *endpoint, const joint_mit_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_joint_mit_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_gripper_mit_command(fci_arm_endpoint_t *endpoint, const gripper_mit_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_gripper_mit_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_joint_position_velocity_command(fci_arm_endpoint_t *endpoint, const joint_position_velocity_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_joint_position_velocity_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_joint_velocity_command(fci_arm_endpoint_t *endpoint, const joint_velocity_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_joint_velocity_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_joint_pvt_command(fci_arm_endpoint_t *endpoint, const joint_pvt_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_joint_pvt_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_cartesian_pose_command(fci_arm_endpoint_t *endpoint, const cartesian_pose_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_cartesian_pose_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_cartesian_velocity_command(fci_arm_endpoint_t *endpoint, const cartesian_velocity_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_cartesian_velocity_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_gripper_position_velocity_command(fci_arm_endpoint_t *endpoint, const gripper_position_velocity_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_gripper_position_velocity_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_gripper_velocity_command(fci_arm_endpoint_t *endpoint, const gripper_velocity_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_gripper_velocity_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_arm_send_result_t fci_arm_endpoint_send_gripper_pvt_command(fci_arm_endpoint_t *endpoint, const gripper_pvt_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_arm_gripper_pvt_command_send(wl_endpoint_link(fci_arm_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
 }
 
 static inline fci_arm_runtime_result_t fci_arm_endpoint_acquire_control_lease_start(fci_arm_endpoint_t *endpoint, const acquire_control_lease_request_t *request, uint32_t timeout_ms) {
