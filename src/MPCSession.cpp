@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <optional>
+#include <cstdio>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -47,6 +48,44 @@ double seconds(MPCClock::duration s_duration) {
     return std::chrono::duration<double>(s_duration).count();
 }
 double millis(MPCClock::duration s_duration) { return seconds(s_duration) * 1000; }
+
+// Diagnostic branch only: dump after a rejection, before stopping output.
+void traceCurve(const char* label, const MPCJointState& from, const MPCJointState& to,
+                const MPCJointLimits& limits, double dt) {
+    std::fprintf(stderr, "REJECTED_CURVE %s dt=%.17g\n", label, dt);
+    for (int i = 0; i < 6; ++i) {
+        const double delta = to.m_q[i] - from.m_q[i];
+        const double a = -2*delta + dt*(from.m_dq[i]+to.m_dq[i]);
+        const double b = 3*delta - dt*(2*from.m_dq[i]+to.m_dq[i]);
+        const double c = dt*from.m_dq[i], d = from.m_q[i];
+        auto q = [&](double u) { return ((a*u+b)*u+c)*u+d; };
+        auto v = [&](double u) { return ((3*a*u+2*b)*u+c)/dt; };
+        double qmin = std::min(q(0),q(1)), qmax = std::max(q(0),q(1));
+        double vmax = std::max(std::abs(v(0)),std::abs(v(1)));
+        auto extremum = [&](double u) {
+            if (u > 0 && u < 1) { qmin = std::min(qmin,q(u)); qmax = std::max(qmax,q(u)); }
+        };
+        if (std::abs(a) > 1e-15) {
+            double u = -b/(3*a);
+            if (u > 0 && u < 1) vmax = std::max(vmax,std::abs(v(u)));
+            const double disc = b*b-3*a*c;
+            if (disc >= 0) { extremum((-b+std::sqrt(disc))/(3*a)); extremum((-b-std::sqrt(disc))/(3*a)); }
+        } else if (std::abs(b) > 1e-15) extremum(-c/(2*b));
+        const double amax = std::max(std::abs(2*b),std::abs(6*a+2*b))/(dt*dt);
+        std::fprintf(stderr,"CURVE_JOINT %d q0=%.17g dq0=%.17g q1=%.17g dq1=%.17g qmin=%.17g qmax=%.17g vmax=%.17g amax=%.17g limits=[%.17g,%.17g,%.17g,%.17g]\n",
+            i,from.m_q[i],from.m_dq[i],to.m_q[i],to.m_dq[i],qmin,qmax,vmax,amax,
+            limits.m_lower[i],limits.m_upper[i],limits.m_velocity[i],limits.m_acceleration[i]);
+    }
+}
+void tracePlan(const char* label, const MPCPlan& plan, MPCClock::time_point now) {
+    std::fprintf(stderr,"PLAN %s gen=%llu age=%.17g ms\n",label,
+        static_cast<unsigned long long>(plan.m_generation),millis(now-plan.m_origin));
+    for (std::size_t k=0; k<plan.m_knots.size(); ++k) {
+        std::fprintf(stderr,"KNOT %s %zu",label,k);
+        for (int i=0;i<6;++i) std::fprintf(stderr," %.17g %.17g",plan.m_knots[k].m_q[i],plan.m_knots[k].m_dq[i]);
+        std::fputc('\n',stderr);
+    }
+}
 
 // Match the timer-resolution request to the output worker's lifetime. This
 // improves Windows timed waits; it does not guarantee real-time scheduling.
@@ -296,6 +335,9 @@ void MPCSession::outputLoop() noexcept {
                 }
                 for (std::size_t i = 0; i + 1 < s_new.m_knots.size(); ++i) {
                     if (!MPCCubic(s_new.m_knots[i], s_new.m_knots[i+1], MPCPlan::kDt).within(m_limits)) {
+                        std::fprintf(stderr,"INVALID_PREDICTION segment=%zu\n",i);
+                        traceCurve("prediction",s_new.m_knots[i],s_new.m_knots[i+1],m_limits,MPCPlan::kDt);
+                        tracePlan("candidate",s_new,s_now);
                         fault(MPCStopReason::kInvalidTrajectory); return;
                     }
                 }
@@ -311,7 +353,12 @@ void MPCSession::outputLoop() noexcept {
                 const auto s_end = sampleMPC(s_new.m_knots, MPCPlan::kDt,
                     seconds(s_now - s_new.m_origin) + MPCPlan::kDt);
                 MPCCubic s_transition(s_anchor, s_end, MPCPlan::kDt);
-                if (!s_transition.within(m_limits)) { fault(MPCStopReason::kInvalidTrajectory); return; }
+                if (!s_transition.within(m_limits)) {
+                    traceCurve("transition",s_anchor,s_end,m_limits,MPCPlan::kDt);
+                    tracePlan("candidate",s_new,s_now);
+                    tracePlan("active",s_active,s_now);
+                    fault(MPCStopReason::kInvalidTrajectory); return;
+                }
                 s_active = s_new;
                 s_bridge = s_transition;
                 s_bridge_start = s_now;
