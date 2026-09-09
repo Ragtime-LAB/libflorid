@@ -23,7 +23,7 @@
 |---|---|
 | 编译器 | GCC 12+ 或 Clang 15+（C++20） |
 | CMake | 3.21+ |
-| Wirelink | 随仓库提供源码与 ABI 26 预生成绑定 |
+| Wirelink | 随仓库提供源码与 ABI 30 预生成绑定 |
 | 构建系统 | Ninja（推荐）或 Make |
 | 操作系统 | Linux、macOS 或 Windows（Astrial/libusb USB Bulk） |
 
@@ -32,7 +32,7 @@
 | 工具 | 用途 |
 |---|---|
 | pybind11 + NumPy（≥ 2.0）头文件 | Python 绑定（`-DBUILD_PYFLORID=ON`） |
-| WLC（ABI 26） | 重新生成 FCI 绑定（`-DLF_ENABLE_WLC=ON`） |
+| WLC 0.5.0（ABI 30） | 重新生成 FCI 绑定（`-DLF_ENABLE_WLC=ON`） |
 | Python 3.9+ + CasADi + Pinocchio（带 CasADi 绑定） | 从 URDF 重新生成 traits / MPC 源码 |
 
 ## 子模块
@@ -62,13 +62,13 @@ ctest --test-dir build
 `LF_ENABLE_WLC=OFF`。
 
 默认使用 `3rdparty/wirelink`；联合开发才用 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` 覆盖。
-当前 dev 固定 Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`，
+当前固定 Wirelink `009a5e92432f8942edebd0180dca1a4760c5360c`，
 预生成的 arm codec 和 host runtime 位于 `generated/wirelink/`。
 默认 C++ 和 Python 源码构建直接编译这些文件，不查找、下载或执行 WLC/Rust。
 CMake 检查编译器 ABI、schema/profile 摘要及生成文件摘要；快照过期或被修改时明确报错。
 
 修改 FCI schema/profile 或联合开发 Wirelink 时，显式开启 WLC。当前配套工具为
-`c6b6a8fa560a15c45d564aad0afd197b13682de8`（生成 ABI 26）：
+WLC v0.5.0，提交 `120b9af130753d2ba0d137882916bfe207d3d312`（生成 ABI 30）：
 
 ```bash
 cmake -S . -B build/wlc -DLF_ENABLE_WLC=ON \

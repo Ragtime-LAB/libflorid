@@ -35,7 +35,7 @@ See [Willow position MPC](docs/mpc.md) for matrix layout, internal 50 Hz plannin
 |---|---|
 | Compiler | GCC 12+ or Clang 15+ (C++20) |
 | CMake | 3.21+ |
-| Wirelink | Bundled source and checked-in ABI 26 bindings |
+| Wirelink | Bundled source and checked-in ABI 30 bindings |
 | Build system | Ninja (recommended) or Make |
 | OS | Linux, macOS, or Windows (USB Bulk via Astrial/libusb) |
 
@@ -44,7 +44,7 @@ Optional build-time tools:
 | Tool | Purpose |
 |---|---|
 | pybind11 + NumPy (≥ 2.0) headers | Python bindings (`-DBUILD_PYFLORID=ON`) |
-| WLC (ABI 26) | Regenerating FCI bindings (`-DLF_ENABLE_WLC=ON`) |
+| WLC 0.5.0 (ABI 30) | Regenerating FCI bindings (`-DLF_ENABLE_WLC=ON`) |
 | Python 3.9+ + CasADi + Pinocchio (with CasADi bindings) | Regenerating traits / MPC sources from URDF |
 
 ## Submodules
@@ -75,7 +75,7 @@ Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_M
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
-development. This dev pins Wirelink `4b650ba03f6d4d60fcbec76520a28757f834a1af`
+development. This tree pins Wirelink `009a5e92432f8942edebd0180dca1a4760c5360c`
 and ships its generated arm codec and host runtime in `generated/wirelink/`.
 Normal C++ and Python source builds compile these files without finding,
 downloading, or running WLC/Rust. CMake validates the snapshot's compiler ABI,
@@ -83,7 +83,7 @@ schema/profile hashes and output hashes; stale or modified snapshots fail early.
 
 To change the FCI schema/profile or develop against another Wirelink version,
 enable WLC explicitly. The bundled version pairs with WLC
-`c6b6a8fa560a15c45d564aad0afd197b13682de8` (codegen ABI 26):
+v0.5.0, commit `120b9af130753d2ba0d137882916bfe207d3d312` (codegen ABI 30):
 
 ```bash
 cmake -S . -B build/wlc -DLF_ENABLE_WLC=ON \

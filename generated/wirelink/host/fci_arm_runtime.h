@@ -19,7 +19,11 @@ extern "C" {
 #define FCI_ARM_BINDING_PROFILE_VERSION 1U
 #define FCI_ARM_IDENTITY_ALGORITHM "fnv1a64-v1"
 
-#define FCI_ARM_RUNTIME_CODEGEN_ABI_VERSION 26U
+#define FCI_ARM_RUNTIME_CODEGEN_ABI_VERSION 30U
+
+/* Generated capabilities, not application overrides. */
+#define FCI_ARM_RUNTIME_HAS_RPC_CLIENT 1
+#define FCI_ARM_RUNTIME_HAS_RPC_SERVER 1
 
 #define FCI_ARM_RPC_REQUEST_FINGERPRINT_ALGORITHM "fnv1a64-canonical-request-v1"
 
@@ -133,7 +137,6 @@ typedef int32_t (*fci_arm_acquire_control_lease_rpc_request_handler_fn)(void *us
 typedef struct {
   acquire_control_lease_request_t *request_scratch;
   acquire_control_lease_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_acquire_control_lease_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_acquire_control_lease_rpc_t;
@@ -146,7 +149,6 @@ typedef int32_t (*fci_arm_clear_error_rpc_request_handler_fn)(void *user_data, c
 typedef struct {
   clear_error_request_t *request_scratch;
   clear_error_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_clear_error_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_clear_error_rpc_t;
@@ -159,7 +161,6 @@ typedef int32_t (*fci_arm_clear_faults_rpc_request_handler_fn)(void *user_data, 
 typedef struct {
   clear_faults_request_t *request_scratch;
   clear_faults_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_clear_faults_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_clear_faults_rpc_t;
@@ -172,7 +173,6 @@ typedef int32_t (*fci_arm_emergency_stop_rpc_request_handler_fn)(void *user_data
 typedef struct {
   emergency_stop_request_t *request_scratch;
   emergency_stop_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_emergency_stop_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_emergency_stop_rpc_t;
@@ -185,7 +185,6 @@ typedef int32_t (*fci_arm_get_device_info_rpc_request_handler_fn)(void *user_dat
 typedef struct {
   get_device_info_request_t *request_scratch;
   get_device_info_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_get_device_info_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_get_device_info_rpc_t;
@@ -198,7 +197,6 @@ typedef int32_t (*fci_arm_get_device_settings_rpc_request_handler_fn)(void *user
 typedef struct {
   get_device_settings_request_t *request_scratch;
   get_device_settings_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_get_device_settings_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_get_device_settings_rpc_t;
@@ -211,7 +209,6 @@ typedef int32_t (*fci_arm_get_motor_feedback_rpc_request_handler_fn)(void *user_
 typedef struct {
   get_motor_feedback_request_t *request_scratch;
   get_motor_feedback_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_get_motor_feedback_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_get_motor_feedback_rpc_t;
@@ -224,7 +221,6 @@ typedef int32_t (*fci_arm_home_rpc_request_handler_fn)(void *user_data, const ho
 typedef struct {
   home_request_t *request_scratch;
   home_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_home_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_home_rpc_t;
@@ -237,7 +233,6 @@ typedef int32_t (*fci_arm_motor_register_read_rpc_request_handler_fn)(void *user
 typedef struct {
   motor_register_read_request_t *request_scratch;
   motor_register_read_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_motor_register_read_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_motor_register_read_rpc_t;
@@ -250,7 +245,6 @@ typedef int32_t (*fci_arm_motor_register_write_rpc_request_handler_fn)(void *use
 typedef struct {
   motor_register_write_request_t *request_scratch;
   motor_register_write_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_motor_register_write_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_motor_register_write_rpc_t;
@@ -263,7 +257,6 @@ typedef int32_t (*fci_arm_motor_set_zero_rpc_request_handler_fn)(void *user_data
 typedef struct {
   motor_set_zero_request_t *request_scratch;
   motor_set_zero_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_motor_set_zero_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_motor_set_zero_rpc_t;
@@ -276,7 +269,6 @@ typedef int32_t (*fci_arm_motor_store_parameters_rpc_request_handler_fn)(void *u
 typedef struct {
   motor_store_parameters_request_t *request_scratch;
   motor_store_parameters_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_motor_store_parameters_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_motor_store_parameters_rpc_t;
@@ -289,7 +281,6 @@ typedef int32_t (*fci_arm_release_control_lease_rpc_request_handler_fn)(void *us
 typedef struct {
   release_control_lease_request_t *request_scratch;
   release_control_lease_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_release_control_lease_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_release_control_lease_rpc_t;
@@ -302,7 +293,6 @@ typedef int32_t (*fci_arm_set_arm_control_mode_rpc_request_handler_fn)(void *use
 typedef struct {
   set_arm_control_mode_request_t *request_scratch;
   set_arm_control_mode_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_arm_control_mode_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_arm_control_mode_rpc_t;
@@ -315,7 +305,6 @@ typedef int32_t (*fci_arm_set_arm_mode_rpc_request_handler_fn)(void *user_data, 
 typedef struct {
   set_arm_mode_request_t *request_scratch;
   set_arm_mode_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_arm_mode_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_arm_mode_rpc_t;
@@ -328,7 +317,6 @@ typedef int32_t (*fci_arm_set_device_info_rpc_request_handler_fn)(void *user_dat
 typedef struct {
   set_device_info_request_t *request_scratch;
   set_device_info_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_device_info_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_device_info_rpc_t;
@@ -341,7 +329,6 @@ typedef int32_t (*fci_arm_set_device_settings_rpc_request_handler_fn)(void *user
 typedef struct {
   set_device_settings_request_t *request_scratch;
   set_device_settings_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_device_settings_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_device_settings_rpc_t;
@@ -354,7 +341,6 @@ typedef int32_t (*fci_arm_set_gripper_control_mode_rpc_request_handler_fn)(void 
 typedef struct {
   set_gripper_control_mode_request_t *request_scratch;
   set_gripper_control_mode_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_gripper_control_mode_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_gripper_control_mode_rpc_t;
@@ -367,7 +353,6 @@ typedef int32_t (*fci_arm_set_zero_rpc_request_handler_fn)(void *user_data, cons
 typedef struct {
   set_zero_request_t *request_scratch;
   set_zero_response_t *response_scratch;
-  fci_arm_encode_scratch_t canonical_request_scratch;
   fci_arm_set_zero_rpc_request_handler_fn request_handler;
   void *user_data;
 } fci_arm_set_zero_rpc_t;
@@ -490,61 +475,42 @@ typedef struct {
   uint32_t rpc_server_pending_timeout_ms;
   uint32_t rpc_server_cache_ttl_ms;
   wl_rpc_cache_policy_t rpc_server_cache_policy;
-  size_t acquire_control_lease_canonical_request_capacity;
   fci_arm_acquire_control_lease_rpc_request_handler_fn acquire_control_lease_request_handler;
   void *acquire_control_lease_user_data;
-  size_t clear_error_canonical_request_capacity;
   fci_arm_clear_error_rpc_request_handler_fn clear_error_request_handler;
   void *clear_error_user_data;
-  size_t clear_faults_canonical_request_capacity;
   fci_arm_clear_faults_rpc_request_handler_fn clear_faults_request_handler;
   void *clear_faults_user_data;
-  size_t emergency_stop_canonical_request_capacity;
   fci_arm_emergency_stop_rpc_request_handler_fn emergency_stop_request_handler;
   void *emergency_stop_user_data;
-  size_t get_device_info_canonical_request_capacity;
   fci_arm_get_device_info_rpc_request_handler_fn get_device_info_request_handler;
   void *get_device_info_user_data;
-  size_t get_device_settings_canonical_request_capacity;
   fci_arm_get_device_settings_rpc_request_handler_fn get_device_settings_request_handler;
   void *get_device_settings_user_data;
-  size_t get_motor_feedback_canonical_request_capacity;
   fci_arm_get_motor_feedback_rpc_request_handler_fn get_motor_feedback_request_handler;
   void *get_motor_feedback_user_data;
-  size_t home_canonical_request_capacity;
   fci_arm_home_rpc_request_handler_fn home_request_handler;
   void *home_user_data;
-  size_t motor_register_read_canonical_request_capacity;
   fci_arm_motor_register_read_rpc_request_handler_fn motor_register_read_request_handler;
   void *motor_register_read_user_data;
-  size_t motor_register_write_canonical_request_capacity;
   fci_arm_motor_register_write_rpc_request_handler_fn motor_register_write_request_handler;
   void *motor_register_write_user_data;
-  size_t motor_set_zero_canonical_request_capacity;
   fci_arm_motor_set_zero_rpc_request_handler_fn motor_set_zero_request_handler;
   void *motor_set_zero_user_data;
-  size_t motor_store_parameters_canonical_request_capacity;
   fci_arm_motor_store_parameters_rpc_request_handler_fn motor_store_parameters_request_handler;
   void *motor_store_parameters_user_data;
-  size_t release_control_lease_canonical_request_capacity;
   fci_arm_release_control_lease_rpc_request_handler_fn release_control_lease_request_handler;
   void *release_control_lease_user_data;
-  size_t set_arm_control_mode_canonical_request_capacity;
   fci_arm_set_arm_control_mode_rpc_request_handler_fn set_arm_control_mode_request_handler;
   void *set_arm_control_mode_user_data;
-  size_t set_arm_mode_canonical_request_capacity;
   fci_arm_set_arm_mode_rpc_request_handler_fn set_arm_mode_request_handler;
   void *set_arm_mode_user_data;
-  size_t set_device_info_canonical_request_capacity;
   fci_arm_set_device_info_rpc_request_handler_fn set_device_info_request_handler;
   void *set_device_info_user_data;
-  size_t set_device_settings_canonical_request_capacity;
   fci_arm_set_device_settings_rpc_request_handler_fn set_device_settings_request_handler;
   void *set_device_settings_user_data;
-  size_t set_gripper_control_mode_canonical_request_capacity;
   fci_arm_set_gripper_control_mode_rpc_request_handler_fn set_gripper_control_mode_request_handler;
   void *set_gripper_control_mode_user_data;
-  size_t set_zero_canonical_request_capacity;
   fci_arm_set_zero_rpc_request_handler_fn set_zero_request_handler;
   void *set_zero_user_data;
 } fci_arm_runtime_config_t;
@@ -576,32 +542,32 @@ typedef union {
    218U + \
    ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_server_pending_slot_t)) + \
    ((FCI_ARM_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_server_cache_slot_t)) + \
-   218U + \
-   20U + \
-   9U + \
-   6U + \
-   6U + \
-   6U + \
-   6U + \
-   6U + \
-   6U + \
-   12U + \
-   17U + \
-   9U + \
-   9U + \
-   15U + \
-   12U + \
-   12U + \
-   39U + \
-   212U + \
-   12U + \
-   9U)
+   218U)
 
 typedef union {
   fci_arm_runtime_default_storage_alignment_t alignment;
   uint8_t bytes[FCI_ARM_RUNTIME_DEFAULT_STORAGE_CAPACITY];
 } fci_arm_runtime_default_storage_t;
 
+typedef union { acquire_control_lease_request_t request; acquire_control_lease_response_t response; } fci_arm_runtime_acquire_control_lease_decode_detail_t;
+typedef union { clear_error_request_t request; clear_error_response_t response; } fci_arm_runtime_clear_error_decode_detail_t;
+typedef union { clear_faults_request_t request; clear_faults_response_t response; } fci_arm_runtime_clear_faults_decode_detail_t;
+typedef union { emergency_stop_request_t request; emergency_stop_response_t response; } fci_arm_runtime_emergency_stop_decode_detail_t;
+typedef union { get_device_info_request_t request; get_device_info_response_t response; } fci_arm_runtime_get_device_info_decode_detail_t;
+typedef union { get_device_settings_request_t request; get_device_settings_response_t response; } fci_arm_runtime_get_device_settings_decode_detail_t;
+typedef union { get_motor_feedback_request_t request; get_motor_feedback_response_t response; } fci_arm_runtime_get_motor_feedback_decode_detail_t;
+typedef union { home_request_t request; home_response_t response; } fci_arm_runtime_home_decode_detail_t;
+typedef union { motor_register_read_request_t request; motor_register_read_response_t response; } fci_arm_runtime_motor_register_read_decode_detail_t;
+typedef union { motor_register_write_request_t request; motor_register_write_response_t response; } fci_arm_runtime_motor_register_write_decode_detail_t;
+typedef union { motor_set_zero_request_t request; motor_set_zero_response_t response; } fci_arm_runtime_motor_set_zero_decode_detail_t;
+typedef union { motor_store_parameters_request_t request; motor_store_parameters_response_t response; } fci_arm_runtime_motor_store_parameters_decode_detail_t;
+typedef union { release_control_lease_request_t request; release_control_lease_response_t response; } fci_arm_runtime_release_control_lease_decode_detail_t;
+typedef union { set_arm_control_mode_request_t request; set_arm_control_mode_response_t response; } fci_arm_runtime_set_arm_control_mode_decode_detail_t;
+typedef union { set_arm_mode_request_t request; set_arm_mode_response_t response; } fci_arm_runtime_set_arm_mode_decode_detail_t;
+typedef union { set_device_info_request_t request; set_device_info_response_t response; } fci_arm_runtime_set_device_info_decode_detail_t;
+typedef union { set_device_settings_request_t request; set_device_settings_response_t response; } fci_arm_runtime_set_device_settings_decode_detail_t;
+typedef union { set_gripper_control_mode_request_t request; set_gripper_control_mode_response_t response; } fci_arm_runtime_set_gripper_control_mode_decode_detail_t;
+typedef union { set_zero_request_t request; set_zero_response_t response; } fci_arm_runtime_set_zero_decode_detail_t;
 typedef struct {
   size_t storage_size;
   size_t storage_alignment;
@@ -620,26 +586,29 @@ typedef struct {
   wl_rpc_client_t rpc_client;
   wl_rpc_server_t rpc_server;
   fci_arm_runtime_rpc_encode_scratch_t rpc_encode_scratch;
-  /* Dispatch is serialized; request and response decode scratch lifetimes do not overlap. */
-  union { acquire_control_lease_request_t request; acquire_control_lease_response_t response; } acquire_control_lease_scratch;
-  union { clear_error_request_t request; clear_error_response_t response; } clear_error_scratch;
-  union { clear_faults_request_t request; clear_faults_response_t response; } clear_faults_scratch;
-  union { emergency_stop_request_t request; emergency_stop_response_t response; } emergency_stop_scratch;
-  union { get_device_info_request_t request; get_device_info_response_t response; } get_device_info_scratch;
-  union { get_device_settings_request_t request; get_device_settings_response_t response; } get_device_settings_scratch;
-  union { get_motor_feedback_request_t request; get_motor_feedback_response_t response; } get_motor_feedback_scratch;
-  union { home_request_t request; home_response_t response; } home_scratch;
-  union { motor_register_read_request_t request; motor_register_read_response_t response; } motor_register_read_scratch;
-  union { motor_register_write_request_t request; motor_register_write_response_t response; } motor_register_write_scratch;
-  union { motor_set_zero_request_t request; motor_set_zero_response_t response; } motor_set_zero_scratch;
-  union { motor_store_parameters_request_t request; motor_store_parameters_response_t response; } motor_store_parameters_scratch;
-  union { release_control_lease_request_t request; release_control_lease_response_t response; } release_control_lease_scratch;
-  union { set_arm_control_mode_request_t request; set_arm_control_mode_response_t response; } set_arm_control_mode_scratch;
-  union { set_arm_mode_request_t request; set_arm_mode_response_t response; } set_arm_mode_scratch;
-  union { set_device_info_request_t request; set_device_info_response_t response; } set_device_info_scratch;
-  union { set_device_settings_request_t request; set_device_settings_response_t response; } set_device_settings_scratch;
-  union { set_gripper_control_mode_request_t request; set_gripper_control_mode_response_t response; } set_gripper_control_mode_scratch;
-  union { set_zero_request_t request; set_zero_response_t response; } set_zero_scratch;
+  /* One dispatch at a time: bounded services share decode scratch.
+   * Views are callback-scoped; deferred work must copy its input. */
+  union {
+    fci_arm_runtime_acquire_control_lease_decode_detail_t acquire_control_lease_scratch;
+    fci_arm_runtime_clear_error_decode_detail_t clear_error_scratch;
+    fci_arm_runtime_clear_faults_decode_detail_t clear_faults_scratch;
+    fci_arm_runtime_emergency_stop_decode_detail_t emergency_stop_scratch;
+    fci_arm_runtime_get_device_info_decode_detail_t get_device_info_scratch;
+    fci_arm_runtime_get_device_settings_decode_detail_t get_device_settings_scratch;
+    fci_arm_runtime_get_motor_feedback_decode_detail_t get_motor_feedback_scratch;
+    fci_arm_runtime_home_decode_detail_t home_scratch;
+    fci_arm_runtime_motor_register_read_decode_detail_t motor_register_read_scratch;
+    fci_arm_runtime_motor_register_write_decode_detail_t motor_register_write_scratch;
+    fci_arm_runtime_motor_set_zero_decode_detail_t motor_set_zero_scratch;
+    fci_arm_runtime_motor_store_parameters_decode_detail_t motor_store_parameters_scratch;
+    fci_arm_runtime_release_control_lease_decode_detail_t release_control_lease_scratch;
+    fci_arm_runtime_set_arm_control_mode_decode_detail_t set_arm_control_mode_scratch;
+    fci_arm_runtime_set_arm_mode_decode_detail_t set_arm_mode_scratch;
+    fci_arm_runtime_set_device_info_decode_detail_t set_device_info_scratch;
+    fci_arm_runtime_set_device_settings_decode_detail_t set_device_settings_scratch;
+    fci_arm_runtime_set_gripper_control_mode_decode_detail_t set_gripper_control_mode_scratch;
+    fci_arm_runtime_set_zero_decode_detail_t set_zero_scratch;
+  };
 } fci_arm_runtime_instance_t;
 
 typedef int32_t fci_arm_runtime_init_issue_t;
@@ -652,7 +621,6 @@ enum {
   FCI_ARM_RUNTIME_INIT_RPC_SERVER_CAPACITY,
   FCI_ARM_RUNTIME_INIT_RPC_TIMEOUT,
   FCI_ARM_RUNTIME_INIT_RPC_CACHE_POLICY,
-  FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY,
   FCI_ARM_RUNTIME_INIT_LAYOUT_OVERFLOW,
   FCI_ARM_RUNTIME_INIT_STORAGE_TOO_SMALL,
   FCI_ARM_RUNTIME_INIT_STORAGE_NULL,
@@ -1121,10 +1089,11 @@ fci_arm_runtime_result_t fci_arm_set_zero_server_reject(fci_arm_runtime_t *runti
  * All profile-selected messages must have finite one-frame bounds. */
 #define FCI_ARM_HAS_DEFAULT_ENDPOINT 1
 #define FCI_ARM_ENDPOINT_MAX_PAYLOAD 233U
-/* Reserve for any supported envelope using CRC32C (the largest checksum). */
+/* Layout is fixed by the local profile; CRC32C bounds also cover smaller CRCs. */
 #define FCI_ARM_ENDPOINT_RAW_CAPACITY (FCI_ARM_ENDPOINT_MAX_PAYLOAD + WL_FRAME_HEADER_SIZE + WL_FRAME_MAX_CRC)
 #define FCI_ARM_ENDPOINT_UNIT_CAPACITY (FCI_ARM_ENDPOINT_RAW_CAPACITY + FCI_ARM_ENDPOINT_RAW_CAPACITY / 254U + 2U)
 #define FCI_ARM_ENDPOINT_CONTROL_CAPACITY (WL_FRAME_HEADER_SIZE + WL_FRAME_MAX_CRC + 2U)
+#define FCI_ARM_ENDPOINT_RX_FIFO_CAPACITY FCI_ARM_ENDPOINT_UNIT_CAPACITY
 #define FCI_ARM_ENDPOINT_RUNTIME_CAPACITY FCI_ARM_RUNTIME_DEFAULT_STORAGE_CAPACITY
 
 typedef struct {
@@ -1135,6 +1104,8 @@ typedef struct {
 
   size_t event_budget;
   fci_arm_runtime_result_fn on_result;
+  /* Shared context for on_result and ordinary on_<rpc> handlers. Advanced
+   * deferred handlers and per-call completion contexts remain explicit. */
   void *user_data;
 } fci_arm_endpoint_config_t;
 
@@ -1160,7 +1131,7 @@ typedef struct {
     uint8_t tx_unit[FCI_ARM_ENDPOINT_UNIT_CAPACITY];
     uint8_t control_unit[FCI_ARM_ENDPOINT_CONTROL_CAPACITY];
     uint8_t rx_fallback[FCI_ARM_ENDPOINT_UNIT_CAPACITY];
-    uint8_t rx_fifo[FCI_ARM_ENDPOINT_UNIT_CAPACITY];
+    uint8_t rx_fifo[FCI_ARM_ENDPOINT_RX_FIFO_CAPACITY];
   } private_state;
 } fci_arm_endpoint_t;
 
@@ -1245,12 +1216,13 @@ static inline wl_err_t fci_arm_endpoint_init_config(
     return WL_ERR_INVALID_STATE;
   if (config->environment.clock.now_ms == NULL || config->link.session_id != 0U)
     return WL_ERR_INVALID_ARG;
+
+  runtime_config = config->advanced;
+
   link_config = config->link;
   result = wl_session_next(config->environment.session,
       endpoint->private_state.previous_session, &link_config.session_id);
   if (result != WL_OK) return result;
-  runtime_config = config->advanced;
-
 
   memset(&link_storage, 0, sizeof(link_storage));
   link_storage.tx_payload = endpoint->private_state.tx_payload;

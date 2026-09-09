@@ -31,22 +31,101 @@ const char *fci_arm_runtime_result_str(const fci_arm_runtime_result_t *result) {
   }
 }
 
-static uint64_t fci_arm_rpc_request_fingerprint(const uint8_t *data, size_t length) {
-  static const uint8_t domain[] = "wlc.rpc.canonical-request.v1";
-  uint64_t hash = UINT64_C(0xcbf29ce484222325);
-  size_t index;
-  for (index = 0U; index + 1U < sizeof(domain); ++index) {
-    hash ^= (uint64_t)domain[index];
-    hash *= UINT64_C(0x00000100000001b3);
-  }
-  hash ^= UINT64_C(0xff);
-  hash *= UINT64_C(0x00000100000001b3);
-  for (index = 0U; index < length; ++index) {
-    hash ^= (uint64_t)data[index];
-    hash *= UINT64_C(0x00000100000001b3);
-  }
-  return hash;
-}
+static const uint64_t fci_arm_rpc_fingerprint_seed = UINT64_C(0x24faaea3493c1c2e);
+wl_codec_status_t acquire_control_lease_request_wlc_detail_fingerprint(const acquire_control_lease_request_t *, uint64_t *, size_t *);
+#if ACQUIRE_CONTROL_LEASE_REQUEST_HAS_VALUE
+void acquire_control_lease_request_wlc_detail_value_copy(const acquire_control_lease_request_t *, acquire_control_lease_request_value_t *);
+#endif
+
+wl_codec_status_t clear_error_request_wlc_detail_fingerprint(const clear_error_request_t *, uint64_t *, size_t *);
+#if CLEAR_ERROR_REQUEST_HAS_VALUE
+void clear_error_request_wlc_detail_value_copy(const clear_error_request_t *, clear_error_request_value_t *);
+#endif
+
+wl_codec_status_t clear_faults_request_wlc_detail_fingerprint(const clear_faults_request_t *, uint64_t *, size_t *);
+#if CLEAR_FAULTS_REQUEST_HAS_VALUE
+void clear_faults_request_wlc_detail_value_copy(const clear_faults_request_t *, clear_faults_request_value_t *);
+#endif
+
+wl_codec_status_t emergency_stop_request_wlc_detail_fingerprint(const emergency_stop_request_t *, uint64_t *, size_t *);
+#if EMERGENCY_STOP_REQUEST_HAS_VALUE
+void emergency_stop_request_wlc_detail_value_copy(const emergency_stop_request_t *, emergency_stop_request_value_t *);
+#endif
+
+wl_codec_status_t get_device_info_request_wlc_detail_fingerprint(const get_device_info_request_t *, uint64_t *, size_t *);
+#if GET_DEVICE_INFO_REQUEST_HAS_VALUE
+void get_device_info_request_wlc_detail_value_copy(const get_device_info_request_t *, get_device_info_request_value_t *);
+#endif
+
+wl_codec_status_t get_device_settings_request_wlc_detail_fingerprint(const get_device_settings_request_t *, uint64_t *, size_t *);
+#if GET_DEVICE_SETTINGS_REQUEST_HAS_VALUE
+void get_device_settings_request_wlc_detail_value_copy(const get_device_settings_request_t *, get_device_settings_request_value_t *);
+#endif
+
+wl_codec_status_t get_motor_feedback_request_wlc_detail_fingerprint(const get_motor_feedback_request_t *, uint64_t *, size_t *);
+#if GET_MOTOR_FEEDBACK_REQUEST_HAS_VALUE
+void get_motor_feedback_request_wlc_detail_value_copy(const get_motor_feedback_request_t *, get_motor_feedback_request_value_t *);
+#endif
+
+wl_codec_status_t home_request_wlc_detail_fingerprint(const home_request_t *, uint64_t *, size_t *);
+#if HOME_REQUEST_HAS_VALUE
+void home_request_wlc_detail_value_copy(const home_request_t *, home_request_value_t *);
+#endif
+
+wl_codec_status_t motor_register_read_request_wlc_detail_fingerprint(const motor_register_read_request_t *, uint64_t *, size_t *);
+#if MOTOR_REGISTER_READ_REQUEST_HAS_VALUE
+void motor_register_read_request_wlc_detail_value_copy(const motor_register_read_request_t *, motor_register_read_request_value_t *);
+#endif
+
+wl_codec_status_t motor_register_write_request_wlc_detail_fingerprint(const motor_register_write_request_t *, uint64_t *, size_t *);
+#if MOTOR_REGISTER_WRITE_REQUEST_HAS_VALUE
+void motor_register_write_request_wlc_detail_value_copy(const motor_register_write_request_t *, motor_register_write_request_value_t *);
+#endif
+
+wl_codec_status_t motor_set_zero_request_wlc_detail_fingerprint(const motor_set_zero_request_t *, uint64_t *, size_t *);
+#if MOTOR_SET_ZERO_REQUEST_HAS_VALUE
+void motor_set_zero_request_wlc_detail_value_copy(const motor_set_zero_request_t *, motor_set_zero_request_value_t *);
+#endif
+
+wl_codec_status_t motor_store_parameters_request_wlc_detail_fingerprint(const motor_store_parameters_request_t *, uint64_t *, size_t *);
+#if MOTOR_STORE_PARAMETERS_REQUEST_HAS_VALUE
+void motor_store_parameters_request_wlc_detail_value_copy(const motor_store_parameters_request_t *, motor_store_parameters_request_value_t *);
+#endif
+
+wl_codec_status_t release_control_lease_request_wlc_detail_fingerprint(const release_control_lease_request_t *, uint64_t *, size_t *);
+#if RELEASE_CONTROL_LEASE_REQUEST_HAS_VALUE
+void release_control_lease_request_wlc_detail_value_copy(const release_control_lease_request_t *, release_control_lease_request_value_t *);
+#endif
+
+wl_codec_status_t set_arm_control_mode_request_wlc_detail_fingerprint(const set_arm_control_mode_request_t *, uint64_t *, size_t *);
+#if SET_ARM_CONTROL_MODE_REQUEST_HAS_VALUE
+void set_arm_control_mode_request_wlc_detail_value_copy(const set_arm_control_mode_request_t *, set_arm_control_mode_request_value_t *);
+#endif
+
+wl_codec_status_t set_arm_mode_request_wlc_detail_fingerprint(const set_arm_mode_request_t *, uint64_t *, size_t *);
+#if SET_ARM_MODE_REQUEST_HAS_VALUE
+void set_arm_mode_request_wlc_detail_value_copy(const set_arm_mode_request_t *, set_arm_mode_request_value_t *);
+#endif
+
+wl_codec_status_t set_device_info_request_wlc_detail_fingerprint(const set_device_info_request_t *, uint64_t *, size_t *);
+#if SET_DEVICE_INFO_REQUEST_HAS_VALUE
+void set_device_info_request_wlc_detail_value_copy(const set_device_info_request_t *, set_device_info_request_value_t *);
+#endif
+
+wl_codec_status_t set_device_settings_request_wlc_detail_fingerprint(const set_device_settings_request_t *, uint64_t *, size_t *);
+#if SET_DEVICE_SETTINGS_REQUEST_HAS_VALUE
+void set_device_settings_request_wlc_detail_value_copy(const set_device_settings_request_t *, set_device_settings_request_value_t *);
+#endif
+
+wl_codec_status_t set_gripper_control_mode_request_wlc_detail_fingerprint(const set_gripper_control_mode_request_t *, uint64_t *, size_t *);
+#if SET_GRIPPER_CONTROL_MODE_REQUEST_HAS_VALUE
+void set_gripper_control_mode_request_wlc_detail_value_copy(const set_gripper_control_mode_request_t *, set_gripper_control_mode_request_value_t *);
+#endif
+
+wl_codec_status_t set_zero_request_wlc_detail_fingerprint(const set_zero_request_t *, uint64_t *, size_t *);
+#if SET_ZERO_REQUEST_HAS_VALUE
+void set_zero_request_wlc_detail_value_copy(const set_zero_request_t *, set_zero_request_value_t *);
+#endif
 
 static void fci_arm_runtime_cancel_peer_tx(void *context, wl_tx_handle_t handle) {
   if (context != NULL) (void)wl_tx_cancel((wl_ctx_t *)context, handle);
@@ -65,57 +144,19 @@ wl_err_t fci_arm_runtime_config_defaults(fci_arm_runtime_config_t *config) {
   config->rpc_server_cache_policy = WL_RPC_CACHE_REJECT_NEW;
   config->rpc_client_response_capacity = 218U;
   config->rpc_server_response_capacity = 218U;
-  config->acquire_control_lease_canonical_request_capacity = 20U;
-  config->clear_error_canonical_request_capacity = 9U;
-  config->clear_faults_canonical_request_capacity = 6U;
-  config->emergency_stop_canonical_request_capacity = 6U;
-  config->get_device_info_canonical_request_capacity = 6U;
-  config->get_device_settings_canonical_request_capacity = 6U;
-  config->get_motor_feedback_canonical_request_capacity = 6U;
-  config->home_canonical_request_capacity = 6U;
-  config->motor_register_read_canonical_request_capacity = 12U;
-  config->motor_register_write_canonical_request_capacity = 17U;
-  config->motor_set_zero_canonical_request_capacity = 9U;
-  config->motor_store_parameters_canonical_request_capacity = 9U;
-  config->release_control_lease_canonical_request_capacity = 15U;
-  config->set_arm_control_mode_canonical_request_capacity = 12U;
-  config->set_arm_mode_canonical_request_capacity = 12U;
-  config->set_device_info_canonical_request_capacity = 39U;
-  config->set_device_settings_canonical_request_capacity = 212U;
-  config->set_gripper_control_mode_canonical_request_capacity = 12U;
-  config->set_zero_canonical_request_capacity = 9U;
   return WL_OK;
 }
 
 wl_err_t fci_arm_runtime_config_enable_client(fci_arm_runtime_config_t *config) {
   if (config == NULL) return WL_ERR_INVALID_ARG;
-  if (config->rpc_client_slot_count == 0U || config->rpc_client_response_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
+  if (!FCI_ARM_RUNTIME_HAS_RPC_CLIENT || config->rpc_client_slot_count == 0U || config->rpc_client_response_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
   config->rpc_client_enabled = 1U;
   return WL_OK;
 }
 
 wl_err_t fci_arm_runtime_config_enable_server(fci_arm_runtime_config_t *config) {
   if (config == NULL) return WL_ERR_INVALID_ARG;
-  if (config->rpc_server_pending_slot_count == 0U || config->rpc_server_cache_slot_count == 0U || config->rpc_server_response_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->acquire_control_lease_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->clear_error_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->clear_faults_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->emergency_stop_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->get_device_info_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->get_device_settings_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->get_motor_feedback_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->home_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->motor_register_read_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->motor_register_write_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->motor_set_zero_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->motor_store_parameters_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->release_control_lease_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_arm_control_mode_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_arm_mode_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_device_info_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_device_settings_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_gripper_control_mode_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
-  if (config->set_zero_canonical_request_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
+  if (!FCI_ARM_RUNTIME_HAS_RPC_SERVER || config->rpc_server_pending_slot_count == 0U || config->rpc_server_cache_slot_count == 0U || config->rpc_server_response_capacity == 0U) return WL_ERR_NOT_SUPPORTED;
   config->rpc_server_enabled = 1U;
   return WL_OK;
 }
@@ -129,6 +170,11 @@ fci_arm_runtime_storage_t fci_arm_runtime_default_storage_descriptor(fci_arm_run
   return descriptor;
 }
 
+static int fci_arm_runtime_roles_valid(const fci_arm_runtime_config_t *config) {
+  (void)config;
+  return WL_OK;
+}
+
 const char *fci_arm_runtime_init_issue_str(fci_arm_runtime_init_issue_t issue) {
   switch (issue) {
     case FCI_ARM_RUNTIME_INIT_OK: return "ok";
@@ -139,7 +185,6 @@ const char *fci_arm_runtime_init_issue_str(fci_arm_runtime_init_issue_t issue) {
     case FCI_ARM_RUNTIME_INIT_RPC_SERVER_CAPACITY: return "RPC server capacity is zero";
     case FCI_ARM_RUNTIME_INIT_RPC_TIMEOUT: return "RPC timeout exceeds wrap-safe range";
     case FCI_ARM_RUNTIME_INIT_RPC_CACHE_POLICY: return "unknown RPC cache policy";
-    case FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY: return "canonical request capacity is zero";
     case FCI_ARM_RUNTIME_INIT_LAYOUT_OVERFLOW: return "runtime layout size overflow";
     case FCI_ARM_RUNTIME_INIT_STORAGE_TOO_SMALL: return "runtime storage is too small";
     case FCI_ARM_RUNTIME_INIT_STORAGE_NULL: return "runtime storage data is null";
@@ -177,28 +222,9 @@ typedef struct {
   void *rpc_server_cache_slots;
   void *rpc_server_responses;
   size_t rpc_server_responses_size;
-  void *acquire_control_lease_canonical_request_storage;
-  void *clear_error_canonical_request_storage;
-  void *clear_faults_canonical_request_storage;
-  void *emergency_stop_canonical_request_storage;
-  void *get_device_info_canonical_request_storage;
-  void *get_device_settings_canonical_request_storage;
-  void *get_motor_feedback_canonical_request_storage;
-  void *home_canonical_request_storage;
-  void *motor_register_read_canonical_request_storage;
-  void *motor_register_write_canonical_request_storage;
-  void *motor_set_zero_canonical_request_storage;
-  void *motor_store_parameters_canonical_request_storage;
-  void *release_control_lease_canonical_request_storage;
-  void *set_arm_control_mode_canonical_request_storage;
-  void *set_arm_mode_canonical_request_storage;
-  void *set_device_info_canonical_request_storage;
-  void *set_device_settings_canonical_request_storage;
-  void *set_gripper_control_mode_canonical_request_storage;
-  void *set_zero_canonical_request_storage;
 } fci_arm_runtime_layout_t;
 
-static int fci_arm_runtime_storage_region(fci_arm_runtime_storage_cursor_t *cursor, size_t alignment, size_t count, size_t element_size, void **out_data, size_t *out_size) {
+static inline int fci_arm_runtime_storage_region(fci_arm_runtime_storage_cursor_t *cursor, size_t alignment, size_t count, size_t element_size, void **out_data, size_t *out_size) {
   size_t aligned;
   size_t region_size;
   if (cursor == NULL || alignment == 0U || (alignment & (alignment - 1U)) != 0U) return WL_ERR_INVALID_ARG;
@@ -250,6 +276,7 @@ static int fci_arm_runtime_layout(const fci_arm_runtime_config_t *config, uint8_
     result = fci_arm_runtime_storage_region(&cursor, _Alignof(arm_diagnostics_t), 1U, route_requirements.storage_size, out_layout == NULL ? NULL : &out_layout->arm_diagnostics_latest_storage, NULL);
     if (result != WL_OK) return result;
   }
+  if (fci_arm_runtime_roles_valid(config) != WL_OK) return WL_ERR_NOT_SUPPORTED;
   if (config->rpc_client_enabled > 1U || config->rpc_server_enabled > 1U) return WL_ERR_INVALID_ARG;
   if (config->rpc_client_enabled != 0U) {
     if (config->rpc_client_slot_count == 0U || config->rpc_client_response_capacity == 0U) return WL_ERR_INVALID_ARG;
@@ -270,63 +297,6 @@ static int fci_arm_runtime_layout(const fci_arm_runtime_config_t *config, uint8_
     result = fci_arm_runtime_storage_region(&cursor, _Alignof(wl_rpc_server_cache_slot_t), config->rpc_server_cache_slot_count, sizeof(wl_rpc_server_cache_slot_t), out_layout == NULL ? NULL : &out_layout->rpc_server_cache_slots, NULL);
     if (result != WL_OK) return result;
     result = fci_arm_runtime_storage_region(&cursor, 1U, config->rpc_server_cache_slot_count, config->rpc_server_response_capacity, out_layout == NULL ? NULL : &out_layout->rpc_server_responses, out_layout == NULL ? NULL : &out_layout->rpc_server_responses_size);
-    if (result != WL_OK) return result;
-    if (config->acquire_control_lease_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->acquire_control_lease_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->acquire_control_lease_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->clear_error_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->clear_error_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->clear_error_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->clear_faults_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->clear_faults_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->clear_faults_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->emergency_stop_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->emergency_stop_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->emergency_stop_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->get_device_info_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->get_device_info_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->get_device_info_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->get_device_settings_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->get_device_settings_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->get_device_settings_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->get_motor_feedback_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->get_motor_feedback_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->get_motor_feedback_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->home_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->home_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->home_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->motor_register_read_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->motor_register_read_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->motor_register_read_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->motor_register_write_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->motor_register_write_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->motor_register_write_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->motor_set_zero_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->motor_set_zero_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->motor_set_zero_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->motor_store_parameters_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->motor_store_parameters_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->motor_store_parameters_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->release_control_lease_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->release_control_lease_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->release_control_lease_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_arm_control_mode_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_arm_control_mode_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_arm_control_mode_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_arm_mode_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_arm_mode_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_arm_mode_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_device_info_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_device_info_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_device_info_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_device_settings_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_device_settings_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_device_settings_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_gripper_control_mode_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_gripper_control_mode_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_gripper_control_mode_canonical_request_storage, NULL);
-    if (result != WL_OK) return result;
-    if (config->set_zero_canonical_request_capacity == 0U) return WL_ERR_INVALID_ARG;
-    result = fci_arm_runtime_storage_region(&cursor, 1U, 1U, config->set_zero_canonical_request_capacity, out_layout == NULL ? NULL : &out_layout->set_zero_canonical_request_storage, NULL);
     if (result != WL_OK) return result;
   }
   if (out_requirements != NULL) {
@@ -351,6 +321,7 @@ static int fci_arm_runtime_init_validate(const fci_arm_runtime_instance_t *insta
   if (diagnostic != NULL) memset(diagnostic, 0, sizeof(*diagnostic));
   if (instance == NULL || config == NULL || storage == NULL || requirements == NULL || diagnostic == NULL)
     return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_NULL_ARGUMENT, instance == NULL ? "instance" : config == NULL ? "config" : storage == NULL ? "storage" : requirements == NULL ? "requirements" : "diagnostic", 1U, 0U, WL_ERR_INVALID_ARG);
+  if (fci_arm_runtime_roles_valid(config) != WL_OK) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_ROLE_ENABLE, "endpoint.rpc_role", 0U, 1U, WL_ERR_NOT_SUPPORTED);
   if (config->rpc_client_enabled > 1U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_ROLE_ENABLE, "rpc_client_enabled", 1U, config->rpc_client_enabled, WL_ERR_INVALID_ARG);
   if (config->rpc_server_enabled > 1U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_ROLE_ENABLE, "rpc_server_enabled", 1U, config->rpc_server_enabled, WL_ERR_INVALID_ARG);
   if (config->rpc_client_enabled != 0U && config->rpc_client_slot_count == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CLIENT_CAPACITY, "rpc_client_slot_count", 1U, 0U, WL_ERR_INVALID_ARG);
@@ -361,25 +332,6 @@ static int fci_arm_runtime_init_validate(const fci_arm_runtime_instance_t *insta
   if (config->rpc_server_enabled != 0U && config->rpc_server_pending_timeout_ms >= UINT32_C(0x80000000)) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_TIMEOUT, "rpc_server_pending_timeout_ms", UINT32_C(0x7fffffff), config->rpc_server_pending_timeout_ms, WL_ERR_INVALID_ARG);
   if (config->rpc_server_enabled != 0U && config->rpc_server_cache_ttl_ms >= UINT32_C(0x80000000)) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_TIMEOUT, "rpc_server_cache_ttl_ms", UINT32_C(0x7fffffff), config->rpc_server_cache_ttl_ms, WL_ERR_INVALID_ARG);
   if (config->rpc_server_enabled != 0U && config->rpc_server_cache_policy != WL_RPC_CACHE_REJECT_NEW && config->rpc_server_cache_policy != WL_RPC_CACHE_EVICT_OLDEST) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CACHE_POLICY, "rpc_server_cache_policy", 0U, (size_t)config->rpc_server_cache_policy, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->acquire_control_lease_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "acquire_control_lease_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->clear_error_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "clear_error_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->clear_faults_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "clear_faults_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->emergency_stop_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "emergency_stop_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->get_device_info_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "get_device_info_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->get_device_settings_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "get_device_settings_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->get_motor_feedback_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "get_motor_feedback_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->home_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "home_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->motor_register_read_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "motor_register_read_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->motor_register_write_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "motor_register_write_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->motor_set_zero_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "motor_set_zero_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->motor_store_parameters_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "motor_store_parameters_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->release_control_lease_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "release_control_lease_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_arm_control_mode_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_arm_control_mode_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_arm_mode_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_arm_mode_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_device_info_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_device_info_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_device_settings_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_device_settings_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_gripper_control_mode_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_gripper_control_mode_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
-  if (config->rpc_server_enabled != 0U && config->set_zero_canonical_request_capacity == 0U) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_RPC_CANONICAL_CAPACITY, "set_zero_canonical_request_capacity", 1U, 0U, WL_ERR_INVALID_ARG);
   result = fci_arm_runtime_requirements(config, requirements);
   if (result != WL_OK) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_LAYOUT_OVERFLOW, "config", 0U, 0U, result);
   if (storage->size < requirements->storage_size) return fci_arm_runtime_init_failure(diagnostic, FCI_ARM_RUNTIME_INIT_STORAGE_TOO_SMALL, "storage.size", requirements->storage_size, storage->size, WL_ERR_BUF_TOO_SMALL);
@@ -454,6 +406,7 @@ int fci_arm_runtime_init(fci_arm_runtime_instance_t *instance, const fci_arm_run
     if (result != WL_OK) goto init_failed;
     instance->runtime.arm_diagnostics_latest = &instance->arm_diagnostics_latest;
   }
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) {
     const wl_rpc_client_config_t client_config = {
       (wl_rpc_client_slot_t *)layout.rpc_client_slots,
@@ -469,6 +422,8 @@ int fci_arm_runtime_init(fci_arm_runtime_instance_t *instance, const fci_arm_run
     }
     instance->runtime.rpc_client = &instance->rpc_client;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     const wl_rpc_server_config_t server_config = {
       (wl_rpc_server_pending_slot_t *)layout.rpc_server_pending_slots,
@@ -488,158 +443,197 @@ int fci_arm_runtime_init(fci_arm_runtime_instance_t *instance, const fci_arm_run
     }
     instance->runtime.rpc_server = &instance->rpc_server;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.acquire_control_lease.request_scratch = &instance->acquire_control_lease_scratch.request;
-    instance->runtime.acquire_control_lease.canonical_request_scratch.data = (uint8_t *)layout.acquire_control_lease_canonical_request_storage;
-    instance->runtime.acquire_control_lease.canonical_request_scratch.capacity = config->acquire_control_lease_canonical_request_capacity;
     instance->runtime.acquire_control_lease.request_handler = config->acquire_control_lease_request_handler;
     instance->runtime.acquire_control_lease.user_data = config->acquire_control_lease_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.acquire_control_lease.response_scratch = &instance->acquire_control_lease_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.clear_error.request_scratch = &instance->clear_error_scratch.request;
-    instance->runtime.clear_error.canonical_request_scratch.data = (uint8_t *)layout.clear_error_canonical_request_storage;
-    instance->runtime.clear_error.canonical_request_scratch.capacity = config->clear_error_canonical_request_capacity;
     instance->runtime.clear_error.request_handler = config->clear_error_request_handler;
     instance->runtime.clear_error.user_data = config->clear_error_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.clear_error.response_scratch = &instance->clear_error_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.clear_faults.request_scratch = &instance->clear_faults_scratch.request;
-    instance->runtime.clear_faults.canonical_request_scratch.data = (uint8_t *)layout.clear_faults_canonical_request_storage;
-    instance->runtime.clear_faults.canonical_request_scratch.capacity = config->clear_faults_canonical_request_capacity;
     instance->runtime.clear_faults.request_handler = config->clear_faults_request_handler;
     instance->runtime.clear_faults.user_data = config->clear_faults_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.clear_faults.response_scratch = &instance->clear_faults_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.emergency_stop.request_scratch = &instance->emergency_stop_scratch.request;
-    instance->runtime.emergency_stop.canonical_request_scratch.data = (uint8_t *)layout.emergency_stop_canonical_request_storage;
-    instance->runtime.emergency_stop.canonical_request_scratch.capacity = config->emergency_stop_canonical_request_capacity;
     instance->runtime.emergency_stop.request_handler = config->emergency_stop_request_handler;
     instance->runtime.emergency_stop.user_data = config->emergency_stop_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.emergency_stop.response_scratch = &instance->emergency_stop_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.get_device_info.request_scratch = &instance->get_device_info_scratch.request;
-    instance->runtime.get_device_info.canonical_request_scratch.data = (uint8_t *)layout.get_device_info_canonical_request_storage;
-    instance->runtime.get_device_info.canonical_request_scratch.capacity = config->get_device_info_canonical_request_capacity;
     instance->runtime.get_device_info.request_handler = config->get_device_info_request_handler;
     instance->runtime.get_device_info.user_data = config->get_device_info_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.get_device_info.response_scratch = &instance->get_device_info_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.get_device_settings.request_scratch = &instance->get_device_settings_scratch.request;
-    instance->runtime.get_device_settings.canonical_request_scratch.data = (uint8_t *)layout.get_device_settings_canonical_request_storage;
-    instance->runtime.get_device_settings.canonical_request_scratch.capacity = config->get_device_settings_canonical_request_capacity;
     instance->runtime.get_device_settings.request_handler = config->get_device_settings_request_handler;
     instance->runtime.get_device_settings.user_data = config->get_device_settings_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.get_device_settings.response_scratch = &instance->get_device_settings_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.get_motor_feedback.request_scratch = &instance->get_motor_feedback_scratch.request;
-    instance->runtime.get_motor_feedback.canonical_request_scratch.data = (uint8_t *)layout.get_motor_feedback_canonical_request_storage;
-    instance->runtime.get_motor_feedback.canonical_request_scratch.capacity = config->get_motor_feedback_canonical_request_capacity;
     instance->runtime.get_motor_feedback.request_handler = config->get_motor_feedback_request_handler;
     instance->runtime.get_motor_feedback.user_data = config->get_motor_feedback_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.get_motor_feedback.response_scratch = &instance->get_motor_feedback_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.home.request_scratch = &instance->home_scratch.request;
-    instance->runtime.home.canonical_request_scratch.data = (uint8_t *)layout.home_canonical_request_storage;
-    instance->runtime.home.canonical_request_scratch.capacity = config->home_canonical_request_capacity;
     instance->runtime.home.request_handler = config->home_request_handler;
     instance->runtime.home.user_data = config->home_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.home.response_scratch = &instance->home_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.motor_register_read.request_scratch = &instance->motor_register_read_scratch.request;
-    instance->runtime.motor_register_read.canonical_request_scratch.data = (uint8_t *)layout.motor_register_read_canonical_request_storage;
-    instance->runtime.motor_register_read.canonical_request_scratch.capacity = config->motor_register_read_canonical_request_capacity;
     instance->runtime.motor_register_read.request_handler = config->motor_register_read_request_handler;
     instance->runtime.motor_register_read.user_data = config->motor_register_read_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.motor_register_read.response_scratch = &instance->motor_register_read_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.motor_register_write.request_scratch = &instance->motor_register_write_scratch.request;
-    instance->runtime.motor_register_write.canonical_request_scratch.data = (uint8_t *)layout.motor_register_write_canonical_request_storage;
-    instance->runtime.motor_register_write.canonical_request_scratch.capacity = config->motor_register_write_canonical_request_capacity;
     instance->runtime.motor_register_write.request_handler = config->motor_register_write_request_handler;
     instance->runtime.motor_register_write.user_data = config->motor_register_write_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.motor_register_write.response_scratch = &instance->motor_register_write_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.motor_set_zero.request_scratch = &instance->motor_set_zero_scratch.request;
-    instance->runtime.motor_set_zero.canonical_request_scratch.data = (uint8_t *)layout.motor_set_zero_canonical_request_storage;
-    instance->runtime.motor_set_zero.canonical_request_scratch.capacity = config->motor_set_zero_canonical_request_capacity;
     instance->runtime.motor_set_zero.request_handler = config->motor_set_zero_request_handler;
     instance->runtime.motor_set_zero.user_data = config->motor_set_zero_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.motor_set_zero.response_scratch = &instance->motor_set_zero_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.motor_store_parameters.request_scratch = &instance->motor_store_parameters_scratch.request;
-    instance->runtime.motor_store_parameters.canonical_request_scratch.data = (uint8_t *)layout.motor_store_parameters_canonical_request_storage;
-    instance->runtime.motor_store_parameters.canonical_request_scratch.capacity = config->motor_store_parameters_canonical_request_capacity;
     instance->runtime.motor_store_parameters.request_handler = config->motor_store_parameters_request_handler;
     instance->runtime.motor_store_parameters.user_data = config->motor_store_parameters_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.motor_store_parameters.response_scratch = &instance->motor_store_parameters_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.release_control_lease.request_scratch = &instance->release_control_lease_scratch.request;
-    instance->runtime.release_control_lease.canonical_request_scratch.data = (uint8_t *)layout.release_control_lease_canonical_request_storage;
-    instance->runtime.release_control_lease.canonical_request_scratch.capacity = config->release_control_lease_canonical_request_capacity;
     instance->runtime.release_control_lease.request_handler = config->release_control_lease_request_handler;
     instance->runtime.release_control_lease.user_data = config->release_control_lease_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.release_control_lease.response_scratch = &instance->release_control_lease_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_arm_control_mode.request_scratch = &instance->set_arm_control_mode_scratch.request;
-    instance->runtime.set_arm_control_mode.canonical_request_scratch.data = (uint8_t *)layout.set_arm_control_mode_canonical_request_storage;
-    instance->runtime.set_arm_control_mode.canonical_request_scratch.capacity = config->set_arm_control_mode_canonical_request_capacity;
     instance->runtime.set_arm_control_mode.request_handler = config->set_arm_control_mode_request_handler;
     instance->runtime.set_arm_control_mode.user_data = config->set_arm_control_mode_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_arm_control_mode.response_scratch = &instance->set_arm_control_mode_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_arm_mode.request_scratch = &instance->set_arm_mode_scratch.request;
-    instance->runtime.set_arm_mode.canonical_request_scratch.data = (uint8_t *)layout.set_arm_mode_canonical_request_storage;
-    instance->runtime.set_arm_mode.canonical_request_scratch.capacity = config->set_arm_mode_canonical_request_capacity;
     instance->runtime.set_arm_mode.request_handler = config->set_arm_mode_request_handler;
     instance->runtime.set_arm_mode.user_data = config->set_arm_mode_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_arm_mode.response_scratch = &instance->set_arm_mode_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_device_info.request_scratch = &instance->set_device_info_scratch.request;
-    instance->runtime.set_device_info.canonical_request_scratch.data = (uint8_t *)layout.set_device_info_canonical_request_storage;
-    instance->runtime.set_device_info.canonical_request_scratch.capacity = config->set_device_info_canonical_request_capacity;
     instance->runtime.set_device_info.request_handler = config->set_device_info_request_handler;
     instance->runtime.set_device_info.user_data = config->set_device_info_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_device_info.response_scratch = &instance->set_device_info_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_device_settings.request_scratch = &instance->set_device_settings_scratch.request;
-    instance->runtime.set_device_settings.canonical_request_scratch.data = (uint8_t *)layout.set_device_settings_canonical_request_storage;
-    instance->runtime.set_device_settings.canonical_request_scratch.capacity = config->set_device_settings_canonical_request_capacity;
     instance->runtime.set_device_settings.request_handler = config->set_device_settings_request_handler;
     instance->runtime.set_device_settings.user_data = config->set_device_settings_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_device_settings.response_scratch = &instance->set_device_settings_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_gripper_control_mode.request_scratch = &instance->set_gripper_control_mode_scratch.request;
-    instance->runtime.set_gripper_control_mode.canonical_request_scratch.data = (uint8_t *)layout.set_gripper_control_mode_canonical_request_storage;
-    instance->runtime.set_gripper_control_mode.canonical_request_scratch.capacity = config->set_gripper_control_mode_canonical_request_capacity;
     instance->runtime.set_gripper_control_mode.request_handler = config->set_gripper_control_mode_request_handler;
     instance->runtime.set_gripper_control_mode.user_data = config->set_gripper_control_mode_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_gripper_control_mode.response_scratch = &instance->set_gripper_control_mode_scratch.response;
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
     instance->runtime.set_zero.request_scratch = &instance->set_zero_scratch.request;
-    instance->runtime.set_zero.canonical_request_scratch.data = (uint8_t *)layout.set_zero_canonical_request_storage;
-    instance->runtime.set_zero.canonical_request_scratch.capacity = config->set_zero_canonical_request_capacity;
     instance->runtime.set_zero.request_handler = config->set_zero_request_handler;
     instance->runtime.set_zero.user_data = config->set_zero_user_data;
   }
+#endif
+#if FCI_ARM_RUNTIME_HAS_RPC_CLIENT
   if (config->rpc_client_enabled != 0U) instance->runtime.set_zero.response_scratch = &instance->set_zero_scratch.response;
+#endif
   if (config->rpc_client_enabled != 0U || config->rpc_server_enabled != 0U) instance->runtime.rpc_encode_scratch = &instance->rpc_encode_scratch;
   return WL_OK;
 
@@ -1086,7 +1080,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case ACQUIRE_CONTROL_LEASE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1108,7 +1102,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->acquire_control_lease.request_scratch == NULL || runtime->acquire_control_lease.canonical_request_scratch.data == NULL) {
+      if (runtime->acquire_control_lease.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1123,7 +1117,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->acquire_control_lease.request_scratch->operation_id;
-      result.detail.rpc.codec_status = acquire_control_lease_request_encode(runtime->acquire_control_lease.request_scratch, runtime->acquire_control_lease.canonical_request_scratch.data, runtime->acquire_control_lease.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = acquire_control_lease_request_wlc_detail_fingerprint(runtime->acquire_control_lease.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1132,7 +1126,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = ACQUIRE_CONTROL_LEASE_REQUEST_MESSAGE_ID;
       identity.response_message_id = ACQUIRE_CONTROL_LEASE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->acquire_control_lease.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1208,7 +1201,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case CLEAR_ERROR_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1230,7 +1223,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->clear_error.request_scratch == NULL || runtime->clear_error.canonical_request_scratch.data == NULL) {
+      if (runtime->clear_error.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1245,7 +1238,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->clear_error.request_scratch->operation_id;
-      result.detail.rpc.codec_status = clear_error_request_encode(runtime->clear_error.request_scratch, runtime->clear_error.canonical_request_scratch.data, runtime->clear_error.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = clear_error_request_wlc_detail_fingerprint(runtime->clear_error.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1254,7 +1247,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = CLEAR_ERROR_REQUEST_MESSAGE_ID;
       identity.response_message_id = CLEAR_ERROR_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->clear_error.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1330,7 +1322,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case CLEAR_FAULTS_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1352,7 +1344,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->clear_faults.request_scratch == NULL || runtime->clear_faults.canonical_request_scratch.data == NULL) {
+      if (runtime->clear_faults.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1367,7 +1359,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->clear_faults.request_scratch->operation_id;
-      result.detail.rpc.codec_status = clear_faults_request_encode(runtime->clear_faults.request_scratch, runtime->clear_faults.canonical_request_scratch.data, runtime->clear_faults.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = clear_faults_request_wlc_detail_fingerprint(runtime->clear_faults.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1376,7 +1368,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = CLEAR_FAULTS_REQUEST_MESSAGE_ID;
       identity.response_message_id = CLEAR_FAULTS_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->clear_faults.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1452,7 +1443,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case EMERGENCY_STOP_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1474,7 +1465,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->emergency_stop.request_scratch == NULL || runtime->emergency_stop.canonical_request_scratch.data == NULL) {
+      if (runtime->emergency_stop.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1489,7 +1480,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->emergency_stop.request_scratch->operation_id;
-      result.detail.rpc.codec_status = emergency_stop_request_encode(runtime->emergency_stop.request_scratch, runtime->emergency_stop.canonical_request_scratch.data, runtime->emergency_stop.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = emergency_stop_request_wlc_detail_fingerprint(runtime->emergency_stop.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1498,7 +1489,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = EMERGENCY_STOP_REQUEST_MESSAGE_ID;
       identity.response_message_id = EMERGENCY_STOP_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->emergency_stop.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1574,7 +1564,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case GET_DEVICE_INFO_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1596,7 +1586,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->get_device_info.request_scratch == NULL || runtime->get_device_info.canonical_request_scratch.data == NULL) {
+      if (runtime->get_device_info.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1611,7 +1601,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->get_device_info.request_scratch->operation_id;
-      result.detail.rpc.codec_status = get_device_info_request_encode(runtime->get_device_info.request_scratch, runtime->get_device_info.canonical_request_scratch.data, runtime->get_device_info.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = get_device_info_request_wlc_detail_fingerprint(runtime->get_device_info.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1620,7 +1610,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = GET_DEVICE_INFO_REQUEST_MESSAGE_ID;
       identity.response_message_id = GET_DEVICE_INFO_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->get_device_info.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1696,7 +1685,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1718,7 +1707,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->get_device_settings.request_scratch == NULL || runtime->get_device_settings.canonical_request_scratch.data == NULL) {
+      if (runtime->get_device_settings.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1733,7 +1722,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->get_device_settings.request_scratch->operation_id;
-      result.detail.rpc.codec_status = get_device_settings_request_encode(runtime->get_device_settings.request_scratch, runtime->get_device_settings.canonical_request_scratch.data, runtime->get_device_settings.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = get_device_settings_request_wlc_detail_fingerprint(runtime->get_device_settings.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1742,7 +1731,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID;
       identity.response_message_id = GET_DEVICE_SETTINGS_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->get_device_settings.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1818,7 +1806,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case GET_MOTOR_FEEDBACK_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1840,7 +1828,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->get_motor_feedback.request_scratch == NULL || runtime->get_motor_feedback.canonical_request_scratch.data == NULL) {
+      if (runtime->get_motor_feedback.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1855,7 +1843,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->get_motor_feedback.request_scratch->operation_id;
-      result.detail.rpc.codec_status = get_motor_feedback_request_encode(runtime->get_motor_feedback.request_scratch, runtime->get_motor_feedback.canonical_request_scratch.data, runtime->get_motor_feedback.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = get_motor_feedback_request_wlc_detail_fingerprint(runtime->get_motor_feedback.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1864,7 +1852,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = GET_MOTOR_FEEDBACK_REQUEST_MESSAGE_ID;
       identity.response_message_id = GET_MOTOR_FEEDBACK_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->get_motor_feedback.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -1940,7 +1927,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case HOME_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -1962,7 +1949,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->home.request_scratch == NULL || runtime->home.canonical_request_scratch.data == NULL) {
+      if (runtime->home.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -1977,7 +1964,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->home.request_scratch->operation_id;
-      result.detail.rpc.codec_status = home_request_encode(runtime->home.request_scratch, runtime->home.canonical_request_scratch.data, runtime->home.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = home_request_wlc_detail_fingerprint(runtime->home.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -1986,7 +1973,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = HOME_REQUEST_MESSAGE_ID;
       identity.response_message_id = HOME_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->home.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2062,7 +2048,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2084,7 +2070,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->motor_register_read.request_scratch == NULL || runtime->motor_register_read.canonical_request_scratch.data == NULL) {
+      if (runtime->motor_register_read.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2099,7 +2085,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->motor_register_read.request_scratch->operation_id;
-      result.detail.rpc.codec_status = motor_register_read_request_encode(runtime->motor_register_read.request_scratch, runtime->motor_register_read.canonical_request_scratch.data, runtime->motor_register_read.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = motor_register_read_request_wlc_detail_fingerprint(runtime->motor_register_read.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2108,7 +2094,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID;
       identity.response_message_id = MOTOR_REGISTER_READ_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->motor_register_read.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2184,7 +2169,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2206,7 +2191,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->motor_register_write.request_scratch == NULL || runtime->motor_register_write.canonical_request_scratch.data == NULL) {
+      if (runtime->motor_register_write.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2221,7 +2206,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->motor_register_write.request_scratch->operation_id;
-      result.detail.rpc.codec_status = motor_register_write_request_encode(runtime->motor_register_write.request_scratch, runtime->motor_register_write.canonical_request_scratch.data, runtime->motor_register_write.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = motor_register_write_request_wlc_detail_fingerprint(runtime->motor_register_write.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2230,7 +2215,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID;
       identity.response_message_id = MOTOR_REGISTER_WRITE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->motor_register_write.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2306,7 +2290,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2328,7 +2312,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->motor_set_zero.request_scratch == NULL || runtime->motor_set_zero.canonical_request_scratch.data == NULL) {
+      if (runtime->motor_set_zero.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2343,7 +2327,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->motor_set_zero.request_scratch->operation_id;
-      result.detail.rpc.codec_status = motor_set_zero_request_encode(runtime->motor_set_zero.request_scratch, runtime->motor_set_zero.canonical_request_scratch.data, runtime->motor_set_zero.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = motor_set_zero_request_wlc_detail_fingerprint(runtime->motor_set_zero.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2352,7 +2336,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = MOTOR_SET_ZERO_REQUEST_MESSAGE_ID;
       identity.response_message_id = MOTOR_SET_ZERO_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->motor_set_zero.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2428,7 +2411,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2450,7 +2433,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->motor_store_parameters.request_scratch == NULL || runtime->motor_store_parameters.canonical_request_scratch.data == NULL) {
+      if (runtime->motor_store_parameters.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2465,7 +2448,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->motor_store_parameters.request_scratch->operation_id;
-      result.detail.rpc.codec_status = motor_store_parameters_request_encode(runtime->motor_store_parameters.request_scratch, runtime->motor_store_parameters.canonical_request_scratch.data, runtime->motor_store_parameters.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = motor_store_parameters_request_wlc_detail_fingerprint(runtime->motor_store_parameters.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2474,7 +2457,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID;
       identity.response_message_id = MOTOR_STORE_PARAMETERS_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->motor_store_parameters.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2550,7 +2532,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case RELEASE_CONTROL_LEASE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2572,7 +2554,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->release_control_lease.request_scratch == NULL || runtime->release_control_lease.canonical_request_scratch.data == NULL) {
+      if (runtime->release_control_lease.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2587,7 +2569,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->release_control_lease.request_scratch->operation_id;
-      result.detail.rpc.codec_status = release_control_lease_request_encode(runtime->release_control_lease.request_scratch, runtime->release_control_lease.canonical_request_scratch.data, runtime->release_control_lease.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = release_control_lease_request_wlc_detail_fingerprint(runtime->release_control_lease.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2596,7 +2578,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = RELEASE_CONTROL_LEASE_REQUEST_MESSAGE_ID;
       identity.response_message_id = RELEASE_CONTROL_LEASE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->release_control_lease.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2672,7 +2653,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2694,7 +2675,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_arm_control_mode.request_scratch == NULL || runtime->set_arm_control_mode.canonical_request_scratch.data == NULL) {
+      if (runtime->set_arm_control_mode.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2709,7 +2690,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_arm_control_mode.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_arm_control_mode_request_encode(runtime->set_arm_control_mode.request_scratch, runtime->set_arm_control_mode.canonical_request_scratch.data, runtime->set_arm_control_mode.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_arm_control_mode_request_wlc_detail_fingerprint(runtime->set_arm_control_mode.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2718,7 +2699,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_ARM_CONTROL_MODE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_arm_control_mode.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2794,7 +2774,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_ARM_MODE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2816,7 +2796,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_arm_mode.request_scratch == NULL || runtime->set_arm_mode.canonical_request_scratch.data == NULL) {
+      if (runtime->set_arm_mode.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2831,7 +2811,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_arm_mode.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_arm_mode_request_encode(runtime->set_arm_mode.request_scratch, runtime->set_arm_mode.canonical_request_scratch.data, runtime->set_arm_mode.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_arm_mode_request_wlc_detail_fingerprint(runtime->set_arm_mode.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2840,7 +2820,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_ARM_MODE_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_ARM_MODE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_arm_mode.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -2916,7 +2895,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_DEVICE_INFO_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -2938,7 +2917,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_device_info.request_scratch == NULL || runtime->set_device_info.canonical_request_scratch.data == NULL) {
+      if (runtime->set_device_info.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -2953,7 +2932,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_device_info.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_device_info_request_encode(runtime->set_device_info.request_scratch, runtime->set_device_info.canonical_request_scratch.data, runtime->set_device_info.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_device_info_request_wlc_detail_fingerprint(runtime->set_device_info.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -2962,7 +2941,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_DEVICE_INFO_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_DEVICE_INFO_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_device_info.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -3038,7 +3016,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -3060,7 +3038,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_device_settings.request_scratch == NULL || runtime->set_device_settings.canonical_request_scratch.data == NULL) {
+      if (runtime->set_device_settings.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -3075,7 +3053,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_device_settings.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_device_settings_request_encode(runtime->set_device_settings.request_scratch, runtime->set_device_settings.canonical_request_scratch.data, runtime->set_device_settings.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_device_settings_request_wlc_detail_fingerprint(runtime->set_device_settings.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -3084,7 +3062,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_DEVICE_SETTINGS_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_device_settings.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -3160,7 +3137,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -3182,7 +3159,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_gripper_control_mode.request_scratch == NULL || runtime->set_gripper_control_mode.canonical_request_scratch.data == NULL) {
+      if (runtime->set_gripper_control_mode.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -3197,7 +3174,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_gripper_control_mode.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_gripper_control_mode_request_encode(runtime->set_gripper_control_mode.request_scratch, runtime->set_gripper_control_mode.canonical_request_scratch.data, runtime->set_gripper_control_mode.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_gripper_control_mode_request_wlc_detail_fingerprint(runtime->set_gripper_control_mode.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -3206,7 +3183,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_GRIPPER_CONTROL_MODE_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_gripper_control_mode.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
@@ -3282,7 +3258,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       break;
     }
     case SET_ZERO_REQUEST_MESSAGE_ID: {
-      wl_rpc_request_identity_t identity = {0};
+      wl_rpc_request_identity_t identity = {.request_fingerprint = fci_arm_rpc_fingerprint_seed};
       wl_rpc_server_request_t server_request = {0};
       wl_rpc_server_response_t replay = {0};
       size_t canonical_length = 0U;
@@ -3304,7 +3280,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         }
         if (observation.changed != 0U) result.detail.rpc.peer_changed = 1U;
       }
-      if (runtime->set_zero.request_scratch == NULL || runtime->set_zero.canonical_request_scratch.data == NULL) {
+      if (runtime->set_zero.request_scratch == NULL) {
         result.domain = FCI_ARM_RUNTIME_MISSING_SCRATCH;
         break;
       }
@@ -3319,7 +3295,7 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
         break;
       }
       result.detail.rpc.operation_id = runtime->set_zero.request_scratch->operation_id;
-      result.detail.rpc.codec_status = set_zero_request_encode(runtime->set_zero.request_scratch, runtime->set_zero.canonical_request_scratch.data, runtime->set_zero.canonical_request_scratch.capacity, &canonical_length);
+      result.detail.rpc.codec_status = set_zero_request_wlc_detail_fingerprint(runtime->set_zero.request_scratch, &identity.request_fingerprint, &canonical_length);
       if (result.detail.rpc.codec_status != WL_CODEC_OK) {
         result.domain = FCI_ARM_RUNTIME_CODEC_ERROR;
         break;
@@ -3328,7 +3304,6 @@ fci_arm_runtime_result_t fci_arm_runtime_dispatch_event(wl_ctx_t *ctx, const wl_
       identity.operation_id = result.detail.rpc.operation_id;
       identity.request_message_id = SET_ZERO_REQUEST_MESSAGE_ID;
       identity.response_message_id = SET_ZERO_RESPONSE_MESSAGE_ID;
-      identity.request_fingerprint = fci_arm_rpc_request_fingerprint(runtime->set_zero.canonical_request_scratch.data, canonical_length);
       identity.peer_session_id = event->peer_session_id;
       result.detail.rpc.rpc_result = wl_rpc_server_begin(runtime->rpc_server, &identity, now_ms, &result.detail.rpc.rpc_disposition, &server_request, &replay);
       if (result.detail.rpc.rpc_result != WL_RPC_OK) {
