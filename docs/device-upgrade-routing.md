@@ -3,7 +3,8 @@
 2026-09-10。FCI `device` 组合 arm revision 8 和 upgrade v1，不改变已有消息 ID、
 arm managed RPC 线格式或 upgrade mapped RPC 字段。编译器为 WLC
 `18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29`（0.7.0-dev / ABI 32），
-Wirelink 为 `a3d09e7ba26feb4128aadf227a17768402f47046`。
+Wirelink 为 `e180aa846893735f90d516271a5dedb599cb9264`（包含实机发现的 USB RX
+短尾部修复，ABI 32 不变）。
 
 `FciWirelinkEndpoint` 持有唯一 `fci_device_endpoint_t`、USB adapter 和 executor。
 `FciUpgradeClient` 只注册服务和 direct BulkStatus 回调，借用该 endpoint；没有自己的
@@ -65,8 +66,20 @@ USB 断线、peer session 改变和关闭会终止本地任务并释放 mapped R
   device 包含 Start 响应 ACK 门控、8 个 arm pending 时管理 RPC、CRC 失败、最大 chunk、
   安全态等待/接收超时、Abort 和会话更换。
 - Willow/H723、RAM HIL/H723 和真实 USB host 工具编译通过。
-- 实机未完成：J-Link 609799419 可连接、VTref 约 3.28 V，但 4000/100 kHz SWD 及
-  connect-under-reset 都无法连接 CPU；此次烧录未写入镜像。不能把模拟测试当成 USB HIL。
+- 实机已烧录/校验 inert H723 RAM HIL，未备份、未运行电机应用。USB 为
+  `2fe3:574c/323738373233511200260036`、Full Speed 12 Mbps。
+  独立恢复入口和共享 Arm 入口各连续 10/10 轮通过；共 40 次 64 KiB 完整上传、
+  20 次取消，包含 BUSY 重试、上传中的管理 RPC、取消后重传和独立入口的 peer 重开。
+- 首轮上传暴露 Zephyr/Astrial USB 适配层的短环尾互等：部分 COBS 帧不能先被消费，
+  旧适配层却等待 ring 排空。新 pin 使用 packet-aligned direct RX，短尾部只暂存一个
+  USB 包，保留背压字节；host 在暂存字节发布后再次唤醒 owner，避免漏唤醒。
+  新增 FS/HS packet 回归及 ASan/UBSan 各 5/5，core protocol 44/44；SDK 在新 pin 下
+  Release 与 ASan/UBSan 各 7/7。HS 是软件测试，不是本次实机速度。
+- 原有控制工具 3 × 10000 次回显全部正确，零 payload/dispatch/transport 错误；
+  **严格性能门槛未通过**：gap 29.5111% / 0.3557% / 0.2868%，p99
+  19.927 / 2.807 / 2.756 ms。机器有并行编译，尚无隔离负载对照，不能宣称性能验收完成。
+  完整本地日志见固件工作区 `build/device-hil/ram-upload-repeat-*.log` 和
+  `build/device-hil/arm-regression-no-probe.log`。
 
-下一步是修复板端连接后跑配套 HIL，之后才接 `UpgradeManager`/Flash sink 和 MCUboot
+下一步是严格性能复测，以及单独接入/验证 `UpgradeManager`/Flash sink 和 MCUboot
 生命周期。现有公开 Arm API 保持不变；新增 C++ 升级 API 尚未绑定到 Python。
