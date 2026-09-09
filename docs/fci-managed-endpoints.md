@@ -54,6 +54,10 @@ upgrade 和 dual 的线格式不变。详见
 - 共享协议：CTest 10/10，包含直接连接两个生成端点的 managed RPC 测试，
   验证请求快照、owned 响应、拒绝和超过槽容量次数的自动回收。
 - 固件：native_sim/QEMU 共 71/71；产品构建见配套固件报告。
+- WLC：142 项测试、`cargo fmt --check` 和严格 Clippy 通过。
+- Wirelink：主机 CTest 19/19；时钟、frozen-v1 与 current/previous codec 单元
+  测试 17/17；生成 runtime 的 QEMU 集成 5/5。后者使用仅含 Wirelink/CMSIS
+  的 `ZEPHYR_MODULES`，排除当前 Ragtime workspace 全局模块引入的 CXX 配置错误。
 
 没有测 CPU 或延迟，也没有在 H7 烧录。本轮仅本地 dev 提交；依赖尚未推送。
 发布开发分支时须先推送 Wirelink/WLC/FCI，再推送引用这些提交的消费者。
