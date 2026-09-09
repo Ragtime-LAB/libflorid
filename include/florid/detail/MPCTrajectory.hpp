@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
 
 namespace florid::detail {
 struct MPCJointState {
@@ -27,6 +28,8 @@ public:
             m_d[i] = s_from.m_q[i];
         }
     }
+
+    double duration() const noexcept { return m_dt; }
 
     MPCJointState sample(double s_time) const {
         const double s_u = std::clamp(s_time / m_dt, 0.0, 1.0);
@@ -86,5 +89,26 @@ MPCJointState sampleMPC(const std::array<MPCJointState, N>& s_knots,
     const auto s_t = std::clamp(s_time, 0.0, s_dt * (N - 1));
     const auto s_i = std::min(static_cast<std::size_t>(s_t / s_dt), N - 2);
     return MPCCubic(s_knots[s_i], s_knots[s_i + 1], s_dt).sample(s_t - s_i*s_dt);
+}
+
+// Try at most eleven C1 handoffs on the original prediction time axis. A longer
+// duration moves the destination too, so each candidate needs its own check.
+template <std::size_t N>
+std::optional<MPCCubic> makeMPCTransition(const MPCJointState& s_from,
+                                       const std::array<MPCJointState, N>& s_knots,
+                                       double s_dt, double s_age, double s_plan_timeout,
+                                       const MPCJointLimits& s_limits) {
+    static_assert(N >= 2);
+    if (!std::isfinite(s_dt) || s_dt <= 0 || !std::isfinite(s_age) || s_age < 0 ||
+        !std::isfinite(s_plan_timeout) || s_plan_timeout <= 0) return std::nullopt;
+    const double s_remaining = std::min(s_dt * (N - 1), s_plan_timeout) - s_age;
+    for (int s_ms = 20; s_ms <= 40; s_ms += 2) {
+        const double s_duration = s_ms * 0.001;
+        if (s_duration > s_remaining) break;
+        const auto s_to = sampleMPC(s_knots, s_dt, s_age + s_duration);
+        MPCCubic s_curve(s_from, s_to, s_duration);
+        if (s_curve.within(s_limits)) return s_curve;
+    }
+    return std::nullopt;
 }
 } // namespace florid::detail

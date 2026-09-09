@@ -263,7 +263,7 @@ void MPCSession::outputLoop() noexcept {
         bool s_has_previous = false;
         auto s_sample = [&](MPCClock::time_point s_t) {
             const double s_blend_time = seconds(s_t - s_bridge_start);
-            if (s_bridge && s_blend_time <= MPCPlan::kDt)
+            if (s_bridge && s_blend_time <= s_bridge->duration())
                 return s_bridge->sample(s_blend_time);
             return sampleMPC(s_active.m_knots, MPCPlan::kDt, seconds(s_t - s_active.m_origin));
         };
@@ -308,10 +308,9 @@ void MPCSession::outputLoop() noexcept {
                         s_anchor.m_dq[i] = s_measurement.m_state.m_dq[i];
                     }
                 }
-                const auto s_end = sampleMPC(s_new.m_knots, MPCPlan::kDt,
-                    seconds(s_now - s_new.m_origin) + MPCPlan::kDt);
-                MPCCubic s_transition(s_anchor, s_end, MPCPlan::kDt);
-                if (!s_transition.within(m_limits)) { fault(MPCStopReason::kInvalidTrajectory); return; }
+                const auto s_transition = makeMPCTransition(s_anchor, s_new.m_knots, MPCPlan::kDt,
+                    seconds(s_now - s_new.m_origin), seconds(m_config.plan_timeout), m_limits);
+                if (!s_transition) { fault(MPCStopReason::kInvalidTrajectory); return; }
                 s_active = s_new;
                 s_bridge = s_transition;
                 s_bridge_start = s_now;
