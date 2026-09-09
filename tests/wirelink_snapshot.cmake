@@ -11,8 +11,6 @@ file(COPY "${LF_SOURCE_DIR}/cmake" DESTINATION "${_source}")
 file(COPY "${LF_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake"
     DESTINATION "${_source}/protocol/cmake")
 file(COPY "${LF_SOURCE_DIR}/protocol/schema/wirelink/arm"
-    "${LF_SOURCE_DIR}/protocol/schema/wirelink/upgrade"
-    "${LF_SOURCE_DIR}/protocol/schema/wirelink/device"
     DESTINATION "${_source}/protocol/schema/wirelink")
 file(COPY "${LF_SOURCE_DIR}/generated/wirelink" DESTINATION "${_source}/generated")
 set(_project [=[
@@ -46,14 +44,6 @@ function(_configure_case name expected)
 endfunction()
 
 _configure_case("valid snapshot without WLC" PASS)
-
-foreach(_input IN ITEMS upgrade/fci_upgrade.wl device/fci_device.wl device/host.bind.wl)
-    set(_path "${_source}/protocol/schema/wirelink/${_input}")
-    file(READ "${_path}" _saved)
-    file(APPEND "${_path}" "\n// transitive snapshot dependency probe\n")
-    _configure_case("changed ${_input}" "stale or modified")
-    file(WRITE "${_path}" "${_saved}")
-endforeach()
 set(_schema "${_source}/protocol/schema/wirelink/arm/fci_arm.wl")
 file(READ "${_schema}" _original_schema)
 file(APPEND "${_schema}" "\n// changed input\n")
@@ -72,7 +62,7 @@ file(APPEND "${_services}" "\n// changed shared service\n")
 _configure_case("changed shared services" "stale or modified")
 file(WRITE "${_services}" "${_original_services}")
 
-set(_output "${_source}/generated/wirelink/codec/fci_device.c")
+set(_output "${_source}/generated/wirelink/codec/fci_arm.c")
 file(READ "${_output}" _original_output)
 file(APPEND "${_output}" "\n/* changed generated file */\n")
 _configure_case("changed generated file" "stale or modified")
@@ -81,7 +71,7 @@ file(RENAME "${_output}" "${_output}.saved")
 _configure_case("missing generated file" "Missing")
 file(RENAME "${_output}.saved" "${_output}")
 
-set(_manifest "${_source}/generated/wirelink/codec/fci_device_manifest.json")
+set(_manifest "${_source}/generated/wirelink/codec/fci_arm_manifest.json")
 file(READ "${_manifest}" _original_manifest)
 string(JSON _changed SET "${_original_manifest}" compiler codegen_abi 999)
 file(WRITE "${_manifest}" "${_changed}")

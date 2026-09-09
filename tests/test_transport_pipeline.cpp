@@ -5,7 +5,7 @@
 #include "florid/detail/UdpTransport.hpp"
 #include "florid/detail/WirelinkExecutor.hpp"
 
-#include "fci_device_bindings.h"
+#include "fci_arm_bindings.h"
 #ifdef FLORID_HAS_MPC
 #include "florid/Model.hpp"
 #include "florid/traits/WillowTraits.hpp"

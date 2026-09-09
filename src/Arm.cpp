@@ -205,8 +205,6 @@ std::unique_ptr<Arm> Arm::create(const std::string& s_uri) {
     }
 }
 
-FirmwareUpdater Arm::firmwareUpdater() const { return FirmwareUpdater(m_impl); }
-
 const char* armConnectionErrorMessage(ArmConnectionError s_error) noexcept {
     switch (s_error) {
         case ArmConnectionError::kNone: return "no error";

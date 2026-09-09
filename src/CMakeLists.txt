@@ -1,6 +1,5 @@
 add_library(florid_wirelink_host
     FciWirelinkEndpoint.cpp
-    FciUpgradeClient.cpp
 )
 add_library(florid::wirelink_host ALIAS florid_wirelink_host)
 
@@ -11,7 +10,7 @@ target_include_directories(florid_wirelink_host
 target_compile_features(florid_wirelink_host PUBLIC cxx_std_20)
 target_link_libraries(florid_wirelink_host
     PUBLIC
-        fci_protocol::device
+        fci_protocol::arm
         Wirelink::host
         Wirelink::platform
     PRIVATE
@@ -27,7 +26,6 @@ add_library(florid
     ArmImpl.cpp
     Arm.cpp
     Gripper.cpp
-    FirmwareUpdater.cpp
     LatencyEstimator.cpp
 )
 

@@ -13,12 +13,12 @@ endforeach()
 
 # Copy only compiler artifacts, never stamps or build-system state.
 file(MAKE_DIRECTORY "${LF_STAGING_DIR}/codec" "${LF_STAGING_DIR}/host")
-foreach(_file IN ITEMS fci_device.c fci_device.h fci_device_values.h fci_device_bindings.c
-        fci_device_bindings.h fci_device_manifest.json)
+foreach(_file IN ITEMS fci_arm.c fci_arm.h fci_arm_values.h fci_arm_bindings.c
+        fci_arm_bindings.h fci_arm_manifest.json)
     configure_file("${LF_CODEC_DIR}/${_file}" "${LF_STAGING_DIR}/codec/${_file}" COPYONLY)
 endforeach()
-foreach(_file IN ITEMS fci_device_runtime.c fci_device_runtime.h fci_device_endpoint.h
-        fci_device_advanced.h fci_device_runtime_manifest.json)
+foreach(_file IN ITEMS fci_arm_runtime.c fci_arm_runtime.h fci_arm_endpoint.h
+        fci_arm_advanced.h fci_arm_runtime_manifest.json)
     configure_file("${LF_RUNTIME_DIR}/${_file}" "${LF_STAGING_DIR}/host/${_file}" COPYONLY)
 endforeach()
 lf_wirelink_snapshot_content("${LF_SOURCE_DIR}" "${LF_STAGING_DIR}" _fresh)

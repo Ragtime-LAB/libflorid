@@ -32,8 +32,8 @@ def main():
         "3rdparty/wirelink/cmake/WirelinkWlcBootstrap.cmake",
         "cmake/FloridWirelink.cmake",
         "generated/wirelink/snapshot.txt",
-        "generated/wirelink/codec/fci_device.c",
-        "generated/wirelink/host/fci_device_runtime.c",
+        "generated/wirelink/codec/fci_arm.c",
+        "generated/wirelink/host/fci_arm_runtime.c",
     ):
         if not (source / required).is_file():
             raise RuntimeError(f"sdist is missing {required}")

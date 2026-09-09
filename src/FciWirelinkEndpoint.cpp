@@ -292,21 +292,17 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
     auto s_environment = wl_platform_environment();
     s_environment.session = s_config.m_session_source;
     s_environment.clock = {[](void*) -> wl_time_ms_t { return s_nowMs(); }, nullptr};
-    fci_device_endpoint_config_t s_endpoint_config;
-    int s_result = fci_device_endpoint_config_defaults(&s_endpoint_config, s_environment);
+    fci_arm_endpoint_config_t s_endpoint_config;
+    int s_result = fci_arm_endpoint_config_defaults(&s_endpoint_config, s_environment);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
     s_endpoint_config.link.integrity = WL_INTEGRITY_NONE;
     s_endpoint_config.link.max_retries = s_config.m_max_retries;
     s_endpoint_config.link.ack_timeout_ms = s_config.m_ack_timeout_ms;
     s_endpoint_config.on_result = s_onResult;
     s_endpoint_config.user_data = this;
-    m_upgrade.configure(s_endpoint_config);
-    s_result = fci_device_endpoint_init_config(&m_endpoint, &s_endpoint_config);
+    s_result = fci_arm_endpoint_init_config(&m_endpoint, &s_endpoint_config);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
     m_endpoint_storage_bytes = sizeof(m_endpoint);
-    m_upgrade.attach(m_endpoint, s_transportWake, this);
-    s_result = wl_endpoint_set_services(fci_device_endpoint_handle(&m_endpoint), &m_upgrade.service(), 1U);
-    if (s_result != WL_OK) return s_endpointStatus(s_result);
 
     const wl_endpoint_policy_t s_policy{
         .user_data = this,
@@ -314,16 +310,16 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         .progress = s_applicationProgress,
         .deadline_hint = s_applicationDeadline,
     };
-    s_result = wl_endpoint_set_policy(fci_device_endpoint_handle(&m_endpoint), &s_policy);
+    s_result = wl_endpoint_set_policy(fci_arm_endpoint_handle(&m_endpoint), &s_policy);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
     wl_pump_hooks_t s_adapter{};
     s_adapter.adapter_user_data = this;
     s_adapter.service = s_transportService;
     s_adapter.quiesce = s_quiesce;
     s_adapter.adapter_deadline_hint = s_transportDeadline;
-    s_result = wl_endpoint_attach(fci_device_endpoint_handle(&m_endpoint), &s_adapter);
+    s_result = wl_endpoint_attach(fci_arm_endpoint_handle(&m_endpoint), &s_adapter);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
-    s_result = m_executor.initialize(fci_device_endpoint_driver(&m_endpoint));
+    s_result = m_executor.initialize(fci_arm_endpoint_driver(&m_endpoint));
     if (s_result != WL_OK) return s_endpointStatus(s_result);
 
     m_command_capabilities.store(0U, std::memory_order_relaxed);
@@ -379,10 +375,8 @@ FciEndpointStatus FciWirelinkEndpoint::start() noexcept {
         // setup-only callback pointers cannot change underneath it.
         m_running = true;
     }
-    m_upgrade.connected(true);
     const int s_result = m_executor.start();
     if (s_result != WL_OK) {
-        m_upgrade.connected(false);
         std::lock_guard<std::mutex> s_lock(m_mutex);
         m_running = false;
         return s_endpointStatus(s_result);
@@ -391,7 +385,6 @@ FciEndpointStatus FciWirelinkEndpoint::start() noexcept {
 }
 
 void FciWirelinkEndpoint::stop() noexcept {
-    m_upgrade.connected(false);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if (!m_initialized) return;
@@ -1174,8 +1167,8 @@ void FciWirelinkEndpoint::s_onEvent(void* s_user_data, wl_ctx_t*,
 }
 
 void FciWirelinkEndpoint::s_onResult(void* s_user_data,
-    const fci_device_runtime_result_t* s_result) noexcept {
-    if (fci_device_runtime_result_ok(s_result) || s_result->domain == FCI_DEVICE_RUNTIME_NON_RX) return;
+    const fci_arm_runtime_result_t* s_result) noexcept {
+    if (fci_arm_runtime_result_ok(s_result) || s_result->domain == FCI_ARM_RUNTIME_NON_RX) return;
     static_cast<FciWirelinkEndpoint*>(s_user_data)->m_stats.m_dispatch_errors.fetch_add(
         1, std::memory_order_relaxed);
 }
@@ -1226,12 +1219,9 @@ void FciWirelinkEndpoint::s_quiesce(void* s_user_data) noexcept {
 
 int FciWirelinkEndpoint::s_transportService(void* s_user_data) noexcept {
     auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
-    if (!s_self.m_direct_transport) return WL_OK;
-    const int s_result = s_self.m_direct_transport->serviceWirelink();
-    const auto s_state = s_self.m_direct_transport->connectionState();
-    if (s_state == TransportConnectionState::kDisconnected || s_state == TransportConnectionState::kClosed)
-        s_self.m_upgrade.disconnected();
-    return s_result;
+    return s_self.m_direct_transport == nullptr
+               ? WL_OK
+               : s_self.m_direct_transport->serviceWirelink();
 }
 
 void FciWirelinkEndpoint::s_transportWake(void* s_user_data) noexcept {
@@ -1275,7 +1265,6 @@ FciEndpointStatus FciWirelinkEndpoint::s_endpointStatus(int s_result) noexcept {
 FciEndpointStatus FciWirelinkEndpoint::s_commandToken(
     std::uint64_t& s_token) const noexcept {
     s_token = 0;
-    if (m_upgrade.active()) return FciEndpointStatus::kBusy;
     std::lock_guard<std::mutex> s_lock(m_mutex);
     if (!m_running) return FciEndpointStatus::kNotReady;
     if ((m_lease.m_state != FciControlLeaseState::kHeld &&
@@ -1334,14 +1323,7 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
             m_lease.m_granted_timeout_ms = 0;
         }
     }
-    if (m_upgrade.active()) {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        // StartUpgrade revokes control. Drop the SDK snapshot as well, so a
-        // due lease renewal cannot keep the owner awake throughout upload.
-        m_lease = {};
-    } else {
-        (void)s_scheduleRenewal(s_now_ms);
-    }
+    (void)s_scheduleRenewal(s_now_ms);
     // Consumed telemetry/completions and expired leases are history, not a
     // request for another owner pass. Core/adapter hints and producer notify()
     // cover remaining RX, deadlines and callbacks that enqueue work. A newly
@@ -1352,8 +1334,8 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
 
 bool FciWirelinkEndpoint::s_drainLatest() noexcept {
     bool s_progressed = false;
-    fci_device_arm_status_latest_view_t s_arm_view{};
-    const int s_arm_result = fci_device_arm_status_latest_acquire(
+    fci_arm_arm_status_latest_view_t s_arm_view{};
+    const int s_arm_result = fci_arm_arm_status_latest_acquire(
         s_runtime(), &s_arm_view);
     if (s_arm_result == WL_OK) {
         m_stats.m_latest_acquires.fetch_add(1, std::memory_order_relaxed);
@@ -1364,7 +1346,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
             void* const s_user_data = m_callback_user_data;
             if (s_callback != nullptr) s_callback(s_user_data, s_snapshot);
         }
-        if (fci_device_arm_status_latest_release(s_runtime(),
+        if (fci_arm_arm_status_latest_release(s_runtime(),
                                               &s_arm_view) == WL_OK) {
             m_stats.m_latest_releases.fetch_add(1,
                                                std::memory_order_relaxed);
@@ -1372,8 +1354,8 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
         s_progressed = true;
     }
 
-    fci_device_arm_diagnostics_latest_view_t s_diagnostics_view{};
-    const int s_diagnostics_result = fci_device_arm_diagnostics_latest_acquire(
+    fci_arm_arm_diagnostics_latest_view_t s_diagnostics_view{};
+    const int s_diagnostics_result = fci_arm_arm_diagnostics_latest_acquire(
         s_runtime(), &s_diagnostics_view);
     if (s_diagnostics_result == WL_OK) {
         m_stats.m_latest_acquires.fetch_add(1, std::memory_order_relaxed);
@@ -1384,7 +1366,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
             void* const s_user_data = m_callback_user_data;
             if (s_callback != nullptr) s_callback(s_user_data, s_domain);
         }
-        if (fci_device_arm_diagnostics_latest_release(
+        if (fci_arm_arm_diagnostics_latest_release(
                 s_runtime(), &s_diagnostics_view) == WL_OK) {
             m_stats.m_latest_releases.fetch_add(1,
                                                std::memory_order_relaxed);
@@ -1407,7 +1389,7 @@ template <typename Response>
 void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
     const wl_rpc_completion_t& s_completion, const Response* s_response_ptr) noexcept {
     wl_time_ms_t s_now_ms{};
-    (void)wl_endpoint_now(fci_device_endpoint_handle(&m_endpoint), &s_now_ms);
+    (void)wl_endpoint_now(fci_arm_endpoint_handle(&m_endpoint), &s_now_ms);
     RpcKind s_kind{};
     bool s_internal{};
     {
@@ -1625,7 +1607,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
                 s_request.has_current_token = true;
                 s_request.current_token = s_slot.m_request.m_lease_token;
             }
-            s_started = fci_device_endpoint_acquire_control_lease_async(
+            s_started = fci_arm_endpoint_acquire_control_lease_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<acquire_control_lease_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1634,14 +1616,14 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             release_control_lease_request_value_t s_request{};
             s_request.has_lease_token = true;
             s_request.lease_token = s_slot.m_request.m_lease_token;
-            s_started = fci_device_endpoint_release_control_lease_async(
+            s_started = fci_arm_endpoint_release_control_lease_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<release_control_lease_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
         case RpcKind::kGetDeviceInfo: {
             get_device_info_request_value_t s_request{};
-            s_started = fci_device_endpoint_get_device_info_async(
+            s_started = fci_arm_endpoint_get_device_info_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<get_device_info_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1652,14 +1634,14 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.custom_name.length = s_slot.m_request.m_custom_name_size;
             std::copy_n(s_slot.m_request.m_custom_name.data(), s_request.custom_name.length,
                         s_request.custom_name.data);
-            s_started = fci_device_endpoint_set_device_info_async(
+            s_started = fci_arm_endpoint_set_device_info_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_device_info_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
         case RpcKind::kGetDeviceSettings: {
             get_device_settings_request_value_t s_request{};
-            s_started = fci_device_endpoint_get_device_settings_async(
+            s_started = fci_arm_endpoint_get_device_settings_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<get_device_settings_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1669,7 +1651,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_settings = true;
             s_settingsToWire(s_slot.m_request.m_device_settings,
                              s_request.settings);
-            s_started = fci_device_endpoint_set_device_settings_async(
+            s_started = fci_arm_endpoint_set_device_settings_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_device_settings_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1678,7 +1660,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_control_mode_request_value_t s_request{};
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_device_endpoint_set_arm_control_mode_async(
+            s_started = fci_arm_endpoint_set_arm_control_mode_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_arm_control_mode_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1687,7 +1669,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_gripper_control_mode_request_value_t s_request{};
             s_request.has_mode = true;
             s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_device_endpoint_set_gripper_control_mode_async(
+            s_started = fci_arm_endpoint_set_gripper_control_mode_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_gripper_control_mode_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1696,14 +1678,14 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_arm_mode_request_value_t s_request{};
             s_request.has_mode = true;
             s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
-            s_started = fci_device_endpoint_set_arm_mode_async(
+            s_started = fci_arm_endpoint_set_arm_mode_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_arm_mode_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
         case RpcKind::kHome: {
             home_request_value_t s_request{};
-            s_started = fci_device_endpoint_home_async(
+            s_started = fci_arm_endpoint_home_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<home_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1712,7 +1694,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             set_zero_request_value_t s_request{};
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_device_endpoint_set_zero_async(
+            s_started = fci_arm_endpoint_set_zero_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<set_zero_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1721,21 +1703,21 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             clear_error_request_value_t s_request{};
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_device_endpoint_clear_error_async(
+            s_started = fci_arm_endpoint_clear_error_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<clear_error_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
         case RpcKind::kClearFaults: {
             clear_faults_request_value_t s_request{};
-            s_started = fci_device_endpoint_clear_faults_async(
+            s_started = fci_arm_endpoint_clear_faults_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<clear_faults_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
         case RpcKind::kEmergencyStop: {
             emergency_stop_request_value_t s_request{};
-            s_started = fci_device_endpoint_emergency_stop_async(
+            s_started = fci_arm_endpoint_emergency_stop_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<emergency_stop_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1746,7 +1728,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_request.has_register_id = true;
             s_request.register_id = s_slot.m_request.m_register_id;
-            s_started = fci_device_endpoint_motor_register_read_async(
+            s_started = fci_arm_endpoint_motor_register_read_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<motor_register_read_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1759,7 +1741,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.register_id = s_slot.m_request.m_register_id;
             s_request.has_value = true;
             s_request.value = s_slot.m_request.m_value;
-            s_started = fci_device_endpoint_motor_register_write_async(
+            s_started = fci_arm_endpoint_motor_register_write_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<motor_register_write_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1769,7 +1751,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
             s_started =
-                fci_device_endpoint_motor_store_parameters_async(
+                fci_arm_endpoint_motor_store_parameters_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<motor_store_parameters_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1778,7 +1760,7 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             motor_set_zero_request_value_t s_request{};
             s_request.has_joint_id = true;
             s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_device_endpoint_motor_set_zero_async(
+            s_started = fci_arm_endpoint_motor_set_zero_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<motor_set_zero_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
@@ -1848,9 +1830,6 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
     RpcKind s_kind, std::uint32_t s_timeout_ms,
     const OperationRequest& s_request, bool s_internal) noexcept {
     std::uint64_t s_request_id{};
-    if (m_upgrade.active() && s_kind != RpcKind::kGetDeviceInfo &&
-        s_kind != RpcKind::kGetDeviceSettings && s_kind != RpcKind::kEmergencyStop)
-        return {FciEndpointStatus::kBusy, 0};
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if (!m_running) return {FciEndpointStatus::kNotReady, 0};
