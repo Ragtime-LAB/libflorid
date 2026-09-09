@@ -1,0 +1,72 @@
+# 共享产品路由与 RAM 上传验证
+
+2026-09-10。FCI `device` 组合 arm revision 8 和 upgrade v1，不改变已有消息 ID、
+arm managed RPC 线格式或 upgrade mapped RPC 字段。编译器为 WLC
+`18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29`（0.7.0-dev / ABI 32），
+Wirelink 为 `a3d09e7ba26feb4128aadf227a17768402f47046`。
+
+`FciWirelinkEndpoint` 持有唯一 `fci_device_endpoint_t`、USB adapter 和 executor。
+`FciUpgradeClient` 只注册服务和 direct BulkStatus 回调，借用该 endpoint；没有自己的
+链路、USB 连接或线程。mapped RPC 使用同一个 RPC client 的自动 ID 分配器，避免与
+managed arm 调用编号碰撞。产品配置为 2048 字节 payload、8192 字节 RX FIFO、10 个
+RPC 槽；SDK arm 队列仍为 8（7 个公开调用加续租保留任务），为升级管理留下容量。
+
+## 入口
+
+已有 Arm 时，先停止控制循环，再取得共享视图；视图保持原会话存活，不会第二次打开 USB：
+
+```cpp
+arm->stop();
+auto updater = arm->firmwareUpdater();
+auto boot = updater.bootStatus();
+auto admitted = updater.startUpload(image_bytes);
+auto progress = updater.progress();
+updater.cancel(); // 异步；等待 progress.active() == false 后再开始下一次
+```
+
+恢复工具可以直接连接，不调用 `Arm::create()`、不获取控制租约、不依赖遥测：
+
+```cpp
+auto updater = florid::FirmwareUpdater::create("usb://2fe3:574c/SERIAL");
+if (updater) {
+    auto boot = updater->bootStatus();
+    // boot.m_max_chunk_size == 0 表示该构建没有可写入的镜像 sink。
+}
+```
+
+`startUpload()` 复制输入；`progress()` 返回线程安全快照。RPC、CRC/bulk 状态和 direct
+发送均由已有 owner 推进，业务线程不接触 Wirelink 上下文。输入按 FCI v1 application /
+secondary / flags=0 发起，版本元数据当前为零；本轮尚不解析 MCUboot 镜像头。
+调用方应检查入队结果和最终状态，不能把 `startUpload()` 返回成功当成上传完成。
+
+取消已发出的 StartUpgrade 时，客户端先等到响应以取得 transfer ID，再发送 Abort；
+接收端也接受 Begin 之前的 Abort。Start 响应丢失到整体超时时，客户端无法知道 ID，
+设备侧依靠 reservation/receiver idle timeout 清理；不要把本地 timeout 当成远端取消确认。
+USB 断线、peer session 改变和关闭会终止本地任务并释放 mapped RPC 槽。重新打开使用
+新会话，不自动重放旧镜像。当前不支持跨会话断点续传。
+
+## 本轮边界
+
+- 完成路由、RAM sink 验证和升级模式互斥；没有 Flash 写入、MCUboot swap、签名验证、
+  试启动确认或真正 Reboot。
+- Willow 默认无写入 sink：GetBootStatus 可用，StartUpgrade/Reboot 返回 UNSUPPORTED。
+  BootStatus 的 slot 信息为 NONE/0，不伪装成 MCUboot 的实际槽状态。
+- HIL 使用 64 KiB RAM、2031 字节 chunk 和 CRC32C 校验，不能作为生产固件升级器。
+  上传 `Completed` 仅表示 sink 接收并验证完成，不表示镜像已安装或可启动。
+- firmware upgrade mode 会撤销租约；需要重新取得控制权限，不自动恢复运动。
+
+## 验证
+
+- FCI schema/严格 C11/C++ 组合：12/12。
+- libflorid Debug（WLC ON）、Release（snapshot OFF）、ASan/UBSan：各 7/7。
+  覆盖独立管理 RPC、同连接上传、BUSY、丢失 Status、重复 chunk、取消、超时、关闭；
+  包含 owner 时间采样后提交任务的确定性回归。
+- 固件 native_sim：arm 25/25、device 7/7、旧 upgrade 21/21。
+  device 包含 Start 响应 ACK 门控、8 个 arm pending 时管理 RPC、CRC 失败、最大 chunk、
+  安全态等待/接收超时、Abort 和会话更换。
+- Willow/H723、RAM HIL/H723 和真实 USB host 工具编译通过。
+- 实机未完成：J-Link 609799419 可连接、VTref 约 3.28 V，但 4000/100 kHz SWD 及
+  connect-under-reset 都无法连接 CPU；此次烧录未写入镜像。不能把模拟测试当成 USB HIL。
+
+下一步是修复板端连接后跑配套 HIL，之后才接 `UpgradeManager`/Flash sink 和 MCUboot
+生命周期。现有公开 Arm API 保持不变；新增 C++ 升级 API 尚未绑定到 Python。

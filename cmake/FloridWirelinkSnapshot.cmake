@@ -7,27 +7,31 @@ function(lf_wirelink_snapshot_error reason)
         "lf_update_wirelink and commit generated/wirelink/ with the schema changes.")
 endfunction()
 
-# Fixed SDK recipe: one arm codec, shared services + host profile, name fci_arm.
+# Fixed SDK recipe: one composed product codec and one host endpoint.
 # Newline normalization permits Git's Windows CRLF checkouts, including schemas
 # in submodules, without requiring a generator merely to verify the snapshot.
 function(lf_wirelink_snapshot_content source_root snapshot_root out_content)
     set(_inputs
+        protocol/schema/wirelink/device/fci_device.wl
         protocol/schema/wirelink/arm/fci_arm.wl
+        protocol/schema/wirelink/upgrade/fci_upgrade.wl
         protocol/schema/wirelink/arm/services.bind.wl
-        protocol/schema/wirelink/arm/host.bind.wl)
+        protocol/schema/wirelink/arm/host.bind.wl
+        protocol/schema/wirelink/upgrade/host.bind.wl
+        protocol/schema/wirelink/device/host.bind.wl)
     set(_outputs
-        codec/fci_arm.c
-        codec/fci_arm.h
-        codec/fci_arm_values.h
-        codec/fci_arm_bindings.c
-        codec/fci_arm_bindings.h
-        codec/fci_arm_manifest.json
-        host/fci_arm_runtime.c
-        host/fci_arm_runtime.h
-        host/fci_arm_endpoint.h
-        host/fci_arm_advanced.h
-        host/fci_arm_runtime_manifest.json)
-    set(_content "libflorid-wirelink-snapshot-v1\ncompiler=wlc ${WIRELINK_WLC_VERSION}\ncodegen_abi=${WIRELINK_WLC_CODEGEN_ABI}\nruntime=fci_arm\nrole=host\nhash=sha256-lf\n")
+        codec/fci_device.c
+        codec/fci_device.h
+        codec/fci_device_values.h
+        codec/fci_device_bindings.c
+        codec/fci_device_bindings.h
+        codec/fci_device_manifest.json
+        host/fci_device_runtime.c
+        host/fci_device_runtime.h
+        host/fci_device_endpoint.h
+        host/fci_device_advanced.h
+        host/fci_device_runtime_manifest.json)
+    set(_content "libflorid-wirelink-snapshot-v1\ncompiler=wlc ${WIRELINK_WLC_VERSION}\ncodegen_abi=${WIRELINK_WLC_CODEGEN_ABI}\nruntime=fci_device\nrole=host\nhash=sha256-lf\n")
     set(_depends "")
     foreach(_kind IN ITEMS inputs outputs)
         if(_kind STREQUAL "inputs")
@@ -47,7 +51,7 @@ function(lf_wirelink_snapshot_content source_root snapshot_root out_content)
             list(APPEND _depends "${_path}")
         endforeach()
     endforeach()
-    foreach(_relative IN ITEMS codec/fci_arm_manifest.json host/fci_arm_runtime_manifest.json)
+    foreach(_relative IN ITEMS codec/fci_device_manifest.json host/fci_device_runtime_manifest.json)
         file(READ "${snapshot_root}/${_relative}" _json)
         string(JSON _name GET "${_json}" compiler name)
         string(JSON _version GET "${_json}" compiler version)

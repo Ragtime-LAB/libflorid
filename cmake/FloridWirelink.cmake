@@ -10,10 +10,10 @@ function(lf_prepare_wirelink)
     _fci_protocol_prepare_wirelink()
 
     if(LF_ENABLE_WLC)
-        fci_protocol_generate_wirelink_component(COMPONENT arm ROLE host)
-        get_target_property(_codec_dir fci_protocol_wirelink_arm_codec
+        fci_protocol_generate_wirelink_component(COMPONENT device ROLE host)
+        get_target_property(_codec_dir fci_protocol_wirelink_device_codec
             WIRELINK_WLC_GENERATED_DIR)
-        get_target_property(_runtime_dir fci_protocol_wirelink_arm
+        get_target_property(_runtime_dir fci_protocol_wirelink_device
             WIRELINK_WLC_GENERATED_DIR)
         foreach(_mode IN ITEMS update check)
             add_custom_target(lf_${_mode}_wirelink
@@ -26,7 +26,7 @@ function(lf_prepare_wirelink)
                     "-DWIRELINK_WLC_VERSION=${WIRELINK_WLC_VERSION}"
                     "-DWIRELINK_WLC_CODEGEN_ABI=${WIRELINK_WLC_CODEGEN_ABI}"
                     -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/SyncWirelinkSnapshot.cmake"
-                DEPENDS fci_protocol_wirelink_arm_wlc_codegen
+                DEPENDS fci_protocol_wirelink_device_wlc_codegen
                 COMMENT "${_mode} the checked-in FCI Wirelink snapshot"
                 VERBATIM)
         endforeach()
@@ -48,19 +48,19 @@ function(lf_prepare_wirelink)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         "${_manifest}" ${LF_WIRELINK_SNAPSHOT_DEPENDS})
 
-    add_library(fci_protocol_wirelink_arm_codec STATIC
-        "${_snapshot}/codec/fci_arm.c"
-        "${_snapshot}/codec/fci_arm_bindings.c")
-    target_include_directories(fci_protocol_wirelink_arm_codec PUBLIC
+    add_library(fci_protocol_wirelink_device_codec STATIC
+        "${_snapshot}/codec/fci_device.c"
+        "${_snapshot}/codec/fci_device_bindings.c")
+    target_include_directories(fci_protocol_wirelink_device_codec PUBLIC
         "${_snapshot}/codec")
-    target_compile_features(fci_protocol_wirelink_arm_codec PUBLIC c_std_11)
-    target_link_libraries(fci_protocol_wirelink_arm_codec PUBLIC Wirelink::wirelink)
-    add_library(fci_protocol_wirelink_arm STATIC
-        "${_snapshot}/host/fci_arm_runtime.c")
-    target_include_directories(fci_protocol_wirelink_arm PUBLIC "${_snapshot}/host")
-    target_compile_features(fci_protocol_wirelink_arm PUBLIC c_std_11)
-    target_link_libraries(fci_protocol_wirelink_arm PUBLIC fci_protocol_wirelink_arm_codec)
-    fci_protocol_configure_arm_endpoint(fci_protocol_wirelink_arm fci_arm)
-    add_library(fci_protocol::arm ALIAS fci_protocol_wirelink_arm)
+    target_compile_features(fci_protocol_wirelink_device_codec PUBLIC c_std_11)
+    target_link_libraries(fci_protocol_wirelink_device_codec PUBLIC Wirelink::wirelink)
+    add_library(fci_protocol_wirelink_device STATIC
+        "${_snapshot}/host/fci_device_runtime.c")
+    target_include_directories(fci_protocol_wirelink_device PUBLIC "${_snapshot}/host")
+    target_compile_features(fci_protocol_wirelink_device PUBLIC c_std_11)
+    target_link_libraries(fci_protocol_wirelink_device PUBLIC fci_protocol_wirelink_device_codec)
+    fci_protocol_configure_device_endpoint(fci_protocol_wirelink_device fci_device)
+    add_library(fci_protocol::device ALIAS fci_protocol_wirelink_device)
     message(STATUS "libflorid: using checked-in FCI bindings (WLC disabled)")
 endfunction()

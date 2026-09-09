@@ -1,7 +1,7 @@
 #include "../protocol/tests/support/managed_rpc_wire.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
 
-#include "fci_arm_bindings.h"
+#include "fci_device_bindings.h"
 
 #include <array>
 #include <atomic>
@@ -502,8 +502,8 @@ private:
         return WL_PUMP_EVENT_CONSUMED;
     }
 
-    void s_recordSend(const fci_arm_send_result_t& s_result) noexcept {
-        if (s_result.domain != FCI_ARM_SEND_OK ||
+    void s_recordSend(const fci_device_send_result_t& s_result) noexcept {
+        if (s_result.domain != FCI_DEVICE_SEND_OK ||
             s_result.core_result != WL_OK) {
             m_send_failures.fetch_add(1, std::memory_order_relaxed);
         }
@@ -1248,7 +1248,7 @@ void testTypedEndpointLifecycle() {
                 s_stats.m_rpc_cancelled == 1,
             "RPC runtime slots were not released exactly once");
     if (s_stats.m_dispatch_errors != 0 ||
-        s_stats.m_endpoint_storage_bytes != sizeof(fci_arm_endpoint_t)) {
+        s_stats.m_endpoint_storage_bytes != sizeof(fci_device_endpoint_t)) {
         std::fprintf(stderr,
                      "dispatch_errors=%llu endpoint_storage=%zu "
                      "rpc_started=%llu rpc_released=%llu\n",
@@ -1259,7 +1259,7 @@ void testTypedEndpointLifecycle() {
                      static_cast<unsigned long long>(s_stats.m_rpc_released));
     }
     require(s_stats.m_dispatch_errors == 0 &&
-                s_stats.m_endpoint_storage_bytes == sizeof(fci_arm_endpoint_t),
+                s_stats.m_endpoint_storage_bytes == sizeof(fci_device_endpoint_t),
             "generated runtime dispatch or bounded storage sizing failed");
     require(s_host_to_device.m_failures.load() == 0 &&
                 s_device_to_host.m_failures.load() == 0 &&
@@ -1398,9 +1398,9 @@ void testConsumedTelemetryDoesNotRequestAnotherPass() {
     s_diagnostics.has_gripper_temperature_c = s_diagnostics.has_overheat_mask = true;
     for (std::uint32_t s_tick = 1; s_tick <= 2; ++s_tick) {
         s_diagnostics.tick_count = s_tick;
-        const auto s_sent = fci_arm_arm_diagnostics_send(
+        const auto s_sent = fci_device_arm_diagnostics_send(
             &s_peer, &s_diagnostics, WL_DELIVERY_UNRELIABLE, 1U);
-        require(s_sent.domain == FCI_ARM_SEND_OK, "telemetry prefeed failed");
+        require(s_sent.domain == FCI_DEVICE_SEND_OK, "telemetry prefeed failed");
     }
     require(s_endpoint.start() == FciEndpointStatus::kOk, "probe start failed");
     const auto s_passes = s_transport.firstHintServiceCalls();
@@ -1411,6 +1411,32 @@ void testConsumedTelemetryDoesNotRequestAnotherPass() {
     std::printf("telemetry owner passes before readiness query: %llu\n",
                 static_cast<unsigned long long>(s_passes));
     require(s_passes == 1, "consumed telemetry requested an unnecessary owner pass");
+}
+
+void testUpgradeSubmissionAfterPassClockIsNotExpired() {
+    DirectTransportProbe s_transport;
+    FciWirelinkEndpoint s_endpoint;
+    struct Submission {
+        FciWirelinkEndpoint* m_endpoint;
+        florid::FirmwareUpdateError m_result{};
+    } s_submission{&s_endpoint};
+    s_transport.m_first_service_context = &s_submission;
+    s_transport.m_first_service = [](void* s_context) noexcept {
+        const auto s_next_tick = std::chrono::time_point_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now()) + 2ms;
+        std::this_thread::sleep_until(s_next_tick);
+        auto& s_call = *static_cast<Submission*>(s_context);
+        const std::array<std::uint8_t, 32> s_image{};
+        s_call.m_result = s_call.m_endpoint->upgrade().startUpload(s_image, {});
+    };
+    require(s_endpoint.initialize() == FciEndpointStatus::kOk &&
+                s_endpoint.attachDirectTransport(s_transport) == FciEndpointStatus::kOk &&
+                s_endpoint.start() == FciEndpointStatus::kOk, "late upgrade setup");
+    (void)s_transport.firstHintServiceCalls();
+    require(s_submission.m_result == florid::FirmwareUpdateError::kNone &&
+                s_endpoint.upgrade().progress().m_state == florid::FirmwareUploadState::kStarting,
+            "late upgrade submission was expired before admission");
+    s_endpoint.stop();
 }
 
 void testDirectTransportLifecycle() {
@@ -1456,6 +1482,7 @@ int main() {
         testTypedEndpointLifecycle();
         testSessionSource();
         testSubmissionAfterPassClockIsNotExpired();
+        testUpgradeSubmissionAfterPassClockIsNotExpired();
         testConsumedTelemetryDoesNotRequestAnotherPass();
         testDirectTransportLifecycle();
         std::puts("PASS: typed FCI endpoint owns runtime, RPC, LATEST, and shutdown");

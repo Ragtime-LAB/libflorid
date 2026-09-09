@@ -66,6 +66,8 @@ public:
     [[nodiscard]] ArmConnectionState connectionState() const noexcept;
     [[nodiscard]] bool waitUntilReady(std::chrono::milliseconds s_timeout);
     ArmControl& controlHandle() { return m_arm_control; }
+    detail::FciUpgradeClient& upgradeClient() { return m_endpoint.upgrade(); }
+    bool firmwareUploadAllowed() const noexcept { return !m_running.load(std::memory_order_acquire); }
 
     template <typename Callback>
     void s_controlLoop(Callback s_cb) {

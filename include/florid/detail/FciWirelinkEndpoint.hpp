@@ -6,8 +6,9 @@
 #include "florid/DeviceTypes.hpp"
 #include "florid/detail/WirelinkExecutor.hpp"
 #include "florid/detail/Transport.hpp"
+#include "florid/detail/FciUpgradeClient.hpp"
 
-#include "fci_arm_endpoint.h"
+#include "fci_device_endpoint.h"
 #include "wirelink/platform.h"
 
 #include <array>
@@ -160,6 +161,7 @@ public:
                                 std::size_t s_size,
                                 std::size_t& s_accepted) noexcept;
     void notify() noexcept { m_executor.notify(); }
+    FciUpgradeClient& upgrade() noexcept { return m_upgrade; }
 
     FciSubmitResult acquireControlLease(std::uint32_t s_requested_timeout_ms,
                                         std::uint32_t s_rpc_timeout_ms) noexcept;
@@ -339,11 +341,11 @@ private:
         std::atomic<std::uint64_t> m_rpc_cancelled{};
     };
 
-    static constexpr std::size_t s_kTxPayloadSize = FCI_ARM_ENDPOINT_MAX_PAYLOAD;
+    static constexpr std::size_t s_kTxPayloadSize = FCI_DEVICE_ENDPOINT_MAX_PAYLOAD;
 
     static void s_onEvent(void* s_user_data, wl_ctx_t* s_context,
                           const wl_event_t* s_event, wl_time_ms_t s_now_ms) noexcept;
-    static void s_onResult(void* s_user_data, const fci_arm_runtime_result_t* s_result) noexcept;
+    static void s_onResult(void* s_user_data, const fci_device_runtime_result_t* s_result) noexcept;
     static int s_transportService(void* s_user_data) noexcept;
     static void s_transportWake(void* s_user_data) noexcept;
     static uint8_t s_applicationProgress(void* s_user_data, wl_ctx_t* s_context,
@@ -385,8 +387,9 @@ private:
 
     WirelinkExecutor m_executor;
     Transport* m_direct_transport{};
-    fci_arm_endpoint_t m_endpoint{};
-    fci_arm_runtime_t* s_runtime() noexcept { return fci_arm_endpoint_runtime(&m_endpoint); }
+    fci_device_endpoint_t m_endpoint{};
+    FciUpgradeClient m_upgrade;
+    fci_device_runtime_t* s_runtime() noexcept { return fci_device_endpoint_runtime(&m_endpoint); }
 
     mutable std::mutex m_mutex;
     mutable std::condition_variable m_operation_changed;

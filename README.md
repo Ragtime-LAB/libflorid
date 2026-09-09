@@ -75,15 +75,15 @@ Defaults: `BUILD_TESTS=OFF`, `BUILD_EXAMPLES=ON`, `BUILD_PYFLORID=OFF`, `BUILD_M
 
 The bundled `3rdparty/wirelink` source is used by default. Pass
 `-DWIRELINK_SOURCE_DIR=/path/to/wirelink` only to override it during coordinated
-development. This tree pins Wirelink `009a5e92432f8942edebd0180dca1a4760c5360c`
-and ships its generated arm codec and host runtime in `generated/wirelink/`.
+development. This tree pins Wirelink `a3d09e7ba26feb4128aadf227a17768402f47046`
+and ships its composed arm/upgrade device codec and host runtime in `generated/wirelink/`.
 Normal C++ and Python source builds compile these files without finding,
 downloading, or running WLC/Rust. CMake validates the snapshot's compiler ABI,
 schema/profile hashes and output hashes; stale or modified snapshots fail early.
 
 To change the FCI schema/profile or develop against another Wirelink version,
 enable WLC explicitly. The bundled version pairs with WLC
-v0.5.0, commit `120b9af130753d2ba0d137882916bfe207d3d312` (codegen ABI 30):
+0.7.0-dev, commit `18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29` (codegen ABI 32):
 
 ```bash
 cmake -S . -B build/wlc -DLF_ENABLE_WLC=ON \

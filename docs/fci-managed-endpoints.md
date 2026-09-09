@@ -1,5 +1,8 @@
 # FCI 接入收敛：托管 RPC 与默认端点
 
+历史记录：当前产品组合已升级为 ABI 32 / `fci_device_endpoint_t`，
+构建及升级入口以 [共享产品路由](device-upgrade-routing.md) 为准。
+
 本轮接续 [计划 1–3](fci-integration-cleanup.md)，完成剩余的 4–5。
 MPC、性能 benchmark、实板测试和发布不在本轮范围内。
 

@@ -40,12 +40,12 @@ jobs:
         if: matrix.mpc == 'ON'
         run: python3 scripts/vendor_acados.py --check
 
-      - name: Check out paired WLC 0.5.0 / ABI 30 compiler
+      - name: Check out paired WLC 0.7.0-dev / ABI 32 compiler
         if: matrix.wlc == 'ON'
         uses: actions/checkout@v5
         with:
           repository: starwey604/wlc
-          ref: 120b9af130753d2ba0d137882916bfe207d3d312
+          ref: 18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29
           path: .tools/wlc
 
       - name: Install native dependencies

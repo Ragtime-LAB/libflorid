@@ -10,6 +10,7 @@
 #include "florid/Errors.hpp"
 #include "florid/core/ActiveControl.hpp"
 #include "florid/Gripper.hpp"
+#include "florid/FirmwareUpdater.hpp"
 #ifdef FLORID_HAS_MPC
 #include "florid/mpc/MPCControl.hpp"
 #endif
@@ -46,6 +47,8 @@ public:
     static constexpr std::size_t s_kNumJoints = 6;
 
     static std::unique_ptr<Arm> create(const std::string& s_uri);
+    // A view of this exact USB/link/owner session; keeps it alive, no second open.
+    FirmwareUpdater firmwareUpdater() const;
 
     // Product-level USB Bulk entry points. connect() selects the only visible
     // compatible Florid device; explicit selectors never silently choose one

@@ -1,0 +1,28 @@
+{
+  "format": "wirelink-codegen-manifest-v1",
+  "compiler": {
+    "name": "wlc",
+    "version": "0.7.0-dev",
+    "codegen_abi": 32
+  },
+  "module": "fci_device",
+  "identity": {
+    "algorithm": "fnv1a64-v1",
+    "schema": "0xc4d48a693e596565",
+    "binding_profile": "0x86107756b707fc65"
+  },
+  "bounded_fields": [
+    {"message": "DeviceInfo", "message_id": 20738, "field": "board_name", "field_number": 3, "kind": "string", "max_length": 31},
+    {"message": "DeviceInfo", "message_id": 20738, "field": "custom_name", "field_number": 4, "kind": "string", "max_length": 31},
+    {"message": "DeviceInfo", "message_id": 20738, "field": "serial", "field_number": 6, "kind": "string", "max_length": 31},
+    {"message": "SetDeviceInfoRequest", "message_id": 25111, "field": "custom_name", "field_number": 2, "kind": "string", "max_length": 31},
+    {"message": "BulkChunk", "message_id": 28705, "field": "data", "field_number": 3, "kind": "bytes", "max_length": 2031}
+  ],
+  "artifact_digest_algorithm": "fnv1a64-domain-bytes-v1",
+  "artifacts": [
+    {"path": "fci_device_advanced.h", "size": 139727, "digest": "0x7d524225c44a739f"},
+    {"path": "fci_device_endpoint.h", "size": 409, "digest": "0x2fad15809201d4c3"},
+    {"path": "fci_device_runtime.c", "size": 514887, "digest": "0x91d08b7fab9578f1"},
+    {"path": "fci_device_runtime.h", "size": 307801, "digest": "0x5aaa689a7497eae5"}
+  ]
+}
