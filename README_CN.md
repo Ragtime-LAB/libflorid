@@ -15,7 +15,7 @@
 
 - **Python 绑定**：通过 pip 安装 `pyflorid`（pybind11），以 snake_case 命名暴露同样的 API。
 
-矩阵布局、4 ms 控制周期、模型限制、失败回退和离线验证见 [Willow 位置 MPC](docs/mpc.md)。
+矩阵布局、内部 50 Hz 规划 / 500 Hz 输出、模型限制、超时处理和离线验证见 [Willow 位置 MPC](docs/mpc.md)。
 
 ## 系统要求
 
@@ -225,7 +225,7 @@ cmake -S . -B build \
 | `03_active_joint_control` | `startJointMITControl()` 轮询循环 |
 | `03_mode_switching` | 循环切换 MIT / PVT / PosVel 控制模式 |
 | `04_motor_registers` | 读写/保存电机寄存器（joint_id 1–7） |
-| `05_cartesian_mpc` | 笛卡尔位姿 + `CartesianMPCSolver`（需 `-DBUILD_MPC=ON`） |
+| `05_cartesian_mpc` | 50 Hz 位置 MPC / 内部 500 Hz 输出，支持定点保持和 CSV（需 `-DBUILD_MPC=ON`） |
 
 ## 切换臂型
 

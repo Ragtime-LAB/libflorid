@@ -9,11 +9,13 @@
 #include "florid/DeviceDiscovery.hpp"
 #include "florid/Exceptions.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
+#include "florid/detail/ControlGeneration.hpp"
 #include "florid/detail/LatencyEstimator.hpp"
 #include "florid/detail/Transport.hpp"
 
 #ifdef FLORID_HAS_MPC
 #include "florid/mpc/CartesianMPC.hpp"
+#include "florid/detail/MPCSession.hpp"
 #include "WillowMPCTraits.hpp"
 #endif
 
@@ -55,6 +57,11 @@ public:
     bool setDeviceSettings(const DeviceSettings& s_settings);
 
     ArmState readOnce();
+    ArmState latestState() const { return s_latestState(); }
+#ifdef FLORID_HAS_MPC
+    std::shared_ptr<detail::MPCSession> s_startMPC(const MPCControlConfig& s_config,
+                                                  std::uint64_t* s_generation = nullptr);
+#endif
     ArmDiagnostics readDiagnostics();
     [[nodiscard]] ArmConnectionState connectionState() const noexcept;
     [[nodiscard]] bool waitUntilReady(std::chrono::milliseconds s_timeout);
@@ -65,24 +72,51 @@ public:
         using ReturnType = std::decay_t<decltype(s_cb(
             std::declval<const ArmState&>(), std::declval<ArmControl&>()))>;
 
-        m_running = true;
-        m_stop_flag = false;
-        s_requestPcMode();
-        s_ensureMode(s_controlModeFor<ReturnType>());
+        std::uint64_t s_generation;
+#ifdef FLORID_HAS_MPC
+        std::shared_ptr<detail::MPCSession> s_session;
+        if constexpr (std::is_same_v<ReturnType, CartesianPose>) s_session = s_startMPC({}, &s_generation);
+        else s_generation = s_prepareControl<ReturnType>();
+        auto s_cleanup = [this, s_session, &s_generation](void*) {
+            std::lock_guard s_lock(m_session_mutex);
+            if (s_generation == m_generation.current()) m_running = false;
+            if (s_session) s_session->stop();
+        };
+#else
+        s_generation = s_prepareControl<ReturnType>();
+        auto s_cleanup = [this, &s_generation](void*) {
+            std::lock_guard s_lock(m_session_mutex);
+            if (s_generation == m_generation.current()) m_running = false;
+        };
+#endif
+        std::unique_ptr<void, decltype(s_cleanup)> s_guard(this, s_cleanup);
 
-        while (m_running && !m_stop_flag) {
-            m_data_ready.acquire();
+        while (m_running && !m_stop_flag && s_generation == m_generation.current()) {
+            if (!m_data_ready.try_acquire_for(std::chrono::milliseconds(10))) {
+#ifdef FLORID_HAS_MPC
+                if (s_session) {
+                    const auto s_status = s_session->status();
+                    if (s_status.m_state == MPCControlState::kFault)
+                        throw ControlException(mpcStopReasonMessage(s_status.m_stop_reason));
+                    if (s_status.m_state == MPCControlState::kStopped) break;
+                }
+#endif
+                continue;
+            }
             m_state_wake_pending.store(false, std::memory_order_release);
-            if (!m_running || m_stop_flag) break;
+            if (!m_running || m_stop_flag || s_generation != m_generation.current()) break;
 
             ArmState s_state{};
             if (!s_takeLatestState(s_state)) continue;
             auto s_command = s_cb(s_state, m_arm_control);
-            s_sendCommand(s_command);
+            if (!m_running || m_stop_flag || s_generation != m_generation.current()) break;
+#ifdef FLORID_HAS_MPC
+            if constexpr (std::is_same_v<ReturnType, CartesianPose>) s_session->write(s_command);
+            else
+#endif
+            s_sendControlCommand(s_command, s_generation);
             if (s_command.m_motion_finished) break;
         }
-
-        m_running = false;
     }
 
     template <typename Callback>
@@ -125,13 +159,14 @@ public:
     bool setZeroPoint(std::uint8_t s_joint_id);
 
     template <typename CommandType>
-    void s_prepareControl() {
-        if (!m_device_info.supports(s_armCapabilityFor<CommandType>())) {
-            throw CommandException(
-                "firmware does not advertise this arm command capability");
-        }
-        s_requestPcMode();
-        s_ensureMode(s_controlModeFor<CommandType>());
+    std::uint64_t s_prepareControl() {
+        std::lock_guard s_lock(m_session_mutex);
+        return s_prepareControlLocked<CommandType>();
+    }
+
+    template <typename CommandType>
+    void s_sendControlCommand(const CommandType& s_command, std::uint64_t s_generation) {
+        m_generation.send(s_generation, [&] { s_sendCommand(s_command); });
     }
 
     template <typename CommandType>
@@ -144,24 +179,38 @@ public:
         s_ensureGripperMode(s_controlModeFor<CommandType>());
     }
 
-    void s_sendCommand(const JointMIT& s_command);
-    void s_sendCommand(const JointPosVel& s_command);
-    void s_sendCommand(const JointVel& s_command);
-    void s_sendCommand(const JointPVT& s_command);
-    void s_sendCommand(const CartesianPose& s_command);
-    void s_sendCommand(const CartesianVelocities& s_command);
-
     void s_sendGripperCommand(const JointMIT& s_command);
     void s_sendGripperCommand(const JointPosVel& s_command);
     void s_sendGripperCommand(const JointVel& s_command);
     void s_sendGripperCommand(const JointPVT& s_command);
 
 private:
-#ifdef FLORID_HAS_MPC
-    JointPVT s_convertCartesian(const CartesianPose& s_command,
-                                const ArmState& s_state);
+    // Raw submissions are reachable only through the generation gate. MPC
+    // targets use their bound session instead of the native command path.
+    void s_sendCommand(const JointMIT& s_command);
+    void s_sendCommand(const JointPosVel& s_command);
+    void s_sendCommand(const JointVel& s_command);
+    void s_sendCommand(const JointPVT& s_command);
+#ifndef FLORID_HAS_MPC
+    void s_sendCommand(const CartesianPose& s_command);
 #endif
+    void s_sendCommand(const CartesianVelocities& s_command);
 
+    void s_stopControlLocked() noexcept;
+    template <typename CommandType>
+    std::uint64_t s_prepareControlLocked() {
+        if (!m_device_info.supports(s_armCapabilityFor<CommandType>()))
+            throw CommandException("firmware does not advertise this arm command capability");
+        s_stopControlLocked();
+        s_requestPcMode();
+        s_ensureMode(s_controlModeFor<CommandType>());
+        m_stop_flag = false;
+        m_running = true;
+        return m_generation.current();
+    }
+#ifdef FLORID_HAS_MPC
+    detail::MPCMeasurement s_latestMeasurement() const;
+#endif
     static wl_sink_result_t s_wireSink(void* s_context,
                                         wl_io_token_t s_token,
                                         const std::uint8_t* s_data,
@@ -254,9 +303,20 @@ private:
     std::atomic<bool> m_state_wake_pending{false};
 
     mutable std::mutex m_snapshot_mutex;
+#ifdef FLORID_HAS_MPC
+    // Endpoint callback is the only publisher. Each worker has its own consumer;
+    // public readers serialize only with one another on m_snapshot_mutex.
+    detail::LatestValue<detail::MPCMeasurement> m_planner_feedback, m_output_feedback;
+    mutable detail::LatestValue<detail::MPCMeasurement> m_public_feedback;
+    mutable detail::MPCMeasurement m_public_cache{};
+    detail::MPCMeasurement m_received_feedback{}; // endpoint owner only
+    std::atomic<bool> m_feedback_failed{false};
+#else
     ArmState m_latest_state{};
     std::uint64_t m_latest_state_generation{};
+#endif
     std::uint64_t m_consumed_state_generation{};
+    std::mutex m_diagnostics_mutex;
     ArmDiagnostics m_last_diagnostics{};
 
     DeviceInfo m_device_info{};
@@ -267,8 +327,10 @@ private:
 
     ArmControl m_arm_control;
 #ifdef FLORID_HAS_MPC
-    std::unique_ptr<CartesianMPCSolver<WillowMPCTraits>> m_mpc;
+    std::shared_ptr<detail::MPCSession> m_mpc;
 #endif
+    std::mutex m_session_mutex; // Cold lifecycle/RPC serialization only.
+    detail::ControlGeneration m_generation;
     std::mutex m_control_mutex;
     std::atomic<bool> m_stop_flag{false};
     std::optional<detail::FciMotorControlMode> m_current_mode;

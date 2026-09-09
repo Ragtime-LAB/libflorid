@@ -10,6 +10,9 @@
 #include "florid/Errors.hpp"
 #include "florid/core/ActiveControl.hpp"
 #include "florid/Gripper.hpp"
+#ifdef FLORID_HAS_MPC
+#include "florid/mpc/MPCControl.hpp"
+#endif
 
 #include <cstdint>
 #include <chrono>
@@ -90,12 +93,19 @@ public:
     Gripper& gripper();
 
     // ── Active control (manual read/write loop, pybind-friendly) ──
+    // Starting another arm control session or calling stop()/a mode operation
+    // expires previous arm handles; their writes throw ControlException.
 
     std::unique_ptr<ActiveControl<JointMIT>> startJointMITControl();
     std::unique_ptr<ActiveControl<JointPosVel>> startJointPosVelControl();
     std::unique_ptr<ActiveControl<JointVel>> startJointVelControl();
     std::unique_ptr<ActiveControl<JointPVT>> startJointPVTControl();
+#ifdef FLORID_HAS_MPC
+    std::unique_ptr<CartesianMPCControl> startCartesianPoseControl(
+        const MPCControlConfig& s_config = {});
+#else
     std::unique_ptr<ActiveControl<CartesianPose>> startCartesianPoseControl();
+#endif
     std::unique_ptr<ActiveControl<CartesianVelocities>> startCartesianVelocityControl();
 
     // ── Configuration ──

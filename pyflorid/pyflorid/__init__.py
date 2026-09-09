@@ -20,3 +20,6 @@ __all__ = [
     "Exception", "NetworkException", "ControlException",
     "CommandException", "InvalidOperationException", "RealtimeException",
 ]
+
+if "MPCControlConfig" in globals():
+    __all__ += ["MPCControlConfig", "MPCControlStatus", "MPCControlState"]

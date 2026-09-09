@@ -182,6 +182,32 @@ void testInvalidPrediction() {
         require(s_hold.m_q[i] == s_q[i], "nonfinite prediction reached command output");
 }
 
+struct NonfiniteTerminalPrediction : Traits {
+    static void getState(void* s_cap, int s_stage, double* s_x) {
+        Traits::getState(s_cap, s_stage, s_x);
+        if (s_stage == kHorizon) s_x[7] = std::numeric_limits<double>::quiet_NaN();
+    }
+};
+
+void testFullPrediction() {
+    float s_q[6]{0.1f, 1.5f, 0.3f, 0.1f, 0.2f, 0.1f}, s_dq[6]{};
+    const auto s_target = pose(s_q);
+    Solver s_solver;
+    s_solver.setVelocityLimit(0.5f);
+    Solver::Prediction s_prediction;
+    require(s_solver.predict(s_q, s_dq, s_target.data(), s_prediction), "full prediction failed");
+    for (const auto& s_knot : s_prediction)
+        for (int i = 0; i < 6; ++i) {
+            require(std::abs(s_knot.m_q[i] - s_q[i]) < 1e-4 &&
+                    std::abs(s_knot.m_dq[i]) <= 0.5f, "full hold trajectory is invalid");
+        }
+    s_solver.resetWarmStart();
+    require(s_solver.predict(s_q, s_dq, s_target.data(), s_prediction), "solve after warm-start reset failed");
+    florid::CartesianMPCSolver<NonfiniteTerminalPrediction> s_bad;
+    require(!s_bad.predict(s_q, s_dq, s_target.data(), s_prediction) && s_bad.lastStatus() == -2,
+            "nonfinite terminal state published as a valid trajectory");
+}
+
 void testInvalidInputAndRecovery() {
     Solver s_solver;
     float s_q[6] = {0.1f, 1.5f, 0.3f, 0.1f, 0.2f, 0.1f};
@@ -200,7 +226,7 @@ void testInvalidInputAndRecovery() {
     catch (const florid::CommandException&) { s_rejected = true; }
     require(s_rejected, "row-major target accepted");
 
-    // This state cannot reach the joint bounds within one 4 ms interval.
+    // This state cannot reach the joint bounds within one 20 ms interval.
     s_q[1] = 10.0f;
     const auto s_hold = s_solver.solve(s_q, s_dq, s_valid.data());
     require(s_solver.lastStatus() != 0, "infeasible state reported success");
@@ -225,6 +251,7 @@ int main() {
                              {-0.15f, 1.43f, 0.17f, -0.2f, 0.3f, 0.1f});
         testInvalidInputAndRecovery();
         testInvalidPrediction();
+        testFullPrediction();
     } catch (const std::exception& s_error) {
         std::fprintf(stderr, "%s\n", s_error.what());
         return 1;

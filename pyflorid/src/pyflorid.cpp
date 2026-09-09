@@ -306,7 +306,15 @@ PYBIND11_MODULE(_pyflorid, m) {
     arm.def("start_joint_posvel_control",            &florid::Arm::startJointPosVelControl);
     arm.def("start_joint_vel_control",               &florid::Arm::startJointVelControl);
     arm.def("start_joint_pvt_control",               &florid::Arm::startJointPVTControl);
-    arm.def("start_cartesian_pose_control",          &florid::Arm::startCartesianPoseControl);
+#ifdef FLORID_HAS_MPC
+    arm.def("start_cartesian_pose_control", [](florid::Arm& s_arm) {
+        return s_arm.startCartesianPoseControl();
+    }, py::call_guard<py::gil_scoped_release>());
+    arm.def("start_cartesian_pose_control", &florid::Arm::startCartesianPoseControl,
+            py::arg("config"), py::call_guard<py::gil_scoped_release>());
+#else
+    arm.def("start_cartesian_pose_control", &florid::Arm::startCartesianPoseControl);
+#endif
     arm.def("start_cartesian_velocity_control",      &florid::Arm::startCartesianVelocityControl);
     arm.def("read_motor_register",   &florid::Arm::readMotorRegister);
     arm.def("write_motor_register",  &florid::Arm::writeMotorRegister);

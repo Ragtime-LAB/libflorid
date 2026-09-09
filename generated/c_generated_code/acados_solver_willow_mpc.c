@@ -161,7 +161,7 @@ int willow_mpc_acados_create(willow_mpc_solver_capsule *cap) {
 
     cap->nlp_opts = ocp_nlp_solver_opts_create(config, dims);
     double lm = 1e-4;
-    int stages = 4, steps = 1, qp_iter_max = 50;
+    int stages = 4, steps = 5, qp_iter_max = 50;
     ocp_nlp_solver_opts_set(config, cap->nlp_opts, "qp_hpipm_mode", "ROBUST");
     ocp_nlp_solver_opts_set(config, cap->nlp_opts, "levenberg_marquardt", &lm);
     ocp_nlp_solver_opts_set(config, cap->nlp_opts, "qp_iter_max", &qp_iter_max);

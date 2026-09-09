@@ -46,6 +46,9 @@ target_include_directories(florid
 target_compile_features(florid PUBLIC cxx_std_20)
 
 if(BUILD_MPC)
+    if(WIN32)
+        target_link_libraries(florid PRIVATE winmm)
+    endif()
     target_compile_definitions(florid PUBLIC FLORID_HAS_MPC)
     target_include_directories(florid PUBLIC
         "${PROJECT_SOURCE_DIR}/generated"
@@ -58,6 +61,7 @@ if(BUILD_MPC)
     target_link_libraries(florid PUBLIC florid::acados)
 
     target_sources(florid PRIVATE
+        MPCSession.cpp
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/acados_solver_willow_mpc.c"
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/willow_mpc_model/willow_mpc_expl_ode_fun.c"
         "${PROJECT_SOURCE_DIR}/generated/c_generated_code/willow_mpc_model/willow_mpc_gravity.c"

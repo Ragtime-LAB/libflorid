@@ -10,7 +10,7 @@
 #define WILLOW_MPC_NY 15
 #define WILLOW_MPC_NYN 9
 #define WILLOW_MPC_N 5
-#define WILLOW_MPC_DT 0.004
+#define WILLOW_MPC_DT 0.02
 
 #ifdef __cplusplus
 extern "C" {

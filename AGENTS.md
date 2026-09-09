@@ -65,7 +65,7 @@ includes the vendored runtime.
 
 **Model/Kinematics**: `Model<Traits>` — `forwardKinematics`, `zeroJacobian`, `bodyJacobian`, `pose`, `mass`, `coriolis`, `gravity`. Two CasADi-generated traits: `WillowTraits` and `PantheraTraits` (both include safety params like `collision_lower`, `cartesian_impedance`, `watchdog_timeout_ms`).
 
-**MPC**: `CartesianMPCSolver<WillowMPCTraits>`, position-only acados OCP. Enable via `-DBUILD_MPC=ON`. C solver sources in `generated/c_generated_code/`. Column-major target translation is `[12..14]`; orientation and Cartesian gains are unused. Five 4 ms intervals; command stage 1 as JointPVT. See `docs/mpc.md` for limits and fallback behavior. `test_cartesian_mpc` exercises the actual solver without hardware when MPC/tests are enabled.
+**MPC**: `CartesianMPCSolver<WillowMPCTraits>`, position-only acados OCP. Enable via `-DBUILD_MPC=ON`. C solver sources in `generated/c_generated_code/`. Column-major target translation is `[12..14]`; orientation and Cartesian gains are unused. Five 20 ms intervals, each with five 4 ms ERK substeps. `startCartesianPoseControl(MPCControlConfig)` owns an internal 50 Hz solver and 500 Hz C1 Hermite output session; users only publish targets. The MPC handle adds `status()`/`stop()` and reads non-consuming latest feedback. MPC exchanges use existing Wirelink `wl_latest` SPSC triple buffers with one channel per worker/consumer; caller locks never serialize worker data access. Lifecycle locks and transport locks remain. Arm control handles expire on mode/session changes via generation checks. See `docs/mpc.md` for limits, deadlines, stop semantics and example usage. `test_cartesian_mpc` exercises the actual solver without hardware when MPC/tests are enabled.
 
 ## Conventions
 

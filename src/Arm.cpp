@@ -239,13 +239,14 @@ Arm::Arm(Arm&& s_other) noexcept
 
 Arm& Arm::operator=(Arm&& s_other) noexcept {
     if (this != &s_other) {
+        if (m_impl) m_impl->stop();
         m_impl = std::move(s_other.m_impl);
         m_gripper = std::move(s_other.m_gripper);
     }
     return *this;
 }
 
-Arm::~Arm() = default;
+Arm::~Arm() { if (m_impl) m_impl->stop(); }
 
 Gripper& Arm::gripper() {
     if (!m_gripper) m_gripper = std::make_unique<Gripper>(*this);
@@ -287,51 +288,60 @@ ArmState Arm::readOnce() {
 // ── Active control ──
 
 std::unique_ptr<ActiveControl<JointMIT>> Arm::startJointMITControl() {
-    m_impl->s_prepareControl<JointMIT>();
+    const auto s_generation = m_impl->s_prepareControl<JointMIT>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointMIT>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const JointMIT& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const JointMIT& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
 
 std::unique_ptr<ActiveControl<JointPosVel>> Arm::startJointPosVelControl() {
-    m_impl->s_prepareControl<JointPosVel>();
+    const auto s_generation = m_impl->s_prepareControl<JointPosVel>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointPosVel>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const JointPosVel& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const JointPosVel& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
 
 std::unique_ptr<ActiveControl<JointVel>> Arm::startJointVelControl() {
-    m_impl->s_prepareControl<JointVel>();
+    const auto s_generation = m_impl->s_prepareControl<JointVel>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointVel>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const JointVel& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const JointVel& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
 
 std::unique_ptr<ActiveControl<JointPVT>> Arm::startJointPVTControl() {
-    m_impl->s_prepareControl<JointPVT>();
+    const auto s_generation = m_impl->s_prepareControl<JointPVT>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<JointPVT>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const JointPVT& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const JointPVT& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
 
+#ifdef FLORID_HAS_MPC
+std::unique_ptr<CartesianMPCControl> Arm::startCartesianPoseControl(const MPCControlConfig& s_config) {
+    auto s_session = m_impl->s_startMPC(s_config);
+    auto s_impl = m_impl;
+    return std::unique_ptr<CartesianMPCControl>(new CartesianMPCControl(
+        s_impl, std::move(s_session), [s_impl] { return s_impl->latestState(); }));
+}
+#else
 std::unique_ptr<ActiveControl<CartesianPose>> Arm::startCartesianPoseControl() {
-    m_impl->s_prepareControl<CartesianPose>();
+    const auto s_generation = m_impl->s_prepareControl<CartesianPose>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<CartesianPose>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const CartesianPose& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const CartesianPose& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
+#endif
 
 std::unique_ptr<ActiveControl<CartesianVelocities>> Arm::startCartesianVelocityControl() {
-    m_impl->s_prepareControl<CartesianVelocities>();
+    const auto s_generation = m_impl->s_prepareControl<CartesianVelocities>();
     auto s_impl = m_impl;
     return std::make_unique<ActiveControl<CartesianVelocities>>(
         [s_impl] { return s_impl->readOnce(); },
-        [s_impl](const CartesianVelocities& s_cmd) { s_impl->s_sendCommand(s_cmd); });
+        [s_impl, s_generation](const CartesianVelocities& s_cmd) { s_impl->s_sendControlCommand(s_cmd, s_generation); });
 }
 
 // ── Configuration ──

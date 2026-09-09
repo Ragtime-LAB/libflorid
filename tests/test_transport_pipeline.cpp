@@ -5,6 +5,10 @@
 #include "florid/detail/WirelinkExecutor.hpp"
 
 #include "fci_arm_bindings.h"
+#ifdef FLORID_HAS_MPC
+#include "florid/Model.hpp"
+#include "florid/traits/WillowTraits.hpp"
+#endif
 
 #include <asio.hpp>
 
@@ -152,7 +156,7 @@ public:
         return true;
     }
 
-    int sendArmStatus(std::uint32_t s_sequence, float s_position) {
+    int sendArmStatus(std::uint32_t s_sequence, float s_position, const float* s_q = nullptr) {
         arm_status_t s_status{};
         arm_status_clear(&s_status);
         s_status.has_mode = true;
@@ -177,8 +181,8 @@ public:
         s_status.has_last_sdk_timestamp_us = true;
         for (std::size_t s_index = 0; s_index < 6; ++s_index) {
             s_status.joint_position[s_index] =
-                s_position + static_cast<float>(s_index);
-            s_status.joint_velocity[s_index] = 0.1F;
+                s_q ? s_q[s_index] : s_position + static_cast<float>(s_index);
+            s_status.joint_velocity[s_index] = s_q ? 0 : 0.1F;
             s_status.joint_torque[s_index] = 0.2F;
             s_status.external_wrench[s_index] = 0.3F;
         }
@@ -206,6 +210,11 @@ public:
             }
             return false;
         });
+    }
+
+    std::size_t commandCount(std::uint16_t s_message_id) {
+        std::lock_guard s_lock(m_mutex);
+        return std::count(m_commands.begin(), m_commands.end(), s_message_id);
     }
 
     std::size_t acquireCount() const noexcept {
@@ -610,6 +619,10 @@ private:
                           WL_CODEC_OK &&
                       s_command.has_lease_token &&
                       s_command.lease_token == m_lease_token;
+        } else if (s_event.message_id == JOINT_PVT_COMMAND_MESSAGE_ID) {
+            joint_pvt_command_t s_command{};
+            s_valid = joint_pvt_command_decode(s_event.payload, s_event.payload_len, &s_command) == WL_CODEC_OK &&
+                      s_command.has_lease_token && s_command.lease_token == m_lease_token;
         } else if (s_event.message_id ==
                    GRIPPER_POSITION_VELOCITY_COMMAND_MESSAGE_ID) {
             gripper_position_velocity_command_t s_command{};
@@ -897,13 +910,25 @@ void testArmImplWirelinkPipeline() {
 
         s_impl.automaticErrorRecovery();
 
-        s_impl.s_prepareControl<JointMIT>();
+        const auto s_first_generation = s_impl.s_prepareControl<JointMIT>();
         JointMIT s_joint{};
         s_joint.m_q[0] = 2.0F;
         s_joint.m_kp[0] = 10.0F;
-        s_impl.s_sendCommand(s_joint);
+        s_impl.s_sendControlCommand(s_joint, s_first_generation);
         require(s_peer.waitForCommand(JOINT_MIT_COMMAND_MESSAGE_ID),
                 "lease-bearing JointMIT did not reach the peer");
+
+        const auto s_second_generation = s_impl.s_prepareControl<JointMIT>();
+        bool s_expired = false;
+        try { s_impl.s_sendControlCommand(s_joint, s_first_generation); }
+        catch (const florid::ControlException&) { s_expired = true; }
+        require(s_expired, "same-mode restart accepted an old joint handle");
+        s_impl.s_sendControlCommand(s_joint, s_second_generation);
+        s_impl.stop();
+        s_expired = false;
+        try { s_impl.s_sendControlCommand(s_joint, s_second_generation); }
+        catch (const florid::ControlException&) { s_expired = true; }
+        require(s_expired, "Arm::stop did not invalidate joint handle");
 
         s_impl.s_prepareGripperControl<JointPosVel>();
         JointPosVel s_gripper{};
@@ -934,6 +959,126 @@ void testArmImplWirelinkPipeline() {
     s_peer.stop();
 }
 
+#ifdef FLORID_HAS_MPC
+void testMPCWirelinkSession() {
+    DevicePeer s_peer;
+    require(s_peer.initialize() == WL_OK, "MPC peer initialization failed");
+    auto s_transport = std::make_unique<LoopbackTransport>(s_peer);
+    require(s_peer.attach(*s_transport) == WL_OK && s_peer.start() == WL_OK, "MPC peer start failed");
+    {
+        ArmImpl s_impl(std::move(s_transport));
+        const float s_q[6]{0.1f, 1.5f, 0.3f, 0.1f, 0.2f, 0.1f};
+        std::atomic<bool> s_freeze{false};
+        std::jthread s_telemetry([&](std::stop_token s_token) {
+            std::uint32_t s_seq = 100;
+            while (!s_token.stop_requested()) {
+                (void)s_peer.sendArmStatus(s_seq, 0, s_q);
+                if (!s_freeze) ++s_seq;
+                std::this_thread::sleep_for(2ms);
+            }
+        });
+        auto s_wait = [&](auto s_predicate) {
+            const auto s_deadline = std::chrono::steady_clock::now() + 2s;
+            while (!s_predicate()) {
+                require(std::chrono::steady_clock::now() < s_deadline, "MPC Wirelink condition timed out");
+                std::this_thread::sleep_for(1ms);
+            }
+        };
+        s_wait([&] { return s_impl.latestState().m_seq >= 100; });
+        florid::CartesianPose s_target;
+        florid::Model<florid::WillowTraits>{}.forwardKinematics(s_q, s_target.m_T);
+        florid::MPCControlConfig s_cfg;
+        s_cfg.output_lateness_limit = 30ms;
+        s_cfg.plan_timeout = 80ms;
+        auto s_session = s_impl.s_startMPC(s_cfg);
+        s_session->write(s_target);
+        std::atomic<bool> s_coherent{true};
+        {
+            auto s_reader = [&](std::stop_token s_token) {
+                std::uint32_t s_previous = 0;
+                while (!s_token.stop_requested()) {
+                    const auto s_latest = s_impl.latestState();
+                    if (s_latest.m_seq < s_previous ||
+                        s_latest.m_source_timestamp_us != 10000 + s_latest.m_seq) s_coherent = false;
+                    for (int i = 0; i < 6; ++i) if (s_latest.m_q[i] != s_q[i]) s_coherent = false;
+                    s_previous = s_latest.m_seq;
+                    // Public readers cannot consume the workers' feedback.
+                    (void)s_impl.readOnce();
+                    (void)s_session->status();
+                    std::this_thread::sleep_for(100us);
+                }
+            };
+            std::jthread s_first_reader(s_reader), s_second_reader(s_reader);
+            s_wait([&] {
+                require(s_session->status().m_state != florid::MPCControlState::kFault,
+                        florid::mpcStopReasonMessage(s_session->status().m_stop_reason));
+                return s_session->status().m_outputs >= 50;
+            });
+        }
+        require(s_coherent, "concurrent public feedback readers tore a snapshot");
+        require(s_peer.waitForCommand(JOINT_PVT_COMMAND_MESSAGE_ID), "MPC did not deliver a lease-bearing PVT command");
+        const auto s_mit_generation = s_impl.s_prepareControl<JointMIT>();
+        require(s_session->status().m_state == florid::MPCControlState::kStopped, "mode switch left MPC running");
+        bool s_rejected = false;
+        try { s_session->write(s_target); } catch (const florid::ControlException&) { s_rejected = true; }
+        require(s_rejected, "old MPC handle revived after a mode switch");
+        std::this_thread::sleep_for(10ms); // Drain any frame already in the transport.
+        const auto s_count = s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID);
+        std::this_thread::sleep_for(15ms);
+        require(s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID) == s_count,
+                "MPC emitted PVT after switching to MIT");
+
+        auto s_new = s_impl.s_startMPC(s_cfg);
+        s_new->write(s_target);
+        bool s_old_joint_rejected = false;
+        try { s_impl.s_sendControlCommand(JointMIT{}, s_mit_generation); }
+        catch (const florid::ControlException&) { s_old_joint_rejected = true; }
+        require(s_old_joint_rejected, "old joint handle interrupted new MPC session");
+        s_session->stop(); // Old ownership must not affect the new session.
+        s_wait([&] { return s_new->status().m_outputs >= 5; });
+        s_impl.stop();
+        require(s_new->status().m_state == florid::MPCControlState::kStopped, "Arm::stop left MPC running");
+
+        auto s_frozen = s_impl.s_startMPC(s_cfg);
+        s_frozen->write(s_target);
+        s_wait([&] { return s_frozen->status().m_outputs >= 5; });
+        s_freeze = true;
+        s_wait([&] { return s_frozen->status().m_state == florid::MPCControlState::kFault; });
+        require(s_frozen->status().m_stop_reason == florid::MPCStopReason::kStaleState,
+                "repeated feedback refreshed the freshness watchdog");
+        s_freeze = false;
+        std::this_thread::sleep_for(10ms);
+
+        int s_calls = 0;
+        s_impl.s_controlLoop([&](const florid::ArmState&, florid::ArmControl&) {
+            if (++s_calls == 20) return florid::CartesianPose::MotionFinished(s_target);
+            return s_target;
+        });
+        std::this_thread::sleep_for(10ms);
+        const auto s_finished_count = s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID);
+        std::this_thread::sleep_for(15ms);
+        require(s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID) == s_finished_count,
+                "callback MotionFinished left output running");
+
+        s_calls = 0;
+        bool s_threw = false;
+        try {
+            s_impl.s_controlLoop([&](const florid::ArmState&, florid::ArmControl&) {
+                if (++s_calls == 20) throw std::runtime_error("callback failure");
+                return s_target;
+            });
+        } catch (const std::runtime_error&) { s_threw = true; }
+        require(s_threw, "callback exception was swallowed");
+        std::this_thread::sleep_for(10ms);
+        const auto s_exception_count = s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID);
+        std::this_thread::sleep_for(15ms);
+        require(s_peer.commandCount(JOINT_PVT_COMMAND_MESSAGE_ID) == s_exception_count,
+                "callback exception left MPC output running");
+    }
+    s_peer.stop();
+}
+#endif
+
 } // namespace
 
 int main() {
@@ -941,6 +1086,9 @@ int main() {
         testReceiveCallbackDetachQuiesces();
         testUdpTransportDetachQuiesces();
         testArmImplWirelinkPipeline();
+#ifdef FLORID_HAS_MPC
+        testMPCWirelinkSession();
+#endif
         return 0;
     } catch (const std::exception& s_error) {
         std::fprintf(stderr, "test_transport_pipeline: %s\n", s_error.what());

@@ -3,6 +3,7 @@
 
 #include "florid/ControlTypes.hpp"
 #include "florid/Exceptions.hpp"
+#include "florid/detail/MPCTrajectory.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -28,6 +29,37 @@ public:
     // Position-only MPC. T_ref is column-major, translation at [12..14].
     // Rotation and Cartesian impedance gains are not part of this OCP.
     JointPVT solve(const float* q, const float* dq, const float* T_ref);
+    using Prediction = std::array<detail::MPCJointState, MPCTraits::kHorizon + 1>;
+    // The multi-rate controller uses the full trajectory. A failed solve never
+    // publishes a hold command as a successful prediction.
+    bool predict(const float* q, const float* dq, const float* T_ref, Prediction& s_out) {
+        (void)solve(q, dq, T_ref);
+        if (m_status != 0) return false;
+        for (int s_stage = 0; s_stage <= MPCTraits::kHorizon; ++s_stage) {
+            double s_x[MPCTraits::kNX];
+            MPCTraits::getState(m_capsule, s_stage, s_x);
+            for (int i = 0; i < MPCTraits::kDOF; ++i) {
+                if (!std::isfinite(s_x[i]) || !std::isfinite(s_x[6+i]) ||
+                    s_x[i] < MPCTraits::kQLower[i] - 1e-5 ||
+                    s_x[i] > MPCTraits::kQUpper[i] + 1e-5 ||
+                    std::abs(s_x[6+i]) > MPCTraits::kDqLimit[i] + 1e-5) {
+                    m_status = -2;
+                    resetWarmStart();
+                    return false;
+                }
+                s_out[s_stage].m_q[i] = std::clamp(s_x[i],
+                    double(MPCTraits::kQLower[i]), double(MPCTraits::kQUpper[i]));
+                s_out[s_stage].m_dq[i] = s_x[6+i];
+            }
+        }
+        return true;
+    }
+    void setVelocityLimit(float s_limit) {
+        if (!std::isfinite(s_limit) || s_limit <= 0)
+            throw CommandException("MPC velocity limit must be positive and finite");
+        MPCTraits::setVelocityLimit(m_capsule, s_limit);
+    }
+    void resetWarmStart() { MPCTraits::resetWarmStart(m_capsule); }
     JointPVT holdPosition(const float* q) const;
     [[deprecated("This is a position hold, not inverse kinematics; use holdPosition")]]
     JointPVT fallbackIK(const float* q, const float* T_ref);
@@ -102,6 +134,7 @@ JointPVT CartesianMPCSolver<MPCTraits>::solve(const float* q, const float* dq, c
             s_out.m_q[i] > MPCTraits::kQUpper[i] + 1e-4f ||
             std::abs(s_dq[i]) > MPCTraits::kDqLimit[i] + 1e-4f) {
             m_status = -2;
+            resetWarmStart();
             return holdPosition(q);
         }
         s_out.m_q[i] = std::clamp(s_out.m_q[i], MPCTraits::kQLower[i], MPCTraits::kQUpper[i]);

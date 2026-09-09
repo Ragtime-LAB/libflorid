@@ -26,8 +26,8 @@
 
 - **Python bindings**: install `pyflorid` via pip (pybind11), expose the same API with snake_case names.
 
-See [Willow position MPC](docs/mpc.md) for matrix layout, the 4 ms control period,
-solver limits, failure behavior and offline verification.
+See [Willow position MPC](docs/mpc.md) for matrix layout, internal 50 Hz planning /
+500 Hz output, limits, deadlines and offline verification.
 
 ## System Requirements
 
@@ -283,7 +283,7 @@ Run from the `examples/` source tree; each binary takes a complete transport URI
 | `03_active_joint_control` | `startJointMITControl()` polling loop |
 | `03_mode_switching` | Cycling MIT / PVT / PosVel control modes |
 | `04_motor_registers` | Read/write/store motor registers (joint_id 1–7) |
-| `05_cartesian_mpc` | Cartesian pose + `CartesianMPCSolver` (requires `-DBUILD_MPC=ON`) |
+| `05_cartesian_mpc` | 50 Hz position MPC / internal 500 Hz output, hold-only and CSV (requires `-DBUILD_MPC=ON`) |
 
 ## Switching Arm Types
 

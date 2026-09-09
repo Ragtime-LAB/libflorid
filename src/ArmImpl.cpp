@@ -69,14 +69,12 @@ double ArmControl::receiveHz() const {
 }
 
 void ArmControl::finishMotion() {
-    if (m_impl) m_impl->m_stop_flag = true;
+    if (m_impl) m_impl->stop();
 }
 
 void ArmControl::stopControl() {
     if (!m_impl) return;
-    m_impl->m_stop_flag = true;
-    m_impl->m_running = false;
-    m_impl->m_data_ready.release();
+    m_impl->stop();
 }
 
 ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport,
@@ -87,9 +85,6 @@ ArmImpl::ArmImpl(std::unique_ptr<Transport> s_transport,
     }
 
     m_arm_control.m_impl = this;
-#ifdef FLORID_HAS_MPC
-    m_mpc = std::make_unique<CartesianMPCSolver<WillowMPCTraits>>();
-#endif
 
     const auto s_initialized = m_endpoint.initialize();
     if (s_initialized != detail::FciEndpointStatus::kOk) {
@@ -210,11 +205,27 @@ void ArmImpl::s_onArmStatus(
     const detail::FciArmStatusSnapshot& s_status) noexcept {
     if (s_context == nullptr) return;
     auto& s_self = *static_cast<ArmImpl*>(s_context);
+#ifdef FLORID_HAS_MPC
+    auto& s_feedback = s_self.m_received_feedback;
+    // Duplicate device samples must not refresh the MPC watchdog.
+    if (s_feedback.m_generation == 0 ||
+        (s_status.m_state.m_seq != s_feedback.m_state.m_seq &&
+         s_status.m_state.m_source_timestamp_us != s_feedback.m_state.m_source_timestamp_us))
+        s_feedback.m_received = detail::MPCClock::now();
+    s_feedback.m_state = s_status.m_state;
+    s_feedback.m_generation = s_status.m_generation;
+    const auto s_plan = s_self.m_planner_feedback.publish(s_feedback);
+    const auto s_output = s_self.m_output_feedback.publish(s_feedback);
+    const auto s_public = s_self.m_public_feedback.publish(s_feedback);
+    if (s_plan != WL_OK || s_output != WL_OK || s_public != WL_OK)
+        s_self.m_feedback_failed.store(true, std::memory_order_release);
+#else
     {
         std::lock_guard<std::mutex> s_lock(s_self.m_snapshot_mutex);
         s_self.m_latest_state = s_status.m_state;
         s_self.m_latest_state_generation = s_status.m_generation;
     }
+#endif
     {
         std::lock_guard<std::mutex> s_lock(s_self.m_latency_mutex);
         s_self.m_latency.markReceived(s_status.m_last_sdk_timestamp_us,
@@ -230,7 +241,7 @@ void ArmImpl::s_onDiagnostics(
     void* s_context, const ArmDiagnostics& s_diagnostics) noexcept {
     if (s_context == nullptr) return;
     auto& s_self = *static_cast<ArmImpl*>(s_context);
-    std::lock_guard<std::mutex> s_lock(s_self.m_snapshot_mutex);
+    std::lock_guard<std::mutex> s_lock(s_self.m_diagnostics_mutex);
     s_self.m_last_diagnostics = s_diagnostics;
 }
 
@@ -334,7 +345,7 @@ ArmState ArmImpl::readOnce() {
 }
 
 ArmDiagnostics ArmImpl::readDiagnostics() {
-    std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
+    std::lock_guard<std::mutex> s_lock(m_diagnostics_mutex);
     return m_last_diagnostics;
 }
 
@@ -460,29 +471,91 @@ void ArmImpl::s_ensureGripperMode(detail::FciMotorControlMode s_mode) {
 }
 
 ArmState ArmImpl::s_latestState() const {
+#ifdef FLORID_HAS_MPC
+    return s_latestMeasurement().m_state;
+#else
     std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
     return m_latest_state;
+#endif
 }
+
+#ifdef FLORID_HAS_MPC
+detail::MPCMeasurement ArmImpl::s_latestMeasurement() const {
+    std::lock_guard s_lock(m_snapshot_mutex);
+    const auto s_read = m_public_feedback.read(m_public_cache);
+    if (s_read != WL_OK && s_read != WL_ERR_NO_DATA)
+        throw ControlException("Cannot read arm feedback mailbox");
+    return m_public_cache;
+}
+#endif
 
 bool ArmImpl::s_takeLatestState(ArmState& s_state) noexcept {
     std::lock_guard<std::mutex> s_lock(m_snapshot_mutex);
-    if (m_latest_state_generation == 0 ||
-        m_latest_state_generation == m_consumed_state_generation) {
-        return false;
-    }
-    s_state = m_latest_state;
-    m_consumed_state_generation = m_latest_state_generation;
+#ifdef FLORID_HAS_MPC
+    const auto s_read = m_public_feedback.read(m_public_cache);
+    if (s_read != WL_OK && s_read != WL_ERR_NO_DATA) return false;
+    const auto& s_latest = m_public_cache.m_state;
+    const auto s_generation = m_public_cache.m_generation;
+#else
+    const auto& s_latest = m_latest_state;
+    const auto s_generation = m_latest_state_generation;
+#endif
+    if (s_generation == 0 || s_generation == m_consumed_state_generation) return false;
+    s_state = s_latest;
+    m_consumed_state_generation = s_generation;
     return true;
 }
 
 #ifdef FLORID_HAS_MPC
-JointPVT ArmImpl::s_convertCartesian(const CartesianPose& s_command,
-                                     const ArmState& s_state) {
-    if (m_mpc) {
-        return m_mpc->solve(s_state.m_q, s_state.m_dq, s_command.m_T);
-    }
-    return JointPVT{};
+std::shared_ptr<detail::MPCSession> ArmImpl::s_startMPC(const MPCControlConfig& s_config, std::uint64_t* s_generation) {
+    detail::MPCSession::validateConfig(s_config);
+    static_assert(WillowMPCTraits::kHorizon == 5 &&
+                  WillowMPCTraits::kDt > 0.019999f && WillowMPCTraits::kDt < 0.020001f,
+                  "The MPC scheduler requires a five-stage 20 ms model");
+    auto s_solver = std::make_shared<CartesianMPCSolver<WillowMPCTraits>>(
+        MPCConfig{s_config.current_limit_norm, s_config.velocity_excitation});
+    s_solver->setVelocityLimit(s_config.max_joint_velocity);
+    std::lock_guard s_lock(m_session_mutex);
+    const auto s_token = s_prepareControlLocked<CartesianPose>();
+    if (s_generation) *s_generation = s_token;
+    const auto s_seed = s_latestMeasurement();
+    auto s_reader = [this, s_seed](detail::LatestValue<detail::MPCMeasurement>& s_mailbox) {
+        // Retire an unread value from the previous session before transferring
+        // consumer ownership to the new worker; never regress behind the seed.
+        auto s_cache = s_seed;
+        detail::MPCMeasurement s_pending;
+        const auto s_read = s_mailbox.read(s_pending);
+        if (s_read == WL_OK && s_pending.m_generation > s_cache.m_generation) s_cache = s_pending;
+        else if (s_read != WL_OK && s_read != WL_ERR_NO_DATA)
+            throw ControlException("Cannot initialize MPC feedback consumer");
+        return [this, s_cache, s_mailbox = &s_mailbox]() mutable {
+            const auto s_read = s_mailbox->read(s_cache);
+            if ((s_read != WL_OK && s_read != WL_ERR_NO_DATA) ||
+                m_feedback_failed.load(std::memory_order_acquire))
+                throw ControlException("Cannot read MPC feedback mailbox");
+            s_cache.m_connected = connectionState() == ArmConnectionState::kReady;
+            return s_cache;
+        };
+    };
+    m_mpc = std::make_shared<detail::MPCSession>(s_config,
+        s_reader(m_planner_feedback), s_reader(m_output_feedback),
+        [this](const JointPVT& s_command) {
+            s_requireCommand(m_endpoint.sendJointPvt(s_command, detail::s_nowUs()), "MPC JointPvtCommand");
+        },
+        [s_solver, s_previous = detail::MPCClock::time_point{}]
+        (const ArmState& s_state, const CartesianPose& s_target, detail::MPCPlan& s_plan) mutable {
+            const auto s_gap = s_plan.m_origin - s_previous;
+            // One-stage shifting assumes a normal planning interval. After a
+            // missed interval, rebuild the RTI seed at the actual measurement.
+            if (s_previous != detail::MPCClock::time_point{} && (s_gap < 10ms || s_gap > 30ms))
+                s_solver->resetWarmStart();
+            s_previous = s_plan.m_origin;
+            s_solver->predict(s_state.m_q, s_state.m_dq, s_target.m_T, s_plan.m_knots);
+            return s_solver->lastStatus();
+        });
+    return m_mpc;
 }
+
 #endif
 
 void ArmImpl::s_sendCommand(const JointMIT& s_command) {
@@ -509,16 +582,14 @@ void ArmImpl::s_sendCommand(const JointPVT& s_command) {
                      "JointPvtCommand");
 }
 
+#ifndef FLORID_HAS_MPC
 void ArmImpl::s_sendCommand(const CartesianPose& s_command) {
-#ifdef FLORID_HAS_MPC
-    s_sendCommand(s_convertCartesian(s_command, s_latestState()));
-#else
     const auto s_now = detail::s_nowUs();
     s_requireCommand(
         m_endpoint.sendCartesianPose(s_command, m_fw_dt_us, s_now),
         "CartesianPoseCommand");
-#endif
 }
+#endif
 
 void ArmImpl::s_sendCommand(const CartesianVelocities& s_command) {
     const auto s_now = detail::s_nowUs();
@@ -553,6 +624,8 @@ void ArmImpl::s_sendGripperCommand(const JointPVT& s_command) {
 }
 
 void ArmImpl::home() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
     // The link currently serializes reliable RPCs. Extend the short control
     // lease before Home so its allowed ten-second response window cannot block
     // the renewal RPC long enough to expire the lease.
@@ -572,6 +645,8 @@ void ArmImpl::home() {
 }
 
 void ArmImpl::enable() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
     s_requireOperation(
         m_endpoint.setArmMode(detail::FciArmMode::kPc,
                               s_kDefaultRpcTimeoutMs),
@@ -579,6 +654,8 @@ void ArmImpl::enable() {
 }
 
 void ArmImpl::drag() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
     s_requireOperation(
         m_endpoint.setArmMode(detail::FciArmMode::kDrag,
                               s_kDefaultRpcTimeoutMs),
@@ -586,6 +663,8 @@ void ArmImpl::drag() {
 }
 
 void ArmImpl::disable() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
     s_requireOperation(
         m_endpoint.setArmMode(detail::FciArmMode::kDamp,
                               s_kDefaultRpcTimeoutMs),
@@ -593,6 +672,8 @@ void ArmImpl::disable() {
 }
 
 void ArmImpl::automaticErrorRecovery() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
     s_requireOperation(m_endpoint.clearFaults(s_kDefaultRpcTimeoutMs), 750ms,
                        "ClearFaults");
     for (std::uint8_t s_joint = 0; s_joint < 6; ++s_joint) {
@@ -603,9 +684,18 @@ void ArmImpl::automaticErrorRecovery() {
 }
 
 void ArmImpl::stop() {
+    std::lock_guard s_lock(m_session_mutex);
+    s_stopControlLocked();
+}
+
+void ArmImpl::s_stopControlLocked() noexcept {
     m_stop_flag.store(true, std::memory_order_release);
     m_running.store(false, std::memory_order_release);
-    m_data_ready.release();
+    if (!m_state_wake_pending.exchange(true, std::memory_order_acq_rel)) m_data_ready.release();
+    m_generation.invalidate();
+#ifdef FLORID_HAS_MPC
+    if (m_mpc) m_mpc->stop();
+#endif
 }
 
 bool ArmImpl::s_validJointId(std::uint8_t s_joint_id) noexcept {

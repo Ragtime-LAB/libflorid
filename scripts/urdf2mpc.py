@@ -67,7 +67,7 @@ def build_explicit_dynamics(urdf_path):
     return f_expl, f_impl, x, u, xdot, fk_trans, gravity
 
 
-def build_acados_ocp(f_expl, f_impl, x, u, xdot, fk_trans, horizon=5, dt=0.004):
+def build_acados_ocp(f_expl, f_impl, x, u, xdot, fk_trans, horizon=5, dt=0.020):
     import casadi as ca
     from acados_template import AcadosOcp, AcadosModel
 
@@ -88,6 +88,8 @@ def build_acados_ocp(f_expl, f_impl, x, u, xdot, fk_trans, horizon=5, dt=0.004):
     ocp.solver_options.hpipm_mode = 'ROBUST'
     ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
     ocp.solver_options.integrator_type = 'ERK'
+    ocp.solver_options.sim_method_num_steps = meta['integration_steps']
+    ocp.solver_options.sim_method_num_stages = 4
     ocp.solver_options.nlp_solver_type = 'SQP_RTI'
     ocp.solver_options.nlp_solver_max_iter = 5
     ocp.solver_options.levenberg_marquardt = 1e-4
@@ -119,11 +121,12 @@ def build_acados_ocp(f_expl, f_impl, x, u, xdot, fk_trans, horizon=5, dt=0.004):
     return ocp, meta
 
 
-def solver_metadata(horizon=5, dt=0.004):
+def solver_metadata(horizon=5, dt=0.020):
     if horizon < 1 or not np.isfinite(dt) or dt <= 0:
         raise ValueError("horizon must be >= 1 and dt must be finite and positive")
     return {
         'nx': NX, 'nu': NU, 'nq': NQ, 'horizon': horizon, 'dt': dt,
+        'integration_steps': int(np.ceil(dt / 0.004)),
         'q_lower': np.array([-3.14, 0.0, 0.0, -1.3, -1.57, -1.57]),
         'q_upper': np.array([3.14, 3.14, 3.14, 1.3, 1.57, 1.57]),
         'tau_limit': np.array([5.0, 5.0, 5.0, 3.0, 3.0, 3.0]),
@@ -174,7 +177,7 @@ def main():
     parser.add_argument('--outdir',  default='generated')
     parser.add_argument('--name',    default='WillowMPCTraits')
     parser.add_argument('--horizon', type=int,   default=5)
-    parser.add_argument('--dt',      type=float, default=0.004)
+    parser.add_argument('--dt',      type=float, default=0.020)
     args = parser.parse_args()
 
     meta = solver_metadata(args.horizon, args.dt)
