@@ -106,7 +106,9 @@ target_include_directories(lf_acados PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/external")
 target_compile_definitions(lf_acados PRIVATE "$<$<CONFIG:Debug>:DEBUG>")
 if(WIN32 OR CYGWIN)
-    target_compile_definitions(lf_acados PUBLIC STATIC_LINKED)
+    # Public timing headers include Windows.h. Keep min/max and legacy
+    # Winsock macros out of both generated traits and downstream SDK code.
+    target_compile_definitions(lf_acados PUBLIC STATIC_LINKED NOMINMAX WIN32_LEAN_AND_MEAN)
 endif()
 target_link_libraries(lf_acados PUBLIC lf_hpipm)
 

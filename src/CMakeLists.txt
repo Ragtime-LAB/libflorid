@@ -45,6 +45,33 @@ target_include_directories(florid
 
 target_compile_features(florid PUBLIC cxx_std_20)
 
+# Clang/libstdc++ may implement even lock-free queries in libatomic. Probe
+# with the selected compiler/flags, and propagate the library for inline SDK
+# consumers such as ControlGeneration as well as MPCSession.cpp.
+include(CheckCXXSourceCompiles)
+include(CMakePushCheckState)
+cmake_push_check_state(RESET)
+set(_lf_atomic_probe "
+#include <atomic>
+#include <cstdint>
+int main() {
+    std::atomic<std::uint64_t> generation{0};
+    std::atomic<unsigned> inflight{0};
+    std::atomic<bool> active{false};
+    return generation.is_lock_free() && inflight.is_lock_free() && active.is_lock_free() ? 0 : 1;
+}")
+check_cxx_source_compiles("${_lf_atomic_probe}" LF_ATOMICS_LINK_WITHOUT_LIBRARY)
+if(NOT LF_ATOMICS_LINK_WITHOUT_LIBRARY)
+    set(CMAKE_REQUIRED_LIBRARIES atomic)
+    check_cxx_source_compiles("${_lf_atomic_probe}" LF_ATOMICS_LINK_WITH_LIBATOMIC)
+    if(NOT LF_ATOMICS_LINK_WITH_LIBATOMIC)
+        message(FATAL_ERROR "The selected compiler needs a working C++ atomic runtime")
+    endif()
+    target_link_libraries(florid PUBLIC atomic)
+endif()
+cmake_pop_check_state()
+unset(_lf_atomic_probe)
+
 if(BUILD_MPC)
     if(WIN32)
         target_link_libraries(florid PRIVATE winmm)

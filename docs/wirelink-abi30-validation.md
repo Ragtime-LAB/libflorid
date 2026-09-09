@@ -59,3 +59,13 @@ communication, not motor operation, real-time performance, or long-run stability
 Local logs: companion Wirelink checkout `build/publish-h7.RhJgRR/`. Firmware
 hashes and simulator acceptance are recorded in Ragtime_Firmwares
 `firmware/doc/wirelink-abi30-validation.md`.
+
+## Platform build follow-up
+
+CI also exposed two build gaps in the existing MPC/control-generation changes:
+Clang/libstdc++ required `libatomic` for runtime lock-free queries, and acados'
+public Windows timing headers introduced `min/max` and legacy Winsock macros.
+The SDK now probes atomic linkage and propagates `atomic` only when required;
+the acados CMake target exports `NOMINMAX`/`WIN32_LEAN_AND_MEAN`. Vendored upstream
+source bytes, generated MPC code, lock-free requirements and runtime behavior
+are unchanged. Release and Sanitizer builds must both be checked.
