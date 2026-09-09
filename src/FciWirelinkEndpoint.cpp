@@ -1360,7 +1360,6 @@ std::uint32_t FciWirelinkEndpoint::s_until(wl_time_ms_t s_now,
 
 bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
                                      wl_time_ms_t s_now_ms) noexcept {
-    bool s_progressed = false;
     fci_arm_runtime_service_result_t s_service{};
     m_stats.m_runtime_poll_calls.fetch_add(1, std::memory_order_relaxed);
     if (fci_arm_runtime_service(&s_context, &m_runtime_instance.runtime,
@@ -1369,13 +1368,11 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
             m_stats.m_runtime_timeouts.fetch_add(
                 s_service.deadlines.client_timed_out,
                 std::memory_order_relaxed);
-            s_progressed = true;
         }
-        s_progressed = s_service.responses_submitted != 0 || s_progressed;
     }
 
-    s_progressed = s_drainLatest() || s_progressed;
-    s_progressed = s_finishActive(s_context, s_now_ms) || s_progressed;
+    (void)s_drainLatest();
+    (void)s_finishActive(s_context, s_now_ms);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if ((m_lease.m_state == FciControlLeaseState::kRenewQueued ||
@@ -1385,12 +1382,15 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
             m_lease.m_status = FciEndpointStatus::kTimeout;
             m_lease.m_token = 0;
             m_lease.m_granted_timeout_ms = 0;
-            s_progressed = true;
         }
     }
-    s_progressed = s_scheduleRenewal(s_now_ms) || s_progressed;
-    s_progressed = s_startNext(s_context, s_now_ms) || s_progressed;
-    return s_progressed;
+    (void)s_scheduleRenewal(s_now_ms);
+    // Consumed telemetry/completions and expired leases are history, not a
+    // request for another owner pass. Core/adapter hints and producer notify()
+    // cover remaining RX, deadlines and callbacks that enqueue work. A newly
+    // started RPC still needs one pass to service its TX or finish a local
+    // terminal result; backpressure must wait for readiness instead of spin.
+    return s_startNext(s_context, s_now_ms);
 }
 
 bool FciWirelinkEndpoint::s_drainLatest() noexcept {

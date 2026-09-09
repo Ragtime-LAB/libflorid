@@ -128,6 +128,7 @@ public:
     int attachWirelink(wl_ctx_t& s_link, WakeFunctor s_wake,
                        void* s_context) noexcept override {
         m_session_id = wl_link_session_id(&s_link);
+        m_link = &s_link;
         m_wake = s_wake;
         m_wake_context = s_context;
         return wl_set_sink(&s_link, s_sink, this);
@@ -136,6 +137,23 @@ public:
     int serviceWirelink() noexcept override {
         m_service_calls.fetch_add(1, std::memory_order_relaxed);
         return WL_OK;
+    }
+
+    std::uint32_t wirelinkDeadlineHint(wl_time_ms_t) const noexcept override {
+        std::lock_guard<std::mutex> s_lock(m_hint_mutex);
+        if (m_first_hint_service_calls == 0) {
+            m_first_hint_service_calls = m_service_calls.load(std::memory_order_relaxed);
+            m_hint_changed.notify_all();
+        }
+        return WL_POLL_NO_DEADLINE_MS;
+    }
+
+    std::uint64_t firstHintServiceCalls() const {
+        std::unique_lock<std::mutex> s_lock(m_hint_mutex);
+        require(m_hint_changed.wait_for(s_lock, 3s, [this] {
+                    return m_first_hint_service_calls != 0;
+                }), "owner never reached its readiness query");
+        return m_first_hint_service_calls;
     }
 
     void quiesceWirelink() noexcept override {
@@ -150,6 +168,17 @@ public:
     std::atomic<bool> m_quiesced{};
     std::uint64_t m_session_id{};
 
+    static wl_sink_result_t prefeed(void* s_context, wl_io_token_t,
+                                    const std::uint8_t* s_data,
+                                    std::size_t s_size) noexcept {
+        // Setup-only adapter input, before the owner starts. Executor's public
+        // feedBytes deliberately rejects producers until start().
+        auto& s_self = *static_cast<DirectTransportProbe*>(s_context);
+        std::size_t s_accepted{};
+        return wl_feed_bytes(s_self.m_link, s_data, s_size, &s_accepted) == WL_OK &&
+                       s_accepted == s_size ? WL_SINK_SENT : WL_SINK_FAILED;
+    }
+
 private:
     static wl_sink_result_t s_sink(void*, wl_io_token_t, const std::uint8_t*,
                                    std::size_t) noexcept {
@@ -158,6 +187,10 @@ private:
 
     WakeFunctor m_wake{};
     void* m_wake_context{};
+    wl_ctx_t* m_link{};
+    mutable std::mutex m_hint_mutex;
+    mutable std::condition_variable m_hint_changed;
+    mutable std::uint64_t m_first_hint_service_calls{};
 };
 
 class DevicePeer {
@@ -1285,6 +1318,55 @@ void testSessionSource() {
     s_platform_b.stop();
 }
 
+void testConsumedTelemetryDoesNotRequestAnotherPass() {
+    DirectTransportProbe s_transport;
+    FciWirelinkEndpoint s_endpoint;
+    require(s_endpoint.initialize() == FciEndpointStatus::kOk &&
+                s_endpoint.attachDirectTransport(s_transport) == FciEndpointStatus::kOk,
+            "telemetry owner probe initialization failed");
+
+    // Publish complete frames before start: no producer scheduling or timed
+    // sleep can change the number of passes before the first readiness query.
+    PeerStorage s_storage;
+    wl_ctx_t s_peer{};
+    const wl_config_t s_config{
+        .max_payload_len = 256,
+        .envelope = WL_ENVELOPE_COBS_STREAM,
+        .integrity = WL_INTEGRITY_NONE,
+        .session_id = UINT64_C(0x7766554433221100),
+        .max_retries = 2,
+        .ack_timeout_ms = 20,
+        .max_transmission_unit = 320,
+    };
+    auto s_buffers = s_storage.descriptor();
+    require(wl_init(&s_peer, &s_config, &s_buffers) == WL_OK,
+            "telemetry probe peer initialization failed");
+    require(wl_set_sink(&s_peer, DirectTransportProbe::prefeed, &s_transport) == WL_OK,
+            "telemetry probe sink initialization failed");
+    arm_diagnostics_t s_diagnostics{};
+    s_diagnostics.has_uptime_s = s_diagnostics.has_tick_count = true;
+    s_diagnostics.has_mode_entry_ms = s_diagnostics.has_bus_healthy = true;
+    s_diagnostics.has_bus_state = s_diagnostics.has_tx_error_count = true;
+    s_diagnostics.has_rx_error_count = s_diagnostics.has_joint_healthy_mask = true;
+    s_diagnostics.has_joint_temperature_c = s_diagnostics.has_gripper_healthy = true;
+    s_diagnostics.has_gripper_temperature_c = s_diagnostics.has_overheat_mask = true;
+    for (std::uint32_t s_tick = 1; s_tick <= 2; ++s_tick) {
+        s_diagnostics.tick_count = s_tick;
+        const auto s_sent = fci_arm_arm_diagnostics_send(
+            &s_peer, &s_diagnostics, WL_DELIVERY_UNRELIABLE, 1U);
+        require(s_sent.domain == FCI_ARM_SEND_OK, "telemetry prefeed failed");
+    }
+    require(s_endpoint.start() == FciEndpointStatus::kOk, "probe start failed");
+    const auto s_passes = s_transport.firstHintServiceCalls();
+    s_endpoint.stop();
+    require(s_endpoint.stats().m_latest_acquires == 1 &&
+                s_endpoint.stats().m_latest_releases == 1,
+            "prefed telemetry was not coalesced and consumed exactly once");
+    std::printf("telemetry owner passes before readiness query: %llu\n",
+                static_cast<unsigned long long>(s_passes));
+    require(s_passes == 1, "consumed telemetry requested an unnecessary owner pass");
+}
+
 void testDirectTransportLifecycle() {
     DirectTransportProbe s_transport;
     FciWirelinkEndpoint s_endpoint;
@@ -1327,6 +1409,7 @@ int main() {
     try {
         testTypedEndpointLifecycle();
         testSessionSource();
+        testConsumedTelemetryDoesNotRequestAnotherPass();
         testDirectTransportLifecycle();
         std::puts("PASS: typed FCI endpoint owns runtime, RPC, LATEST, and shutdown");
         return 0;
