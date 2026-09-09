@@ -875,148 +875,88 @@ static const wlc_field_t arm_diagnostics_fields[] = {
 static const wlc_desc_t arm_diagnostics_desc = { arm_diagnostics_fields, sizeof(arm_diagnostics_fields) / sizeof(arm_diagnostics_fields[0]), WLC_LOOKUP_DENSE };
 
 static const wlc_field_t set_zero_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_zero_request_t, operation_id), offsetof(set_zero_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(set_zero_request_t, joint_id), offsetof(set_zero_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t set_zero_request_desc = { set_zero_request_fields, sizeof(set_zero_request_fields) / sizeof(set_zero_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t set_zero_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_zero_response_t, operation_id), offsetof(set_zero_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_zero_response_t, status), offsetof(set_zero_response_t, has_status), 0, 0, sizeof(fault_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t set_zero_response_desc = { set_zero_response_fields, sizeof(set_zero_response_fields) / sizeof(set_zero_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t set_zero_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t clear_error_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(clear_error_request_t, operation_id), offsetof(clear_error_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(clear_error_request_t, joint_id), offsetof(clear_error_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t clear_error_request_desc = { clear_error_request_fields, sizeof(clear_error_request_fields) / sizeof(clear_error_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t clear_error_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(clear_error_response_t, operation_id), offsetof(clear_error_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(clear_error_response_t, status), offsetof(clear_error_response_t, has_status), 0, 0, sizeof(fault_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t clear_error_response_desc = { clear_error_response_fields, sizeof(clear_error_response_fields) / sizeof(clear_error_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t clear_error_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t home_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(home_request_t, operation_id), offsetof(home_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t home_request_desc = { home_request_fields, sizeof(home_request_fields) / sizeof(home_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t home_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t home_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(home_response_t, operation_id), offsetof(home_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(home_response_t, status), offsetof(home_response_t, has_status), 0, 0, sizeof(home_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t home_response_desc = { home_response_fields, sizeof(home_response_fields) / sizeof(home_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t home_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t clear_faults_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(clear_faults_request_t, operation_id), offsetof(clear_faults_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t clear_faults_request_desc = { clear_faults_request_fields, sizeof(clear_faults_request_fields) / sizeof(clear_faults_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t clear_faults_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t clear_faults_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(clear_faults_response_t, operation_id), offsetof(clear_faults_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(clear_faults_response_t, status), offsetof(clear_faults_response_t, has_status), 0, 0, sizeof(fault_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t clear_faults_response_desc = { clear_faults_response_fields, sizeof(clear_faults_response_fields) / sizeof(clear_faults_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t clear_faults_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t acquire_control_lease_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(acquire_control_lease_request_t, operation_id), offsetof(acquire_control_lease_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(acquire_control_lease_request_t, requested_timeout_ms), offsetof(acquire_control_lease_request_t, has_requested_timeout_ms), 0, 0, sizeof(uint32_t), 0U, 0U, { 21U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_F64, 0, 1U, 1U, offsetof(acquire_control_lease_request_t, current_token), offsetof(acquire_control_lease_request_t, has_current_token), 0, 0, sizeof(uint64_t), 0U, 0U, { 25U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t acquire_control_lease_request_desc = { acquire_control_lease_request_fields, sizeof(acquire_control_lease_request_fields) / sizeof(acquire_control_lease_request_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t acquire_control_lease_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(acquire_control_lease_response_t, operation_id), offsetof(acquire_control_lease_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(acquire_control_lease_response_t, status), offsetof(acquire_control_lease_response_t, has_status), 0, 0, sizeof(control_lease_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_F64, 0, 1U, 1U, offsetof(acquire_control_lease_response_t, lease_token), offsetof(acquire_control_lease_response_t, has_lease_token), 0, 0, sizeof(uint64_t), 0U, 0U, { 25U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 4U, WLC_OPTIONAL, WLC_F32, 0, 5U, 1U, offsetof(acquire_control_lease_response_t, granted_timeout_ms), offsetof(acquire_control_lease_response_t, has_granted_timeout_ms), 0, 0, sizeof(uint32_t), 0U, 0U, { 37U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t acquire_control_lease_response_desc = { acquire_control_lease_response_fields, sizeof(acquire_control_lease_response_fields) / sizeof(acquire_control_lease_response_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t release_control_lease_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(release_control_lease_request_t, operation_id), offsetof(release_control_lease_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(release_control_lease_request_t, lease_token), offsetof(release_control_lease_request_t, has_lease_token), 0, 0, sizeof(uint64_t), 0U, 0U, { 17U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t release_control_lease_request_desc = { release_control_lease_request_fields, sizeof(release_control_lease_request_fields) / sizeof(release_control_lease_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t release_control_lease_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(release_control_lease_response_t, operation_id), offsetof(release_control_lease_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(release_control_lease_response_t, status), offsetof(release_control_lease_response_t, has_status), 0, 0, sizeof(control_lease_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t release_control_lease_response_desc = { release_control_lease_response_fields, sizeof(release_control_lease_response_fields) / sizeof(release_control_lease_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t release_control_lease_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t get_motor_feedback_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_motor_feedback_request_t, operation_id), offsetof(get_motor_feedback_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t get_motor_feedback_request_desc = { get_motor_feedback_request_fields, sizeof(get_motor_feedback_request_fields) / sizeof(get_motor_feedback_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t get_motor_feedback_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t get_motor_feedback_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_motor_feedback_response_t, operation_id), offsetof(get_motor_feedback_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_motor_feedback_response_t, status), offsetof(get_motor_feedback_response_t, has_status), 0, 0, sizeof(motor_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_MESSAGE, 0, 2U, 1U, offsetof(get_motor_feedback_response_t, feedback), offsetof(get_motor_feedback_response_t, has_feedback), 0, 0, sizeof(motor_feedback_t), 0U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, &motor_feedback_desc },
 };
 static const wlc_desc_t get_motor_feedback_response_desc = { get_motor_feedback_response_fields, sizeof(get_motor_feedback_response_fields) / sizeof(get_motor_feedback_response_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t get_device_info_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_device_info_request_t, operation_id), offsetof(get_device_info_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t get_device_info_request_desc = { get_device_info_request_fields, sizeof(get_device_info_request_fields) / sizeof(get_device_info_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t get_device_info_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t get_device_info_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_device_info_response_t, operation_id), offsetof(get_device_info_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_device_info_response_t, status), offsetof(get_device_info_response_t, has_status), 0, 0, sizeof(device_info_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_MESSAGE, 0, 2U, 1U, offsetof(get_device_info_response_t, info), offsetof(get_device_info_response_t, has_info), 0, 0, sizeof(device_info_t), 0U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, &device_info_desc },
 };
 static const wlc_desc_t get_device_info_response_desc = { get_device_info_response_fields, sizeof(get_device_info_response_fields) / sizeof(get_device_info_response_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_device_info_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_device_info_request_t, operation_id), offsetof(set_device_info_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(set_device_info_request_t, custom_name), offsetof(set_device_info_request_t, has_custom_name), 0, 0, sizeof(wl_codec_string_t), 0U, 31U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t set_device_info_request_desc = { set_device_info_request_fields, sizeof(set_device_info_request_fields) / sizeof(set_device_info_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t set_device_info_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_device_info_response_t, operation_id), offsetof(set_device_info_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_device_info_response_t, status), offsetof(set_device_info_response_t, has_status), 0, 0, sizeof(device_info_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t set_device_info_response_desc = { set_device_info_response_fields, sizeof(set_device_info_response_fields) / sizeof(set_device_info_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t set_device_info_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_arm_control_mode_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_arm_control_mode_request_t, operation_id), offsetof(set_arm_control_mode_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_arm_control_mode_request_t, mode), offsetof(set_arm_control_mode_request_t, has_mode), 0, 0, sizeof(motor_control_mode_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t set_arm_control_mode_request_desc = { set_arm_control_mode_request_fields, sizeof(set_arm_control_mode_request_fields) / sizeof(set_arm_control_mode_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t set_arm_control_mode_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_arm_control_mode_response_t, operation_id), offsetof(set_arm_control_mode_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_arm_control_mode_response_t, status), offsetof(set_arm_control_mode_response_t, has_status), 0, 0, sizeof(mode_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t set_arm_control_mode_response_desc = { set_arm_control_mode_response_fields, sizeof(set_arm_control_mode_response_fields) / sizeof(set_arm_control_mode_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t set_arm_control_mode_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_gripper_control_mode_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_gripper_control_mode_request_t, operation_id), offsetof(set_gripper_control_mode_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_gripper_control_mode_request_t, mode), offsetof(set_gripper_control_mode_request_t, has_mode), 0, 0, sizeof(motor_control_mode_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t set_gripper_control_mode_request_desc = { set_gripper_control_mode_request_fields, sizeof(set_gripper_control_mode_request_fields) / sizeof(set_gripper_control_mode_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t set_gripper_control_mode_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_gripper_control_mode_response_t, operation_id), offsetof(set_gripper_control_mode_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_gripper_control_mode_response_t, status), offsetof(set_gripper_control_mode_response_t, has_status), 0, 0, sizeof(mode_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t set_gripper_control_mode_response_desc = { set_gripper_control_mode_response_fields, sizeof(set_gripper_control_mode_response_fields) / sizeof(set_gripper_control_mode_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t set_gripper_control_mode_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t motor_register_read_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_register_read_request_t, operation_id), offsetof(motor_register_read_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_register_read_request_t, joint_id), offsetof(motor_register_read_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_register_read_request_t, register_id), offsetof(motor_register_read_request_t, has_register_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t motor_register_read_request_desc = { motor_register_read_request_fields, sizeof(motor_register_read_request_fields) / sizeof(motor_register_read_request_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t motor_register_read_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_register_read_response_t, operation_id), offsetof(motor_register_read_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(motor_register_read_response_t, status), offsetof(motor_register_read_response_t, has_status), 0, 0, sizeof(motor_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_U8, 0, 0U, 1U, offsetof(motor_register_read_response_t, joint_id), offsetof(motor_register_read_response_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 4U, WLC_OPTIONAL, WLC_U8, 0, 0U, 1U, offsetof(motor_register_read_response_t, register_id), offsetof(motor_register_read_response_t, has_register_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 32U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 5U, WLC_OPTIONAL, WLC_FLOAT32, 0, 5U, 1U, offsetof(motor_register_read_response_t, value), offsetof(motor_register_read_response_t, has_value), 0, 0, sizeof(float), 0U, 0U, { 45U, 0U, 0U }, 0, 0ULL, NULL, NULL },
@@ -1024,76 +964,48 @@ static const wlc_field_t motor_register_read_response_fields[] = {
 static const wlc_desc_t motor_register_read_response_desc = { motor_register_read_response_fields, sizeof(motor_register_read_response_fields) / sizeof(motor_register_read_response_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t motor_register_write_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_register_write_request_t, operation_id), offsetof(motor_register_write_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_register_write_request_t, joint_id), offsetof(motor_register_write_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_register_write_request_t, register_id), offsetof(motor_register_write_request_t, has_register_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 4U, WLC_OPTIONAL, WLC_FLOAT32, 1, 5U, 1U, offsetof(motor_register_write_request_t, value), offsetof(motor_register_write_request_t, has_value), 0, 0, sizeof(float), 0U, 0U, { 37U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t motor_register_write_request_desc = { motor_register_write_request_fields, sizeof(motor_register_write_request_fields) / sizeof(motor_register_write_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t motor_register_write_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_register_write_response_t, operation_id), offsetof(motor_register_write_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(motor_register_write_response_t, status), offsetof(motor_register_write_response_t, has_status), 0, 0, sizeof(motor_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t motor_register_write_response_desc = { motor_register_write_response_fields, sizeof(motor_register_write_response_fields) / sizeof(motor_register_write_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t motor_register_write_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t motor_store_parameters_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_store_parameters_request_t, operation_id), offsetof(motor_store_parameters_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_store_parameters_request_t, joint_id), offsetof(motor_store_parameters_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t motor_store_parameters_request_desc = { motor_store_parameters_request_fields, sizeof(motor_store_parameters_request_fields) / sizeof(motor_store_parameters_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t motor_store_parameters_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_store_parameters_response_t, operation_id), offsetof(motor_store_parameters_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(motor_store_parameters_response_t, status), offsetof(motor_store_parameters_response_t, has_status), 0, 0, sizeof(motor_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t motor_store_parameters_response_desc = { motor_store_parameters_response_fields, sizeof(motor_store_parameters_response_fields) / sizeof(motor_store_parameters_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t motor_store_parameters_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t motor_set_zero_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_set_zero_request_t, operation_id), offsetof(motor_set_zero_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(motor_set_zero_request_t, joint_id), offsetof(motor_set_zero_request_t, has_joint_id), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t motor_set_zero_request_desc = { motor_set_zero_request_fields, sizeof(motor_set_zero_request_fields) / sizeof(motor_set_zero_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t motor_set_zero_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(motor_set_zero_response_t, operation_id), offsetof(motor_set_zero_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(motor_set_zero_response_t, status), offsetof(motor_set_zero_response_t, has_status), 0, 0, sizeof(motor_operation_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t motor_set_zero_response_desc = { motor_set_zero_response_fields, sizeof(motor_set_zero_response_fields) / sizeof(motor_set_zero_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t motor_set_zero_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_arm_mode_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_arm_mode_request_t, operation_id), offsetof(set_arm_mode_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_arm_mode_request_t, mode), offsetof(set_arm_mode_request_t, has_mode), 0, 0, sizeof(arm_mode_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t set_arm_mode_request_desc = { set_arm_mode_request_fields, sizeof(set_arm_mode_request_fields) / sizeof(set_arm_mode_request_fields[0]), WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t set_arm_mode_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_arm_mode_response_t, operation_id), offsetof(set_arm_mode_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_arm_mode_response_t, status), offsetof(set_arm_mode_response_t, has_status), 0, 0, sizeof(mode_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t set_arm_mode_response_desc = { set_arm_mode_response_fields, sizeof(set_arm_mode_response_fields) / sizeof(set_arm_mode_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t set_arm_mode_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t get_device_settings_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_device_settings_request_t, operation_id), offsetof(get_device_settings_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t get_device_settings_request_desc = { get_device_settings_request_fields, sizeof(get_device_settings_request_fields) / sizeof(get_device_settings_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t get_device_settings_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t get_device_settings_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(get_device_settings_response_t, operation_id), offsetof(get_device_settings_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_device_settings_response_t, status), offsetof(get_device_settings_response_t, has_status), 0, 0, sizeof(device_settings_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_MESSAGE, 0, 2U, 1U, offsetof(get_device_settings_response_t, settings), offsetof(get_device_settings_response_t, has_settings), 0, 0, sizeof(device_settings_t), 0U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, &device_settings_desc },
 };
 static const wlc_desc_t get_device_settings_response_desc = { get_device_settings_response_fields, sizeof(get_device_settings_response_fields) / sizeof(get_device_settings_response_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_device_settings_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_device_settings_request_t, operation_id), offsetof(set_device_settings_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(set_device_settings_request_t, settings), offsetof(set_device_settings_request_t, has_settings), 0, 0, sizeof(device_settings_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &device_settings_desc },
 };
 static const wlc_desc_t set_device_settings_request_desc = { set_device_settings_request_fields, sizeof(set_device_settings_request_fields) / sizeof(set_device_settings_request_fields[0]), WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t set_device_settings_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(set_device_settings_response_t, operation_id), offsetof(set_device_settings_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_device_settings_response_t, status), offsetof(set_device_settings_response_t, has_status), 0, 0, sizeof(device_settings_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
   { 3U, WLC_OPTIONAL, WLC_MESSAGE, 0, 2U, 1U, offsetof(set_device_settings_response_t, settings), offsetof(set_device_settings_response_t, has_settings), 0, 0, sizeof(device_settings_t), 0U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, &device_settings_desc },
 };
 static const wlc_desc_t set_device_settings_response_desc = { set_device_settings_response_fields, sizeof(set_device_settings_response_fields) / sizeof(set_device_settings_response_fields[0]), WLC_LOOKUP_LINEAR };
@@ -1112,16 +1024,9 @@ static const wlc_field_t joint_mit_command_fields[] = {
 };
 static const wlc_desc_t joint_mit_command_desc = { joint_mit_command_fields, sizeof(joint_mit_command_fields) / sizeof(joint_mit_command_fields[0]), WLC_LOOKUP_DENSE };
 
-static const wlc_field_t emergency_stop_request_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(emergency_stop_request_t, operation_id), offsetof(emergency_stop_request_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t emergency_stop_request_desc = { emergency_stop_request_fields, sizeof(emergency_stop_request_fields) / sizeof(emergency_stop_request_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t emergency_stop_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
-static const wlc_field_t emergency_stop_response_fields[] = {
-  { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(emergency_stop_response_t, operation_id), offsetof(emergency_stop_response_t, has_operation_id), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-  { 2U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(emergency_stop_response_t, status), offsetof(emergency_stop_response_t, has_status), 0, 0, sizeof(emergency_stop_status_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
-};
-static const wlc_desc_t emergency_stop_response_desc = { emergency_stop_response_fields, sizeof(emergency_stop_response_fields) / sizeof(emergency_stop_response_fields[0]), WLC_LOOKUP_LINEAR };
+static const wlc_desc_t emergency_stop_response_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
 
 static const wlc_field_t gripper_mit_command_fields[] = {
   { 1U, WLC_OPTIONAL, WLC_FLOAT32, 1, 5U, 1U, offsetof(gripper_mit_command_t, position), offsetof(gripper_mit_command_t, has_position), 0, 0, sizeof(float), 0U, 0U, { 13U, 0U, 0U }, 0, 0ULL, NULL, NULL },
@@ -2915,13 +2820,10 @@ wl_codec_status_t arm_diagnostics_value_decode(const uint8_t *input, size_t leng
 
 static void set_zero_request_value_defaults(set_zero_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
 }
 
 static void set_zero_request_value_copy_fields(const set_zero_request_t *view, set_zero_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
 }
@@ -2951,10 +2853,6 @@ wl_codec_status_t set_zero_request_value_from_view(const set_zero_request_t *vie
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_zero_request_value_borrow(const set_zero_request_value_t *value, set_zero_request_t *out) {
   set_zero_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -3000,15 +2898,10 @@ wl_codec_status_t set_zero_request_value_decode(const uint8_t *input, size_t len
 
 static void set_zero_response_value_defaults(set_zero_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void set_zero_response_value_copy_fields(const set_zero_response_t *view, set_zero_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3036,14 +2929,7 @@ wl_codec_status_t set_zero_response_value_from_view(const set_zero_response_t *v
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_zero_response_value_borrow(const set_zero_response_value_t *value, set_zero_response_t *out) {
   set_zero_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3085,13 +2971,10 @@ wl_codec_status_t set_zero_response_value_decode(const uint8_t *input, size_t le
 
 static void clear_error_request_value_defaults(clear_error_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
 }
 
 static void clear_error_request_value_copy_fields(const clear_error_request_t *view, clear_error_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
 }
@@ -3121,10 +3004,6 @@ wl_codec_status_t clear_error_request_value_from_view(const clear_error_request_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t clear_error_request_value_borrow(const clear_error_request_value_t *value, clear_error_request_t *out) {
   clear_error_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -3170,15 +3049,10 @@ wl_codec_status_t clear_error_request_value_decode(const uint8_t *input, size_t 
 
 static void clear_error_response_value_defaults(clear_error_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void clear_error_response_value_copy_fields(const clear_error_response_t *view, clear_error_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3206,14 +3080,7 @@ wl_codec_status_t clear_error_response_value_from_view(const clear_error_respons
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t clear_error_response_value_borrow(const clear_error_response_value_t *value, clear_error_response_t *out) {
   clear_error_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3255,12 +3122,10 @@ wl_codec_status_t clear_error_response_value_decode(const uint8_t *input, size_t
 
 static void home_request_value_defaults(home_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void home_request_value_copy_fields(const home_request_t *view, home_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3288,10 +3153,7 @@ wl_codec_status_t home_request_value_from_view(const home_request_t *view, home_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t home_request_value_borrow(const home_request_value_t *value, home_request_t *out) {
   home_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3333,15 +3195,10 @@ wl_codec_status_t home_request_value_decode(const uint8_t *input, size_t length,
 
 static void home_response_value_defaults(home_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void home_response_value_copy_fields(const home_response_t *view, home_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3369,14 +3226,7 @@ wl_codec_status_t home_response_value_from_view(const home_response_t *view, hom
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t home_response_value_borrow(const home_response_value_t *value, home_response_t *out) {
   home_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3418,12 +3268,10 @@ wl_codec_status_t home_response_value_decode(const uint8_t *input, size_t length
 
 static void clear_faults_request_value_defaults(clear_faults_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void clear_faults_request_value_copy_fields(const clear_faults_request_t *view, clear_faults_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3451,10 +3299,7 @@ wl_codec_status_t clear_faults_request_value_from_view(const clear_faults_reques
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t clear_faults_request_value_borrow(const clear_faults_request_value_t *value, clear_faults_request_t *out) {
   clear_faults_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3496,15 +3341,10 @@ wl_codec_status_t clear_faults_request_value_decode(const uint8_t *input, size_t
 
 static void clear_faults_response_value_defaults(clear_faults_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void clear_faults_response_value_copy_fields(const clear_faults_response_t *view, clear_faults_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3532,14 +3372,7 @@ wl_codec_status_t clear_faults_response_value_from_view(const clear_faults_respo
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t clear_faults_response_value_borrow(const clear_faults_response_value_t *value, clear_faults_response_t *out) {
   clear_faults_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3581,14 +3414,11 @@ wl_codec_status_t clear_faults_response_value_decode(const uint8_t *input, size_
 
 static void acquire_control_lease_request_value_defaults(acquire_control_lease_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->requested_timeout_ms = UINT32_C(0);
   out->current_token = UINT64_C(0);
 }
 
 static void acquire_control_lease_request_value_copy_fields(const acquire_control_lease_request_t *view, acquire_control_lease_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_requested_timeout_ms = view->has_requested_timeout_ms;
   out->requested_timeout_ms = view->has_requested_timeout_ms ? view->requested_timeout_ms : UINT32_C(0);
   out->has_current_token = view->has_current_token;
@@ -3620,10 +3450,6 @@ wl_codec_status_t acquire_control_lease_request_value_from_view(const acquire_co
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t acquire_control_lease_request_value_borrow(const acquire_control_lease_request_value_t *value, acquire_control_lease_request_t *out) {
   acquire_control_lease_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_requested_timeout_ms = value->has_requested_timeout_ms;
   if (value->has_requested_timeout_ms) {
     out->requested_timeout_ms = value->requested_timeout_ms;
@@ -3673,17 +3499,11 @@ wl_codec_status_t acquire_control_lease_request_value_decode(const uint8_t *inpu
 
 static void acquire_control_lease_response_value_defaults(acquire_control_lease_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   out->lease_token = UINT64_C(0);
   out->granted_timeout_ms = UINT32_C(0);
 }
 
 static void acquire_control_lease_response_value_copy_fields(const acquire_control_lease_response_t *view, acquire_control_lease_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_lease_token = view->has_lease_token;
   out->lease_token = view->has_lease_token ? view->lease_token : UINT64_C(0);
   out->has_granted_timeout_ms = view->has_granted_timeout_ms;
@@ -3715,14 +3535,6 @@ wl_codec_status_t acquire_control_lease_response_value_from_view(const acquire_c
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t acquire_control_lease_response_value_borrow(const acquire_control_lease_response_value_t *value, acquire_control_lease_response_t *out) {
   acquire_control_lease_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_lease_token = value->has_lease_token;
   if (value->has_lease_token) {
     out->lease_token = value->lease_token;
@@ -3772,13 +3584,10 @@ wl_codec_status_t acquire_control_lease_response_value_decode(const uint8_t *inp
 
 static void release_control_lease_request_value_defaults(release_control_lease_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->lease_token = UINT64_C(0);
 }
 
 static void release_control_lease_request_value_copy_fields(const release_control_lease_request_t *view, release_control_lease_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_lease_token = view->has_lease_token;
   out->lease_token = view->has_lease_token ? view->lease_token : UINT64_C(0);
 }
@@ -3808,10 +3617,6 @@ wl_codec_status_t release_control_lease_request_value_from_view(const release_co
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t release_control_lease_request_value_borrow(const release_control_lease_request_value_t *value, release_control_lease_request_t *out) {
   release_control_lease_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_lease_token = value->has_lease_token;
   if (value->has_lease_token) {
     out->lease_token = value->lease_token;
@@ -3857,15 +3662,10 @@ wl_codec_status_t release_control_lease_request_value_decode(const uint8_t *inpu
 
 static void release_control_lease_response_value_defaults(release_control_lease_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void release_control_lease_response_value_copy_fields(const release_control_lease_response_t *view, release_control_lease_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3893,14 +3693,7 @@ wl_codec_status_t release_control_lease_response_value_from_view(const release_c
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t release_control_lease_response_value_borrow(const release_control_lease_response_value_t *value, release_control_lease_response_t *out) {
   release_control_lease_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -3942,12 +3735,10 @@ wl_codec_status_t release_control_lease_response_value_decode(const uint8_t *inp
 
 static void get_motor_feedback_request_value_defaults(get_motor_feedback_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void get_motor_feedback_request_value_copy_fields(const get_motor_feedback_request_t *view, get_motor_feedback_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -3975,10 +3766,7 @@ wl_codec_status_t get_motor_feedback_request_value_from_view(const get_motor_fee
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_motor_feedback_request_value_borrow(const get_motor_feedback_request_value_t *value, get_motor_feedback_request_t *out) {
   get_motor_feedback_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -4020,16 +3808,10 @@ wl_codec_status_t get_motor_feedback_request_value_decode(const uint8_t *input, 
 
 static void get_motor_feedback_response_value_defaults(get_motor_feedback_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   motor_feedback_value_defaults(&out->feedback);
 }
 
 static void get_motor_feedback_response_value_copy_fields(const get_motor_feedback_response_t *view, get_motor_feedback_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_feedback = view->has_feedback;
   if (view->has_feedback) motor_feedback_value_copy_fields(&view->feedback, &out->feedback);
   else motor_feedback_value_defaults(&out->feedback);
@@ -4060,14 +3842,6 @@ wl_codec_status_t get_motor_feedback_response_value_from_view(const get_motor_fe
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_motor_feedback_response_value_borrow(const get_motor_feedback_response_value_t *value, get_motor_feedback_response_t *out) {
   get_motor_feedback_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_feedback = value->has_feedback;
   if (value->has_feedback) {
     wl_codec_status_t status = motor_feedback_value_borrow(&value->feedback, &out->feedback);
@@ -4114,12 +3888,10 @@ wl_codec_status_t get_motor_feedback_response_value_decode(const uint8_t *input,
 
 static void get_device_info_request_value_defaults(get_device_info_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void get_device_info_request_value_copy_fields(const get_device_info_request_t *view, get_device_info_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -4147,10 +3919,7 @@ wl_codec_status_t get_device_info_request_value_from_view(const get_device_info_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_device_info_request_value_borrow(const get_device_info_request_value_t *value, get_device_info_request_t *out) {
   get_device_info_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -4192,16 +3961,10 @@ wl_codec_status_t get_device_info_request_value_decode(const uint8_t *input, siz
 
 static void get_device_info_response_value_defaults(get_device_info_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   device_info_value_defaults(&out->info);
 }
 
 static void get_device_info_response_value_copy_fields(const get_device_info_response_t *view, get_device_info_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_info = view->has_info;
   if (view->has_info) device_info_value_copy_fields(&view->info, &out->info);
   else device_info_value_defaults(&out->info);
@@ -4232,14 +3995,6 @@ wl_codec_status_t get_device_info_response_value_from_view(const get_device_info
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_device_info_response_value_borrow(const get_device_info_response_value_t *value, get_device_info_response_t *out) {
   get_device_info_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_info = value->has_info;
   if (value->has_info) {
     wl_codec_status_t status = device_info_value_borrow(&value->info, &out->info);
@@ -4286,12 +4041,9 @@ wl_codec_status_t get_device_info_response_value_decode(const uint8_t *input, si
 
 static void set_device_info_request_value_defaults(set_device_info_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void set_device_info_request_value_copy_fields(const set_device_info_request_t *view, set_device_info_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_custom_name = view->has_custom_name;
   if (view->has_custom_name) {
     out->custom_name.length = view->custom_name.length;
@@ -4325,10 +4077,6 @@ wl_codec_status_t set_device_info_request_value_from_view(const set_device_info_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_device_info_request_value_borrow(const set_device_info_request_value_t *value, set_device_info_request_t *out) {
   set_device_info_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_custom_name = value->has_custom_name;
   if (value->has_custom_name) {
     if (value->custom_name.length > 31U) return WL_CODEC_ERR_INVALID_VALUE;
@@ -4376,15 +4124,10 @@ wl_codec_status_t set_device_info_request_value_decode(const uint8_t *input, siz
 
 static void set_device_info_response_value_defaults(set_device_info_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void set_device_info_response_value_copy_fields(const set_device_info_response_t *view, set_device_info_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -4412,14 +4155,7 @@ wl_codec_status_t set_device_info_response_value_from_view(const set_device_info
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_device_info_response_value_borrow(const set_device_info_response_value_t *value, set_device_info_response_t *out) {
   set_device_info_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -4461,13 +4197,10 @@ wl_codec_status_t set_device_info_response_value_decode(const uint8_t *input, si
 
 static void set_arm_control_mode_request_value_defaults(set_arm_control_mode_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->mode = 0;
 }
 
 static void set_arm_control_mode_request_value_copy_fields(const set_arm_control_mode_request_t *view, set_arm_control_mode_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_mode = view->has_mode;
   out->mode = view->has_mode ? view->mode : 0;
 }
@@ -4497,10 +4230,6 @@ wl_codec_status_t set_arm_control_mode_request_value_from_view(const set_arm_con
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_arm_control_mode_request_value_borrow(const set_arm_control_mode_request_value_t *value, set_arm_control_mode_request_t *out) {
   set_arm_control_mode_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_mode = value->has_mode;
   if (value->has_mode) {
     out->mode = value->mode;
@@ -4546,15 +4275,10 @@ wl_codec_status_t set_arm_control_mode_request_value_decode(const uint8_t *input
 
 static void set_arm_control_mode_response_value_defaults(set_arm_control_mode_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void set_arm_control_mode_response_value_copy_fields(const set_arm_control_mode_response_t *view, set_arm_control_mode_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -4582,14 +4306,7 @@ wl_codec_status_t set_arm_control_mode_response_value_from_view(const set_arm_co
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_arm_control_mode_response_value_borrow(const set_arm_control_mode_response_value_t *value, set_arm_control_mode_response_t *out) {
   set_arm_control_mode_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -4631,13 +4348,10 @@ wl_codec_status_t set_arm_control_mode_response_value_decode(const uint8_t *inpu
 
 static void set_gripper_control_mode_request_value_defaults(set_gripper_control_mode_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->mode = 0;
 }
 
 static void set_gripper_control_mode_request_value_copy_fields(const set_gripper_control_mode_request_t *view, set_gripper_control_mode_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_mode = view->has_mode;
   out->mode = view->has_mode ? view->mode : 0;
 }
@@ -4667,10 +4381,6 @@ wl_codec_status_t set_gripper_control_mode_request_value_from_view(const set_gri
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_gripper_control_mode_request_value_borrow(const set_gripper_control_mode_request_value_t *value, set_gripper_control_mode_request_t *out) {
   set_gripper_control_mode_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_mode = value->has_mode;
   if (value->has_mode) {
     out->mode = value->mode;
@@ -4716,15 +4426,10 @@ wl_codec_status_t set_gripper_control_mode_request_value_decode(const uint8_t *i
 
 static void set_gripper_control_mode_response_value_defaults(set_gripper_control_mode_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void set_gripper_control_mode_response_value_copy_fields(const set_gripper_control_mode_response_t *view, set_gripper_control_mode_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -4752,14 +4457,7 @@ wl_codec_status_t set_gripper_control_mode_response_value_from_view(const set_gr
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_gripper_control_mode_response_value_borrow(const set_gripper_control_mode_response_value_t *value, set_gripper_control_mode_response_t *out) {
   set_gripper_control_mode_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -4801,14 +4499,11 @@ wl_codec_status_t set_gripper_control_mode_response_value_decode(const uint8_t *
 
 static void motor_register_read_request_value_defaults(motor_register_read_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
   out->register_id = 0;
 }
 
 static void motor_register_read_request_value_copy_fields(const motor_register_read_request_t *view, motor_register_read_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
   out->has_register_id = view->has_register_id;
@@ -4840,10 +4535,6 @@ wl_codec_status_t motor_register_read_request_value_from_view(const motor_regist
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_register_read_request_value_borrow(const motor_register_read_request_value_t *value, motor_register_read_request_t *out) {
   motor_register_read_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -4893,18 +4584,12 @@ wl_codec_status_t motor_register_read_request_value_decode(const uint8_t *input,
 
 static void motor_register_read_response_value_defaults(motor_register_read_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   out->joint_id = 0;
   out->register_id = 0;
   out->value = 0;
 }
 
 static void motor_register_read_response_value_copy_fields(const motor_register_read_response_t *view, motor_register_read_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
   out->has_register_id = view->has_register_id;
@@ -4938,14 +4623,6 @@ wl_codec_status_t motor_register_read_response_value_from_view(const motor_regis
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_register_read_response_value_borrow(const motor_register_read_response_value_t *value, motor_register_read_response_t *out) {
   motor_register_read_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -4999,15 +4676,12 @@ wl_codec_status_t motor_register_read_response_value_decode(const uint8_t *input
 
 static void motor_register_write_request_value_defaults(motor_register_write_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
   out->register_id = 0;
   out->value = 0;
 }
 
 static void motor_register_write_request_value_copy_fields(const motor_register_write_request_t *view, motor_register_write_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
   out->has_register_id = view->has_register_id;
@@ -5041,10 +4715,6 @@ wl_codec_status_t motor_register_write_request_value_from_view(const motor_regis
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_register_write_request_value_borrow(const motor_register_write_request_value_t *value, motor_register_write_request_t *out) {
   motor_register_write_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -5098,15 +4768,10 @@ wl_codec_status_t motor_register_write_request_value_decode(const uint8_t *input
 
 static void motor_register_write_response_value_defaults(motor_register_write_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void motor_register_write_response_value_copy_fields(const motor_register_write_response_t *view, motor_register_write_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -5134,14 +4799,7 @@ wl_codec_status_t motor_register_write_response_value_from_view(const motor_regi
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_register_write_response_value_borrow(const motor_register_write_response_value_t *value, motor_register_write_response_t *out) {
   motor_register_write_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -5183,13 +4841,10 @@ wl_codec_status_t motor_register_write_response_value_decode(const uint8_t *inpu
 
 static void motor_store_parameters_request_value_defaults(motor_store_parameters_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
 }
 
 static void motor_store_parameters_request_value_copy_fields(const motor_store_parameters_request_t *view, motor_store_parameters_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
 }
@@ -5219,10 +4874,6 @@ wl_codec_status_t motor_store_parameters_request_value_from_view(const motor_sto
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_store_parameters_request_value_borrow(const motor_store_parameters_request_value_t *value, motor_store_parameters_request_t *out) {
   motor_store_parameters_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -5268,15 +4919,10 @@ wl_codec_status_t motor_store_parameters_request_value_decode(const uint8_t *inp
 
 static void motor_store_parameters_response_value_defaults(motor_store_parameters_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void motor_store_parameters_response_value_copy_fields(const motor_store_parameters_response_t *view, motor_store_parameters_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -5304,14 +4950,7 @@ wl_codec_status_t motor_store_parameters_response_value_from_view(const motor_st
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_store_parameters_response_value_borrow(const motor_store_parameters_response_value_t *value, motor_store_parameters_response_t *out) {
   motor_store_parameters_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -5353,13 +4992,10 @@ wl_codec_status_t motor_store_parameters_response_value_decode(const uint8_t *in
 
 static void motor_set_zero_request_value_defaults(motor_set_zero_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->joint_id = 0;
 }
 
 static void motor_set_zero_request_value_copy_fields(const motor_set_zero_request_t *view, motor_set_zero_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_joint_id = view->has_joint_id;
   out->joint_id = view->has_joint_id ? view->joint_id : 0;
 }
@@ -5389,10 +5025,6 @@ wl_codec_status_t motor_set_zero_request_value_from_view(const motor_set_zero_re
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_set_zero_request_value_borrow(const motor_set_zero_request_value_t *value, motor_set_zero_request_t *out) {
   motor_set_zero_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_joint_id = value->has_joint_id;
   if (value->has_joint_id) {
     out->joint_id = value->joint_id;
@@ -5438,15 +5070,10 @@ wl_codec_status_t motor_set_zero_request_value_decode(const uint8_t *input, size
 
 static void motor_set_zero_response_value_defaults(motor_set_zero_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void motor_set_zero_response_value_copy_fields(const motor_set_zero_response_t *view, motor_set_zero_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -5474,14 +5101,7 @@ wl_codec_status_t motor_set_zero_response_value_from_view(const motor_set_zero_r
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t motor_set_zero_response_value_borrow(const motor_set_zero_response_value_t *value, motor_set_zero_response_t *out) {
   motor_set_zero_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -5523,13 +5143,10 @@ wl_codec_status_t motor_set_zero_response_value_decode(const uint8_t *input, siz
 
 static void set_arm_mode_request_value_defaults(set_arm_mode_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   out->mode = 0;
 }
 
 static void set_arm_mode_request_value_copy_fields(const set_arm_mode_request_t *view, set_arm_mode_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_mode = view->has_mode;
   out->mode = view->has_mode ? view->mode : 0;
 }
@@ -5559,10 +5176,6 @@ wl_codec_status_t set_arm_mode_request_value_from_view(const set_arm_mode_reques
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_arm_mode_request_value_borrow(const set_arm_mode_request_value_t *value, set_arm_mode_request_t *out) {
   set_arm_mode_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_mode = value->has_mode;
   if (value->has_mode) {
     out->mode = value->mode;
@@ -5608,15 +5221,10 @@ wl_codec_status_t set_arm_mode_request_value_decode(const uint8_t *input, size_t
 
 static void set_arm_mode_response_value_defaults(set_arm_mode_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void set_arm_mode_response_value_copy_fields(const set_arm_mode_response_t *view, set_arm_mode_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -5644,14 +5252,7 @@ wl_codec_status_t set_arm_mode_response_value_from_view(const set_arm_mode_respo
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_arm_mode_response_value_borrow(const set_arm_mode_response_value_t *value, set_arm_mode_response_t *out) {
   set_arm_mode_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -5693,12 +5294,10 @@ wl_codec_status_t set_arm_mode_response_value_decode(const uint8_t *input, size_
 
 static void get_device_settings_request_value_defaults(get_device_settings_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void get_device_settings_request_value_copy_fields(const get_device_settings_request_t *view, get_device_settings_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -5726,10 +5325,7 @@ wl_codec_status_t get_device_settings_request_value_from_view(const get_device_s
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_device_settings_request_value_borrow(const get_device_settings_request_value_t *value, get_device_settings_request_t *out) {
   get_device_settings_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -5771,16 +5367,10 @@ wl_codec_status_t get_device_settings_request_value_decode(const uint8_t *input,
 
 static void get_device_settings_response_value_defaults(get_device_settings_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   device_settings_value_defaults(&out->settings);
 }
 
 static void get_device_settings_response_value_copy_fields(const get_device_settings_response_t *view, get_device_settings_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_settings = view->has_settings;
   if (view->has_settings) device_settings_value_copy_fields(&view->settings, &out->settings);
   else device_settings_value_defaults(&out->settings);
@@ -5811,14 +5401,6 @@ wl_codec_status_t get_device_settings_response_value_from_view(const get_device_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t get_device_settings_response_value_borrow(const get_device_settings_response_value_t *value, get_device_settings_response_t *out) {
   get_device_settings_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_settings = value->has_settings;
   if (value->has_settings) {
     wl_codec_status_t status = device_settings_value_borrow(&value->settings, &out->settings);
@@ -5865,13 +5447,10 @@ wl_codec_status_t get_device_settings_response_value_decode(const uint8_t *input
 
 static void set_device_settings_request_value_defaults(set_device_settings_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
   device_settings_value_defaults(&out->settings);
 }
 
 static void set_device_settings_request_value_copy_fields(const set_device_settings_request_t *view, set_device_settings_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
   out->has_settings = view->has_settings;
   if (view->has_settings) device_settings_value_copy_fields(&view->settings, &out->settings);
   else device_settings_value_defaults(&out->settings);
@@ -5902,10 +5481,6 @@ wl_codec_status_t set_device_settings_request_value_from_view(const set_device_s
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_device_settings_request_value_borrow(const set_device_settings_request_value_t *value, set_device_settings_request_t *out) {
   set_device_settings_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
   out->has_settings = value->has_settings;
   if (value->has_settings) {
     wl_codec_status_t status = device_settings_value_borrow(&value->settings, &out->settings);
@@ -5952,16 +5527,10 @@ wl_codec_status_t set_device_settings_request_value_decode(const uint8_t *input,
 
 static void set_device_settings_response_value_defaults(set_device_settings_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
   device_settings_value_defaults(&out->settings);
 }
 
 static void set_device_settings_response_value_copy_fields(const set_device_settings_response_t *view, set_device_settings_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
   out->has_settings = view->has_settings;
   if (view->has_settings) device_settings_value_copy_fields(&view->settings, &out->settings);
   else device_settings_value_defaults(&out->settings);
@@ -5992,14 +5561,6 @@ wl_codec_status_t set_device_settings_response_value_from_view(const set_device_
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t set_device_settings_response_value_borrow(const set_device_settings_response_value_t *value, set_device_settings_response_t *out) {
   set_device_settings_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
   out->has_settings = value->has_settings;
   if (value->has_settings) {
     wl_codec_status_t status = device_settings_value_borrow(&value->settings, &out->settings);
@@ -6182,12 +5743,10 @@ wl_codec_status_t joint_mit_command_value_decode(const uint8_t *input, size_t le
 
 static void emergency_stop_request_value_defaults(emergency_stop_request_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
 }
 
 static void emergency_stop_request_value_copy_fields(const emergency_stop_request_t *view, emergency_stop_request_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -6215,10 +5774,7 @@ wl_codec_status_t emergency_stop_request_value_from_view(const emergency_stop_re
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t emergency_stop_request_value_borrow(const emergency_stop_request_value_t *value, emergency_stop_request_t *out) {
   emergency_stop_request_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 
@@ -6260,15 +5816,10 @@ wl_codec_status_t emergency_stop_request_value_decode(const uint8_t *input, size
 
 static void emergency_stop_response_value_defaults(emergency_stop_response_value_t *out) {
   (void)out;
-  out->operation_id = UINT32_C(0);
-  out->status = 0;
 }
 
 static void emergency_stop_response_value_copy_fields(const emergency_stop_response_t *view, emergency_stop_response_value_t *out) {
-  out->has_operation_id = view->has_operation_id;
-  out->operation_id = view->has_operation_id ? view->operation_id : UINT32_C(0);
-  out->has_status = view->has_status;
-  out->status = view->has_status ? view->status : 0;
+  (void)view; (void)out;
 }
 
 /* Generator-private: input is an unmodified successful decode, or has been measured. */
@@ -6296,14 +5847,7 @@ wl_codec_status_t emergency_stop_response_value_from_view(const emergency_stop_r
 /* Private conversion does not re-validate each nested subtree. */
 static wl_codec_status_t emergency_stop_response_value_borrow(const emergency_stop_response_value_t *value, emergency_stop_response_t *out) {
   emergency_stop_response_clear(out);
-  out->has_operation_id = value->has_operation_id;
-  if (value->has_operation_id) {
-    out->operation_id = value->operation_id;
-  }
-  out->has_status = value->has_status;
-  if (value->has_status) {
-    out->status = value->status;
-  }
+  (void)value;
   return WL_CODEC_OK;
 }
 

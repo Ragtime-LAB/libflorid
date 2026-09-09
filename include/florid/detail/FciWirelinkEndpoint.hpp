@@ -7,7 +7,7 @@
 #include "florid/detail/WirelinkExecutor.hpp"
 #include "florid/detail/Transport.hpp"
 
-#include "fci_arm_runtime.h"
+#include "fci_arm_endpoint.h"
 #include "wirelink/platform.h"
 
 #include <array>
@@ -85,7 +85,6 @@ struct FciSubmitResult {
 
 struct FciOperationResult {
     std::uint64_t m_request_id{};
-    std::uint32_t m_operation_id{};
     FciOperationState m_state{FciOperationState::kUnknown};
     FciEndpointStatus m_status{FciEndpointStatus::kNoData};
     std::int32_t m_domain_status{};
@@ -125,7 +124,7 @@ struct FciWirelinkEndpointStats {
     std::uint64_t m_rpc_started{};
     std::uint64_t m_rpc_released{};
     std::uint64_t m_rpc_cancelled{};
-    std::size_t m_runtime_storage_bytes{};
+    std::size_t m_endpoint_storage_bytes{};
 };
 
 class FciWirelinkEndpoint {
@@ -308,9 +307,11 @@ private:
     };
 
     struct OperationSlot {
+        FciWirelinkEndpoint* m_owner{};
+        bool m_admitted{};
         std::uint64_t m_request_id{};
-        std::uint32_t m_operation_id{};
         std::uint32_t m_timeout_ms{};
+        wl_time_ms_t m_submitted_at_ms{};
         OperationRequest m_request{};
         RpcKind m_kind{RpcKind::kNone};
         FciOperationState m_state{FciOperationState::kUnknown};
@@ -338,22 +339,14 @@ private:
         std::atomic<std::uint64_t> m_rpc_cancelled{};
     };
 
-    // Keep headroom for generated runtime layout changes. Initialization
-    // validates the exact ABI-specific requirement so schema growth fails
-    // explicitly instead of silently exhausting storage.
-    static constexpr std::size_t s_kRuntimeStorageSize = 4096;
-    static constexpr std::size_t s_kTxPayloadSize = 256;
-    static constexpr std::size_t s_kTxUnitSize = 320;
-    static constexpr std::size_t s_kControlUnitSize = 64;
-    static constexpr std::size_t s_kRxFifoSize = 4096;
-    static constexpr std::size_t s_kRxFallbackSize = 320;
+    static constexpr std::size_t s_kTxPayloadSize = FCI_ARM_ENDPOINT_MAX_PAYLOAD;
 
-    static wl_pump_event_disposition_t s_onEvent(
-        void* s_user_data, wl_ctx_t& s_context,
-        const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept;
+    static void s_onEvent(void* s_user_data, wl_ctx_t* s_context,
+                          const wl_event_t* s_event, wl_time_ms_t s_now_ms) noexcept;
+    static void s_onResult(void* s_user_data, const fci_arm_runtime_result_t* s_result) noexcept;
     static int s_transportService(void* s_user_data) noexcept;
     static void s_transportWake(void* s_user_data) noexcept;
-    static bool s_applicationProgress(void* s_user_data, wl_ctx_t& s_context,
+    static uint8_t s_applicationProgress(void* s_user_data, wl_ctx_t* s_context,
                                       wl_time_ms_t s_now_ms) noexcept;
     static std::uint32_t s_applicationDeadline(
         const void* s_user_data, wl_time_ms_t s_now_ms) noexcept;
@@ -363,24 +356,21 @@ private:
 
     static wl_time_ms_t s_nowMs() noexcept;
     static bool s_terminal(FciOperationState s_state) noexcept;
-    static FciOperationState s_operationState(
-        wl_rpc_client_state_t s_state) noexcept;
     static FciEndpointStatus s_endpointStatus(int s_result) noexcept;
     static std::uint32_t s_until(wl_time_ms_t s_now,
                                  wl_time_ms_t s_target) noexcept;
 
     bool s_progress(wl_ctx_t& s_context, wl_time_ms_t s_now_ms) noexcept;
     bool s_drainLatest() noexcept;
-    bool s_finishActive(wl_ctx_t& s_context,
-                        wl_time_ms_t s_now_ms) noexcept;
     bool s_startNext(wl_ctx_t& s_context, wl_time_ms_t s_now_ms) noexcept;
     bool s_scheduleRenewal(wl_time_ms_t s_now_ms) noexcept;
     void s_stopOnOwner() noexcept;
-    void s_finalize(std::size_t s_index,
-                    const wl_rpc_client_result_t& s_client,
-                    wl_ctx_t& s_context,
-                    wl_time_ms_t s_now_ms) noexcept;
-    void s_releaseRuntimeOperation(std::uint32_t s_operation_id) noexcept;
+    template <typename Response>
+    static void s_complete(void* s_context, const wl_rpc_completion_t* s_completion,
+                           const Response* s_response) noexcept;
+    template <typename Response>
+    void s_finalize(std::size_t s_index, const wl_rpc_completion_t& s_completion,
+                    const Response* s_response) noexcept;
     FciSubmitResult s_submit(RpcKind s_kind, std::uint32_t s_timeout_ms,
                              const OperationRequest& s_request,
                              bool s_internal) noexcept;
@@ -395,14 +385,8 @@ private:
 
     WirelinkExecutor m_executor;
     Transport* m_direct_transport{};
-    fci_arm_runtime_instance_t m_runtime_instance{};
-    alignas(std::max_align_t)
-        std::array<std::byte, s_kRuntimeStorageSize> m_runtime_storage{};
-    std::array<std::uint8_t, s_kTxPayloadSize> m_tx_payload{};
-    std::array<std::uint8_t, s_kTxUnitSize> m_tx_unit{};
-    std::array<std::uint8_t, s_kControlUnitSize> m_control_unit{};
-    std::array<std::uint8_t, s_kRxFifoSize> m_rx_fifo{};
-    std::array<std::uint8_t, s_kRxFallbackSize> m_rx_fallback{};
+    fci_arm_endpoint_t m_endpoint{};
+    fci_arm_runtime_t* s_runtime() noexcept { return fci_arm_endpoint_runtime(&m_endpoint); }
 
     mutable std::mutex m_mutex;
     mutable std::condition_variable m_operation_changed;
@@ -418,7 +402,7 @@ private:
     void* m_callback_user_data{};
     bool m_initialized{};
     bool m_running{};
-    std::size_t m_runtime_storage_bytes{};
+    std::size_t m_endpoint_storage_bytes{};
     std::atomic<std::uint32_t> m_command_sequence{};
     std::atomic<std::uint64_t> m_command_capabilities{};
     AtomicStats m_stats{};

@@ -261,8 +261,6 @@ wl_codec_status_t arm_diagnostics_value_decode(const uint8_t *input, size_t leng
 
 #define SET_ZERO_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 } set_zero_request_value_t;
@@ -274,10 +272,7 @@ wl_codec_status_t set_zero_request_value_decode(const uint8_t *input, size_t len
 
 #define SET_ZERO_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 } set_zero_response_value_t;
 #define SET_ZERO_RESPONSE_VALUE_SIZE (sizeof(set_zero_response_value_t))
 void set_zero_response_value_clear(set_zero_response_value_t *value);
@@ -287,8 +282,6 @@ wl_codec_status_t set_zero_response_value_decode(const uint8_t *input, size_t le
 
 #define CLEAR_ERROR_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 } clear_error_request_value_t;
@@ -300,10 +293,7 @@ wl_codec_status_t clear_error_request_value_decode(const uint8_t *input, size_t 
 
 #define CLEAR_ERROR_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 } clear_error_response_value_t;
 #define CLEAR_ERROR_RESPONSE_VALUE_SIZE (sizeof(clear_error_response_value_t))
 void clear_error_response_value_clear(clear_error_response_value_t *value);
@@ -313,8 +303,7 @@ wl_codec_status_t clear_error_response_value_decode(const uint8_t *input, size_t
 
 #define HOME_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } home_request_value_t;
 #define HOME_REQUEST_VALUE_SIZE (sizeof(home_request_value_t))
 void home_request_value_clear(home_request_value_t *value);
@@ -324,10 +313,7 @@ wl_codec_status_t home_request_value_decode(const uint8_t *input, size_t length,
 
 #define HOME_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  home_status_t status;
+  uint8_t _empty;
 } home_response_value_t;
 #define HOME_RESPONSE_VALUE_SIZE (sizeof(home_response_value_t))
 void home_response_value_clear(home_response_value_t *value);
@@ -337,8 +323,7 @@ wl_codec_status_t home_response_value_decode(const uint8_t *input, size_t length
 
 #define CLEAR_FAULTS_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } clear_faults_request_value_t;
 #define CLEAR_FAULTS_REQUEST_VALUE_SIZE (sizeof(clear_faults_request_value_t))
 void clear_faults_request_value_clear(clear_faults_request_value_t *value);
@@ -348,10 +333,7 @@ wl_codec_status_t clear_faults_request_value_decode(const uint8_t *input, size_t
 
 #define CLEAR_FAULTS_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 } clear_faults_response_value_t;
 #define CLEAR_FAULTS_RESPONSE_VALUE_SIZE (sizeof(clear_faults_response_value_t))
 void clear_faults_response_value_clear(clear_faults_response_value_t *value);
@@ -361,8 +343,6 @@ wl_codec_status_t clear_faults_response_value_decode(const uint8_t *input, size_
 
 #define ACQUIRE_CONTROL_LEASE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_requested_timeout_ms;
   uint32_t requested_timeout_ms;
   bool has_current_token;
@@ -376,10 +356,6 @@ wl_codec_status_t acquire_control_lease_request_value_decode(const uint8_t *inpu
 
 #define ACQUIRE_CONTROL_LEASE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  control_lease_status_t status;
   bool has_lease_token;
   uint64_t lease_token;
   bool has_granted_timeout_ms;
@@ -393,8 +369,6 @@ wl_codec_status_t acquire_control_lease_response_value_decode(const uint8_t *inp
 
 #define RELEASE_CONTROL_LEASE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_lease_token;
   uint64_t lease_token;
 } release_control_lease_request_value_t;
@@ -406,10 +380,7 @@ wl_codec_status_t release_control_lease_request_value_decode(const uint8_t *inpu
 
 #define RELEASE_CONTROL_LEASE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  control_lease_status_t status;
+  uint8_t _empty;
 } release_control_lease_response_value_t;
 #define RELEASE_CONTROL_LEASE_RESPONSE_VALUE_SIZE (sizeof(release_control_lease_response_value_t))
 void release_control_lease_response_value_clear(release_control_lease_response_value_t *value);
@@ -419,8 +390,7 @@ wl_codec_status_t release_control_lease_response_value_decode(const uint8_t *inp
 
 #define GET_MOTOR_FEEDBACK_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } get_motor_feedback_request_value_t;
 #define GET_MOTOR_FEEDBACK_REQUEST_VALUE_SIZE (sizeof(get_motor_feedback_request_value_t))
 void get_motor_feedback_request_value_clear(get_motor_feedback_request_value_t *value);
@@ -430,10 +400,6 @@ wl_codec_status_t get_motor_feedback_request_value_decode(const uint8_t *input, 
 
 #define GET_MOTOR_FEEDBACK_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
   bool has_feedback;
   motor_feedback_value_t feedback;
 } get_motor_feedback_response_value_t;
@@ -445,8 +411,7 @@ wl_codec_status_t get_motor_feedback_response_value_decode(const uint8_t *input,
 
 #define GET_DEVICE_INFO_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } get_device_info_request_value_t;
 #define GET_DEVICE_INFO_REQUEST_VALUE_SIZE (sizeof(get_device_info_request_value_t))
 void get_device_info_request_value_clear(get_device_info_request_value_t *value);
@@ -456,10 +421,6 @@ wl_codec_status_t get_device_info_request_value_decode(const uint8_t *input, siz
 
 #define GET_DEVICE_INFO_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_info_status_t status;
   bool has_info;
   device_info_value_t info;
 } get_device_info_response_value_t;
@@ -471,8 +432,6 @@ wl_codec_status_t get_device_info_response_value_decode(const uint8_t *input, si
 
 #define SET_DEVICE_INFO_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_custom_name;
   struct { size_t length; char data[32]; } custom_name;
 } set_device_info_request_value_t;
@@ -484,10 +443,7 @@ wl_codec_status_t set_device_info_request_value_decode(const uint8_t *input, siz
 
 #define SET_DEVICE_INFO_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_info_status_t status;
+  uint8_t _empty;
 } set_device_info_response_value_t;
 #define SET_DEVICE_INFO_RESPONSE_VALUE_SIZE (sizeof(set_device_info_response_value_t))
 void set_device_info_response_value_clear(set_device_info_response_value_t *value);
@@ -497,8 +453,6 @@ wl_codec_status_t set_device_info_response_value_decode(const uint8_t *input, si
 
 #define SET_ARM_CONTROL_MODE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   motor_control_mode_t mode;
 } set_arm_control_mode_request_value_t;
@@ -510,10 +464,7 @@ wl_codec_status_t set_arm_control_mode_request_value_decode(const uint8_t *input
 
 #define SET_ARM_CONTROL_MODE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 } set_arm_control_mode_response_value_t;
 #define SET_ARM_CONTROL_MODE_RESPONSE_VALUE_SIZE (sizeof(set_arm_control_mode_response_value_t))
 void set_arm_control_mode_response_value_clear(set_arm_control_mode_response_value_t *value);
@@ -523,8 +474,6 @@ wl_codec_status_t set_arm_control_mode_response_value_decode(const uint8_t *inpu
 
 #define SET_GRIPPER_CONTROL_MODE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   motor_control_mode_t mode;
 } set_gripper_control_mode_request_value_t;
@@ -536,10 +485,7 @@ wl_codec_status_t set_gripper_control_mode_request_value_decode(const uint8_t *i
 
 #define SET_GRIPPER_CONTROL_MODE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 } set_gripper_control_mode_response_value_t;
 #define SET_GRIPPER_CONTROL_MODE_RESPONSE_VALUE_SIZE (sizeof(set_gripper_control_mode_response_value_t))
 void set_gripper_control_mode_response_value_clear(set_gripper_control_mode_response_value_t *value);
@@ -549,8 +495,6 @@ wl_codec_status_t set_gripper_control_mode_response_value_decode(const uint8_t *
 
 #define MOTOR_REGISTER_READ_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -564,10 +508,6 @@ wl_codec_status_t motor_register_read_request_value_decode(const uint8_t *input,
 
 #define MOTOR_REGISTER_READ_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -583,8 +523,6 @@ wl_codec_status_t motor_register_read_response_value_decode(const uint8_t *input
 
 #define MOTOR_REGISTER_WRITE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -600,10 +538,7 @@ wl_codec_status_t motor_register_write_request_value_decode(const uint8_t *input
 
 #define MOTOR_REGISTER_WRITE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 } motor_register_write_response_value_t;
 #define MOTOR_REGISTER_WRITE_RESPONSE_VALUE_SIZE (sizeof(motor_register_write_response_value_t))
 void motor_register_write_response_value_clear(motor_register_write_response_value_t *value);
@@ -613,8 +548,6 @@ wl_codec_status_t motor_register_write_response_value_decode(const uint8_t *inpu
 
 #define MOTOR_STORE_PARAMETERS_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 } motor_store_parameters_request_value_t;
@@ -626,10 +559,7 @@ wl_codec_status_t motor_store_parameters_request_value_decode(const uint8_t *inp
 
 #define MOTOR_STORE_PARAMETERS_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 } motor_store_parameters_response_value_t;
 #define MOTOR_STORE_PARAMETERS_RESPONSE_VALUE_SIZE (sizeof(motor_store_parameters_response_value_t))
 void motor_store_parameters_response_value_clear(motor_store_parameters_response_value_t *value);
@@ -639,8 +569,6 @@ wl_codec_status_t motor_store_parameters_response_value_decode(const uint8_t *in
 
 #define MOTOR_SET_ZERO_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 } motor_set_zero_request_value_t;
@@ -652,10 +580,7 @@ wl_codec_status_t motor_set_zero_request_value_decode(const uint8_t *input, size
 
 #define MOTOR_SET_ZERO_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 } motor_set_zero_response_value_t;
 #define MOTOR_SET_ZERO_RESPONSE_VALUE_SIZE (sizeof(motor_set_zero_response_value_t))
 void motor_set_zero_response_value_clear(motor_set_zero_response_value_t *value);
@@ -665,8 +590,6 @@ wl_codec_status_t motor_set_zero_response_value_decode(const uint8_t *input, siz
 
 #define SET_ARM_MODE_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   arm_mode_t mode;
 } set_arm_mode_request_value_t;
@@ -678,10 +601,7 @@ wl_codec_status_t set_arm_mode_request_value_decode(const uint8_t *input, size_t
 
 #define SET_ARM_MODE_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 } set_arm_mode_response_value_t;
 #define SET_ARM_MODE_RESPONSE_VALUE_SIZE (sizeof(set_arm_mode_response_value_t))
 void set_arm_mode_response_value_clear(set_arm_mode_response_value_t *value);
@@ -691,8 +611,7 @@ wl_codec_status_t set_arm_mode_response_value_decode(const uint8_t *input, size_
 
 #define GET_DEVICE_SETTINGS_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } get_device_settings_request_value_t;
 #define GET_DEVICE_SETTINGS_REQUEST_VALUE_SIZE (sizeof(get_device_settings_request_value_t))
 void get_device_settings_request_value_clear(get_device_settings_request_value_t *value);
@@ -702,10 +621,6 @@ wl_codec_status_t get_device_settings_request_value_decode(const uint8_t *input,
 
 #define GET_DEVICE_SETTINGS_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_settings_status_t status;
   bool has_settings;
   device_settings_value_t settings;
 } get_device_settings_response_value_t;
@@ -717,8 +632,6 @@ wl_codec_status_t get_device_settings_response_value_decode(const uint8_t *input
 
 #define SET_DEVICE_SETTINGS_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_settings;
   device_settings_value_t settings;
 } set_device_settings_request_value_t;
@@ -730,10 +643,6 @@ wl_codec_status_t set_device_settings_request_value_decode(const uint8_t *input,
 
 #define SET_DEVICE_SETTINGS_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_settings_status_t status;
   bool has_settings;
   device_settings_value_t settings;
 } set_device_settings_response_value_t;
@@ -774,8 +683,7 @@ wl_codec_status_t joint_mit_command_value_decode(const uint8_t *input, size_t le
 
 #define EMERGENCY_STOP_REQUEST_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 } emergency_stop_request_value_t;
 #define EMERGENCY_STOP_REQUEST_VALUE_SIZE (sizeof(emergency_stop_request_value_t))
 void emergency_stop_request_value_clear(emergency_stop_request_value_t *value);
@@ -785,10 +693,7 @@ wl_codec_status_t emergency_stop_request_value_decode(const uint8_t *input, size
 
 #define EMERGENCY_STOP_RESPONSE_HAS_VALUE 1
 typedef struct {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  emergency_stop_status_t status;
+  uint8_t _empty;
 } emergency_stop_response_value_t;
 #define EMERGENCY_STOP_RESPONSE_VALUE_SIZE (sizeof(emergency_stop_response_value_t))
 void emergency_stop_response_value_clear(emergency_stop_response_value_t *value);
@@ -1015,121 +920,121 @@ wl_codec_status_t gripper_pvt_command_value_decode(const uint8_t *input, size_t 
 #define ARM_DIAGNOSTICS_MAX_ENCODED_SIZE UINT64_C(67)
 #define SET_ZERO_REQUEST_MESSAGE_ID 24839U
 #define SET_ZERO_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_ZERO_REQUEST_MAX_ENCODED_SIZE UINT64_C(9)
+#define SET_ZERO_REQUEST_MAX_ENCODED_SIZE UINT64_C(3)
 #define SET_ZERO_RESPONSE_MESSAGE_ID 24840U
 #define SET_ZERO_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_ZERO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_ZERO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define CLEAR_ERROR_REQUEST_MESSAGE_ID 24841U
 #define CLEAR_ERROR_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define CLEAR_ERROR_REQUEST_MAX_ENCODED_SIZE UINT64_C(9)
+#define CLEAR_ERROR_REQUEST_MAX_ENCODED_SIZE UINT64_C(3)
 #define CLEAR_ERROR_RESPONSE_MESSAGE_ID 24842U
 #define CLEAR_ERROR_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define CLEAR_ERROR_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define CLEAR_ERROR_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define HOME_REQUEST_MESSAGE_ID 25089U
 #define HOME_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define HOME_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define HOME_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define HOME_RESPONSE_MESSAGE_ID 25090U
 #define HOME_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define HOME_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define HOME_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define CLEAR_FAULTS_REQUEST_MESSAGE_ID 25093U
 #define CLEAR_FAULTS_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define CLEAR_FAULTS_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define CLEAR_FAULTS_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define CLEAR_FAULTS_RESPONSE_MESSAGE_ID 25094U
 #define CLEAR_FAULTS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define CLEAR_FAULTS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define CLEAR_FAULTS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define ACQUIRE_CONTROL_LEASE_REQUEST_MESSAGE_ID 25097U
 #define ACQUIRE_CONTROL_LEASE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define ACQUIRE_CONTROL_LEASE_REQUEST_MAX_ENCODED_SIZE UINT64_C(20)
+#define ACQUIRE_CONTROL_LEASE_REQUEST_MAX_ENCODED_SIZE UINT64_C(14)
 #define ACQUIRE_CONTROL_LEASE_RESPONSE_MESSAGE_ID 25098U
 #define ACQUIRE_CONTROL_LEASE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define ACQUIRE_CONTROL_LEASE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(26)
+#define ACQUIRE_CONTROL_LEASE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(14)
 #define RELEASE_CONTROL_LEASE_REQUEST_MESSAGE_ID 25099U
 #define RELEASE_CONTROL_LEASE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define RELEASE_CONTROL_LEASE_REQUEST_MAX_ENCODED_SIZE UINT64_C(15)
+#define RELEASE_CONTROL_LEASE_REQUEST_MAX_ENCODED_SIZE UINT64_C(9)
 #define RELEASE_CONTROL_LEASE_RESPONSE_MESSAGE_ID 25100U
 #define RELEASE_CONTROL_LEASE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define RELEASE_CONTROL_LEASE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define RELEASE_CONTROL_LEASE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define GET_MOTOR_FEEDBACK_REQUEST_MESSAGE_ID 25107U
 #define GET_MOTOR_FEEDBACK_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define GET_MOTOR_FEEDBACK_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define GET_MOTOR_FEEDBACK_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define GET_MOTOR_FEEDBACK_RESPONSE_MESSAGE_ID 25108U
 #define GET_MOTOR_FEEDBACK_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define GET_MOTOR_FEEDBACK_RESPONSE_MAX_ENCODED_SIZE UINT64_C(143)
+#define GET_MOTOR_FEEDBACK_RESPONSE_MAX_ENCODED_SIZE UINT64_C(131)
 #define GET_DEVICE_INFO_REQUEST_MESSAGE_ID 25109U
 #define GET_DEVICE_INFO_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define GET_DEVICE_INFO_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define GET_DEVICE_INFO_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define GET_DEVICE_INFO_RESPONSE_MESSAGE_ID 25110U
 #define GET_DEVICE_INFO_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define GET_DEVICE_INFO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(169)
+#define GET_DEVICE_INFO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(157)
 #define SET_DEVICE_INFO_REQUEST_MESSAGE_ID 25111U
 #define SET_DEVICE_INFO_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_DEVICE_INFO_REQUEST_MAX_ENCODED_SIZE UINT64_C(39)
+#define SET_DEVICE_INFO_REQUEST_MAX_ENCODED_SIZE UINT64_C(33)
 #define SET_DEVICE_INFO_RESPONSE_MESSAGE_ID 25112U
 #define SET_DEVICE_INFO_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_DEVICE_INFO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_DEVICE_INFO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID 25113U
 #define SET_ARM_CONTROL_MODE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_ARM_CONTROL_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_ARM_CONTROL_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
 #define SET_ARM_CONTROL_MODE_RESPONSE_MESSAGE_ID 25114U
 #define SET_ARM_CONTROL_MODE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_ARM_CONTROL_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_ARM_CONTROL_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID 25115U
 #define SET_GRIPPER_CONTROL_MODE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_GRIPPER_CONTROL_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_GRIPPER_CONTROL_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
 #define SET_GRIPPER_CONTROL_MODE_RESPONSE_MESSAGE_ID 25116U
 #define SET_GRIPPER_CONTROL_MODE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_GRIPPER_CONTROL_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_GRIPPER_CONTROL_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID 25117U
 #define MOTOR_REGISTER_READ_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_REGISTER_READ_REQUEST_MAX_ENCODED_SIZE UINT64_C(12)
+#define MOTOR_REGISTER_READ_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
 #define MOTOR_REGISTER_READ_RESPONSE_MESSAGE_ID 25118U
 #define MOTOR_REGISTER_READ_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_REGISTER_READ_RESPONSE_MAX_ENCODED_SIZE UINT64_C(23)
+#define MOTOR_REGISTER_READ_RESPONSE_MAX_ENCODED_SIZE UINT64_C(11)
 #define MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID 25119U
 #define MOTOR_REGISTER_WRITE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_REGISTER_WRITE_REQUEST_MAX_ENCODED_SIZE UINT64_C(17)
+#define MOTOR_REGISTER_WRITE_REQUEST_MAX_ENCODED_SIZE UINT64_C(11)
 #define MOTOR_REGISTER_WRITE_RESPONSE_MESSAGE_ID 25120U
 #define MOTOR_REGISTER_WRITE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_REGISTER_WRITE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define MOTOR_REGISTER_WRITE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID 25121U
 #define MOTOR_STORE_PARAMETERS_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_STORE_PARAMETERS_REQUEST_MAX_ENCODED_SIZE UINT64_C(9)
+#define MOTOR_STORE_PARAMETERS_REQUEST_MAX_ENCODED_SIZE UINT64_C(3)
 #define MOTOR_STORE_PARAMETERS_RESPONSE_MESSAGE_ID 25122U
 #define MOTOR_STORE_PARAMETERS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_STORE_PARAMETERS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define MOTOR_STORE_PARAMETERS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define MOTOR_SET_ZERO_REQUEST_MESSAGE_ID 25123U
 #define MOTOR_SET_ZERO_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_SET_ZERO_REQUEST_MAX_ENCODED_SIZE UINT64_C(9)
+#define MOTOR_SET_ZERO_REQUEST_MAX_ENCODED_SIZE UINT64_C(3)
 #define MOTOR_SET_ZERO_RESPONSE_MESSAGE_ID 25124U
 #define MOTOR_SET_ZERO_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define MOTOR_SET_ZERO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define MOTOR_SET_ZERO_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define SET_ARM_MODE_REQUEST_MESSAGE_ID 25125U
 #define SET_ARM_MODE_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_ARM_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_ARM_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
 #define SET_ARM_MODE_RESPONSE_MESSAGE_ID 25126U
 #define SET_ARM_MODE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_ARM_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define SET_ARM_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID 25128U
 #define GET_DEVICE_SETTINGS_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define GET_DEVICE_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define GET_DEVICE_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define GET_DEVICE_SETTINGS_RESPONSE_MESSAGE_ID 25129U
 #define GET_DEVICE_SETTINGS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define GET_DEVICE_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(218)
+#define GET_DEVICE_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(206)
 #define SET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID 25130U
 #define SET_DEVICE_SETTINGS_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define SET_DEVICE_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(212)
+#define SET_DEVICE_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(206)
 #define SET_DEVICE_SETTINGS_RESPONSE_MESSAGE_ID 25131U
 #define SET_DEVICE_SETTINGS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define SET_DEVICE_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(218)
+#define SET_DEVICE_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(206)
 #define JOINT_MIT_COMMAND_MESSAGE_ID 25345U
 #define JOINT_MIT_COMMAND_HAS_MAX_ENCODED_SIZE 1
 #define JOINT_MIT_COMMAND_MAX_ENCODED_SIZE UINT64_C(160)
 #define EMERGENCY_STOP_REQUEST_MESSAGE_ID 25347U
 #define EMERGENCY_STOP_REQUEST_HAS_MAX_ENCODED_SIZE 1
-#define EMERGENCY_STOP_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define EMERGENCY_STOP_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
 #define EMERGENCY_STOP_RESPONSE_MESSAGE_ID 25348U
 #define EMERGENCY_STOP_RESPONSE_HAS_MAX_ENCODED_SIZE 1
-#define EMERGENCY_STOP_RESPONSE_MAX_ENCODED_SIZE UINT64_C(12)
+#define EMERGENCY_STOP_RESPONSE_MAX_ENCODED_SIZE UINT64_C(0)
 #define GRIPPER_MIT_COMMAND_MESSAGE_ID 25349U
 #define GRIPPER_MIT_COMMAND_HAS_MAX_ENCODED_SIZE 1
 #define GRIPPER_MIT_COMMAND_MAX_ENCODED_SIZE UINT64_C(55)

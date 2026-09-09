@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <type_traits>
 
 namespace florid::detail {
 
@@ -13,24 +14,13 @@ namespace {
 constexpr std::size_t s_kNoSlot = FciWirelinkEndpoint::s_kOperationCapacity;
 constexpr std::uint32_t s_kMaximumRelativeTimeout = UINT32_C(0x7fffffff);
 
-std::uint64_t s_mixSessionEntropy(std::uint64_t s_value) noexcept {
-    s_value += UINT64_C(0x9e3779b97f4a7c15);
-    s_value = (s_value ^ (s_value >> 30U)) *
-              UINT64_C(0xbf58476d1ce4e5b9);
-    s_value = (s_value ^ (s_value >> 27U)) *
-              UINT64_C(0x94d049bb133111eb);
-    return s_value ^ (s_value >> 31U);
-}
-
-std::uint32_t s_rpcOperationSeed(std::uint64_t s_session_id) noexcept {
-    // Revision-7 FCI uses field-mapped RPC, not managed RPC v2. Randomizing
-    // its initial operation ID reduces restart collisions but is not a full
-    // client-session echo check; keep this until a coordinated schema change.
-    const std::uint64_t s_mixed = s_mixSessionEntropy(
-        s_session_id ^ UINT64_C(0x5250432d4f504944));
-    const std::uint32_t s_seed = static_cast<std::uint32_t>(s_mixed) ^
-                                 static_cast<std::uint32_t>(s_mixed >> 32U);
-    return s_seed == 0U ? UINT32_C(1) : s_seed;
+std::uint32_t s_queueRemaining(wl_time_ms_t s_now, wl_time_ms_t s_submitted,
+                               std::uint32_t s_timeout) noexcept {
+    // A producer may submit after this owner pass sampled its clock. Treat
+    // that small negative age as zero, not as an unsigned counter wrap.
+    const auto s_age = static_cast<std::int32_t>(s_now - s_submitted);
+    return s_age <= 0 ? s_timeout : s_timeout - std::min(
+        s_timeout, static_cast<std::uint32_t>(s_age));
 }
 
 template <typename Range>
@@ -206,7 +196,8 @@ bool s_validSettings(const DeviceSettings& s_settings) noexcept {
     return true;
 }
 
-bool s_settingsFromWire(const device_settings_t& s_wire,
+template <typename Settings>
+bool s_settingsFromWire(const Settings& s_wire,
                         DeviceSettings& s_settings) noexcept {
     if (!s_wire.has_firmware_dt_us || !s_wire.has_gravity_scale ||
         !s_wire.has_torque_continuous || !s_wire.has_torque_peak ||
@@ -236,9 +227,10 @@ bool s_settingsFromWire(const device_settings_t& s_wire,
     return true;
 }
 
+template <typename Settings>
 void s_settingsToWire(const DeviceSettings& s_settings,
-                      device_settings_t& s_wire) noexcept {
-    device_settings_clear(&s_wire);
+                      Settings& s_wire) noexcept {
+    s_wire = {};
     s_wire.has_firmware_dt_us = true;
     s_wire.firmware_dt_us = s_settings.m_firmware_period_us;
     s_wire.has_gravity_scale = true;
@@ -265,11 +257,11 @@ void s_settingsToWire(const DeviceSettings& s_settings,
     }
 }
 
-bool s_copyString(const wl_codec_string_t& s_source, char* s_destination,
+template <typename String>
+bool s_copyString(const String& s_source, char* s_destination,
                   std::size_t s_capacity,
                   std::uint8_t& s_size) noexcept {
-    if (s_source.length >= s_capacity ||
-        (s_source.length != 0 && s_source.data == nullptr)) {
+    if (s_source.length >= s_capacity) {
         return false;
     }
     if (s_source.length != 0) {
@@ -297,71 +289,37 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
         if (m_initialized) return FciEndpointStatus::kBusy;
     }
 
-    std::uint64_t s_session_id{};
-    const auto s_session_result =
-        wl_session_next(s_config.m_session_source, 0U, &s_session_id);
-    if (s_session_result != WL_OK) return s_endpointStatus(s_session_result);
-
-    fci_arm_runtime_config_t s_runtime_config;
-    int s_result = fci_arm_runtime_config_defaults(&s_runtime_config);
+    auto s_environment = wl_platform_environment();
+    s_environment.session = s_config.m_session_source;
+    s_environment.clock = {[](void*) -> wl_time_ms_t { return s_nowMs(); }, nullptr};
+    fci_arm_endpoint_config_t s_endpoint_config;
+    int s_result = fci_arm_endpoint_config_defaults(&s_endpoint_config, s_environment);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
-    s_runtime_config.rpc_client_slot_count = s_kOperationCapacity;
-    s_runtime_config.rpc_client_response_capacity = s_kTxPayloadSize;
-    s_runtime_config.rpc_client_next_operation_id =
-        s_rpcOperationSeed(s_session_id);
-    s_result = fci_arm_runtime_config_enable_client(&s_runtime_config);
+    s_endpoint_config.link.integrity = WL_INTEGRITY_NONE;
+    s_endpoint_config.link.max_retries = s_config.m_max_retries;
+    s_endpoint_config.link.ack_timeout_ms = s_config.m_ack_timeout_ms;
+    s_endpoint_config.on_result = s_onResult;
+    s_endpoint_config.user_data = this;
+    s_result = fci_arm_endpoint_init_config(&m_endpoint, &s_endpoint_config);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
+    m_endpoint_storage_bytes = sizeof(m_endpoint);
 
-    fci_arm_runtime_requirements_t s_requirements{};
-    s_result = fci_arm_runtime_requirements(&s_runtime_config, &s_requirements);
-    if (s_result != WL_OK ||
-        s_requirements.storage_size > m_runtime_storage.size() ||
-        s_requirements.storage_alignment > alignof(std::max_align_t)) {
-        return s_result == WL_OK ? FciEndpointStatus::kInternalError
-                                 : s_endpointStatus(s_result);
-    }
-    const fci_arm_runtime_storage_t s_runtime_storage{
-        .data = m_runtime_storage.data(),
-        .size = m_runtime_storage.size(),
+    const wl_endpoint_policy_t s_policy{
+        .user_data = this,
+        .on_event = s_onEvent,
+        .progress = s_applicationProgress,
+        .deadline_hint = s_applicationDeadline,
     };
-    s_result = fci_arm_runtime_init(&m_runtime_instance, &s_runtime_config,
-                                    &s_runtime_storage);
+    s_result = wl_endpoint_set_policy(fci_arm_endpoint_handle(&m_endpoint), &s_policy);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
-    m_runtime_storage_bytes = s_requirements.storage_size;
-
-    const wl_config_t s_link_config{
-        .max_payload_len = s_kTxPayloadSize,
-        .envelope = WL_ENVELOPE_COBS_STREAM,
-        .integrity = WL_INTEGRITY_NONE,
-        .session_id = s_session_id,
-        .max_retries = s_config.m_max_retries,
-        .ack_timeout_ms = s_config.m_ack_timeout_ms,
-        .max_transmission_unit = s_kTxUnitSize,
-    };
-    const wl_storage_t s_link_storage{
-        .tx_payload = m_tx_payload.data(),
-        .tx_payload_size = m_tx_payload.size(),
-        .tx_unit = m_tx_unit.data(),
-        .tx_unit_size = m_tx_unit.size(),
-        .control_unit = m_control_unit.data(),
-        .control_unit_size = m_control_unit.size(),
-        .rx_fifo = m_rx_fifo.data(),
-        .rx_fifo_size = m_rx_fifo.size(),
-        .rx_fallback = m_rx_fallback.data(),
-        .rx_fallback_size = m_rx_fallback.size(),
-    };
-    s_result = m_executor.initialize(s_link_config, s_link_storage);
+    wl_pump_hooks_t s_adapter{};
+    s_adapter.adapter_user_data = this;
+    s_adapter.service = s_transportService;
+    s_adapter.quiesce = s_quiesce;
+    s_adapter.adapter_deadline_hint = s_transportDeadline;
+    s_result = wl_endpoint_attach(fci_arm_endpoint_handle(&m_endpoint), &s_adapter);
     if (s_result != WL_OK) return s_endpointStatus(s_result);
-
-    WirelinkExecutorHooks s_hooks{};
-    s_hooks.m_user_data = this;
-    s_hooks.m_service = s_transportService;
-    s_hooks.m_application_progress = s_applicationProgress;
-    s_hooks.m_application_deadline_hint = s_applicationDeadline;
-    s_hooks.m_adapter_deadline_hint = s_transportDeadline;
-    s_hooks.m_on_event = s_onEvent;
-    s_hooks.m_quiesce = s_quiesce;
-    s_result = m_executor.setHooks(s_hooks);
+    s_result = m_executor.initialize(fci_arm_endpoint_driver(&m_endpoint));
     if (s_result != WL_OK) return s_endpointStatus(s_result);
 
     m_command_capabilities.store(0U, std::memory_order_relaxed);
@@ -1202,41 +1160,35 @@ FciEndpointStatus FciWirelinkEndpoint::sendGripperPvt(
                                  s_payload.data(), s_size);
 }
 
-wl_pump_event_disposition_t FciWirelinkEndpoint::s_onEvent(
-    void* s_user_data, wl_ctx_t& s_context,
-    const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-    auto& s_self = *static_cast<FciWirelinkEndpoint*>(s_user_data);
-    s_self.m_stats.m_dispatch_calls.fetch_add(1, std::memory_order_relaxed);
-    const auto s_result = fci_arm_runtime_dispatch_event(
-        &s_context, &s_event, &s_self.m_runtime_instance.runtime, s_now_ms);
-    if (s_result.domain != FCI_ARM_RUNTIME_OK &&
-        s_result.domain != FCI_ARM_RUNTIME_NON_RX) {
-        s_self.m_stats.m_dispatch_errors.fetch_add(1,
-                                                  std::memory_order_relaxed);
-    }
-    return s_result.event_consumed != 0U ? WL_PUMP_EVENT_CONSUMED
-                                         : WL_PUMP_EVENT_UNHANDLED;
+void FciWirelinkEndpoint::s_onEvent(void* s_user_data, wl_ctx_t*,
+    const wl_event_t*, wl_time_ms_t) noexcept {
+    static_cast<FciWirelinkEndpoint*>(s_user_data)->m_stats.m_dispatch_calls.fetch_add(
+        1, std::memory_order_relaxed);
 }
 
-bool FciWirelinkEndpoint::s_applicationProgress(
-    void* s_user_data, wl_ctx_t& s_context,
-    wl_time_ms_t s_now_ms) noexcept {
-    return static_cast<FciWirelinkEndpoint*>(s_user_data)
-        ->s_progress(s_context, s_now_ms);
+void FciWirelinkEndpoint::s_onResult(void* s_user_data,
+    const fci_arm_runtime_result_t* s_result) noexcept {
+    if (fci_arm_runtime_result_ok(s_result) || s_result->domain == FCI_ARM_RUNTIME_NON_RX) return;
+    static_cast<FciWirelinkEndpoint*>(s_user_data)->m_stats.m_dispatch_errors.fetch_add(
+        1, std::memory_order_relaxed);
+}
+
+uint8_t FciWirelinkEndpoint::s_applicationProgress(
+    void* s_user_data, wl_ctx_t* s_context, wl_time_ms_t s_now_ms) noexcept {
+    return static_cast<FciWirelinkEndpoint*>(s_user_data)->s_progress(*s_context, s_now_ms);
 }
 
 std::uint32_t FciWirelinkEndpoint::s_applicationDeadline(
     const void* s_user_data, wl_time_ms_t s_now_ms) noexcept {
     const auto& s_self = *static_cast<const FciWirelinkEndpoint*>(s_user_data);
-    wl_rpc_deadline_hint_t s_runtime_hint{WL_RPC_NO_DEADLINE_MS};
     std::uint32_t s_nearest = WL_RPC_NO_DEADLINE_MS;
-    if (fci_arm_runtime_get_deadline_hint(&s_self.m_runtime_instance.runtime,
-                                          s_now_ms,
-                                          &s_runtime_hint) == WL_RPC_OK) {
-        s_nearest = s_runtime_hint.next_deadline_ms;
-    }
 
     std::lock_guard<std::mutex> s_lock(s_self.m_mutex);
+    for (const auto& s_slot : s_self.m_operations) {
+        if (s_slot.m_used && s_slot.m_state == FciOperationState::kQueued)
+            s_nearest = std::min(s_nearest, s_queueRemaining(s_now_ms,
+                s_slot.m_submitted_at_ms, s_slot.m_timeout_ms));
+    }
     if (s_self.m_lease.m_state == FciControlLeaseState::kHeld) {
         s_nearest = std::min(
             s_nearest, s_until(s_now_ms, s_self.m_lease_renew_at_ms));
@@ -1293,25 +1245,6 @@ bool FciWirelinkEndpoint::s_terminal(FciOperationState s_state) noexcept {
            s_state == FciOperationState::kDomainError;
 }
 
-FciOperationState FciWirelinkEndpoint::s_operationState(
-    wl_rpc_client_state_t s_state) noexcept {
-    switch (s_state) {
-        case WL_RPC_CLIENT_QUEUED: return FciOperationState::kQueued;
-        case WL_RPC_CLIENT_LINK_PENDING:
-            return FciOperationState::kLinkPending;
-        case WL_RPC_CLIENT_WAIT_RESPONSE:
-            return FciOperationState::kWaitingResponse;
-        case WL_RPC_CLIENT_COMPLETED: return FciOperationState::kCompleted;
-        case WL_RPC_CLIENT_LINK_FAILED:
-            return FciOperationState::kLinkFailed;
-        case WL_RPC_CLIENT_TIMED_OUT: return FciOperationState::kTimedOut;
-        case WL_RPC_CLIENT_CANCELLED: return FciOperationState::kCancelled;
-        case WL_RPC_CLIENT_APPLICATION_ERROR:
-            return FciOperationState::kDomainError;
-        default: return FciOperationState::kUnknown;
-    }
-}
-
 FciEndpointStatus FciWirelinkEndpoint::s_endpointStatus(int s_result) noexcept {
     switch (s_result) {
         case WL_OK: return FciEndpointStatus::kOk;
@@ -1360,19 +1293,25 @@ std::uint32_t FciWirelinkEndpoint::s_until(wl_time_ms_t s_now,
 
 bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
                                      wl_time_ms_t s_now_ms) noexcept {
-    fci_arm_runtime_service_result_t s_service{};
     m_stats.m_runtime_poll_calls.fetch_add(1, std::memory_order_relaxed);
-    if (fci_arm_runtime_service(&s_context, &m_runtime_instance.runtime,
-                                s_now_ms, &s_service) == WL_RPC_OK) {
-        if (s_service.deadlines.client_timed_out != 0) {
-            m_stats.m_runtime_timeouts.fetch_add(
-                s_service.deadlines.client_timed_out,
-                std::memory_order_relaxed);
+
+    // A serialized business queue must not extend a caller's RPC deadline.
+    for (std::size_t s_index = 0; s_index < m_operations.size(); ++s_index) {
+        bool s_expired;
+        {
+            std::lock_guard<std::mutex> s_lock(m_mutex);
+            const auto& s_slot = m_operations[s_index];
+            s_expired = s_slot.m_used && s_slot.m_state == FciOperationState::kQueued &&
+                s_queueRemaining(s_now_ms, s_slot.m_submitted_at_ms,
+                    s_slot.m_timeout_ms) == 0U;
+        }
+        if (s_expired) {
+            wl_rpc_completion_t s_timeout{};
+            s_timeout.status = WL_RPC_TIMED_OUT;
+            s_finalize(s_index, s_timeout, static_cast<const home_response_value_t*>(nullptr));
         }
     }
-
     (void)s_drainLatest();
-    (void)s_finishActive(s_context, s_now_ms);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         if ((m_lease.m_state == FciControlLeaseState::kRenewQueued ||
@@ -1397,7 +1336,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
     bool s_progressed = false;
     fci_arm_arm_status_latest_view_t s_arm_view{};
     const int s_arm_result = fci_arm_arm_status_latest_acquire(
-        &m_runtime_instance.runtime, &s_arm_view);
+        s_runtime(), &s_arm_view);
     if (s_arm_result == WL_OK) {
         m_stats.m_latest_acquires.fetch_add(1, std::memory_order_relaxed);
         if (s_arm_view.value != nullptr && s_validArmStatus(*s_arm_view.value)) {
@@ -1407,7 +1346,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
             void* const s_user_data = m_callback_user_data;
             if (s_callback != nullptr) s_callback(s_user_data, s_snapshot);
         }
-        if (fci_arm_arm_status_latest_release(&m_runtime_instance.runtime,
+        if (fci_arm_arm_status_latest_release(s_runtime(),
                                               &s_arm_view) == WL_OK) {
             m_stats.m_latest_releases.fetch_add(1,
                                                std::memory_order_relaxed);
@@ -1417,7 +1356,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
 
     fci_arm_arm_diagnostics_latest_view_t s_diagnostics_view{};
     const int s_diagnostics_result = fci_arm_arm_diagnostics_latest_acquire(
-        &m_runtime_instance.runtime, &s_diagnostics_view);
+        s_runtime(), &s_diagnostics_view);
     if (s_diagnostics_result == WL_OK) {
         m_stats.m_latest_acquires.fetch_add(1, std::memory_order_relaxed);
         ArmDiagnostics s_domain{};
@@ -1428,7 +1367,7 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
             if (s_callback != nullptr) s_callback(s_user_data, s_domain);
         }
         if (fci_arm_arm_diagnostics_latest_release(
-                &m_runtime_instance.runtime, &s_diagnostics_view) == WL_OK) {
+                s_runtime(), &s_diagnostics_view) == WL_OK) {
             m_stats.m_latest_releases.fetch_add(1,
                                                std::memory_order_relaxed);
         }
@@ -1437,691 +1376,96 @@ bool FciWirelinkEndpoint::s_drainLatest() noexcept {
     return s_progressed;
 }
 
-bool FciWirelinkEndpoint::s_finishActive(wl_ctx_t& s_context,
-                                         wl_time_ms_t s_now_ms) noexcept {
-    std::size_t s_index{};
-    RpcKind s_kind{};
-    std::uint32_t s_operation_id{};
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        if (m_active_operation == s_kNoSlot) return false;
-        s_index = m_active_operation;
-        s_kind = m_operations[s_index].m_kind;
-        s_operation_id = m_operations[s_index].m_operation_id;
-    }
-
-    wl_rpc_client_result_t s_client{};
-    const wl_rpc_err_t s_inspect = wl_rpc_client_get(
-        m_runtime_instance.runtime.rpc_client, s_operation_id, &s_client);
-    if (s_inspect != WL_RPC_OK) return false;
-
-    const FciOperationState s_state = s_operationState(s_client.state);
-    if (!s_terminal(s_state)) {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        if (m_operations[s_index].m_used) {
-            m_operations[s_index].m_state = s_state;
-            m_operations[s_index].m_link_status = s_client.link_result;
-        }
-        return false;
-    }
-
-    s_finalize(s_index, s_client, s_context, s_now_ms);
-    return true;
+template <typename Response>
+void FciWirelinkEndpoint::s_complete(void* s_context,
+    const wl_rpc_completion_t* s_completion, const Response* s_response) noexcept {
+    auto& s_slot = *static_cast<OperationSlot*>(s_context);
+    auto& s_self = *s_slot.m_owner;
+    s_self.s_finalize(static_cast<std::size_t>(&s_slot - s_self.m_operations.data()),
+                      *s_completion, s_response);
 }
 
-bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
-                                      wl_time_ms_t s_now_ms) noexcept {
-    std::size_t s_index{};
-    OperationSlot s_slot{};
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        if (m_active_operation != s_kNoSlot) return false;
-        s_index = s_findQueuedSlot();
-        if (s_index == s_kNoSlot) return false;
-        m_active_operation = s_index;
-        m_operations[s_index].m_state = FciOperationState::kLinkPending;
-        s_slot = m_operations[s_index];
-        if (s_slot.m_kind == RpcKind::kAcquireLease) {
-            m_lease.m_state =
-                (s_slot.m_internal || s_slot.m_request.m_lease_token != 0)
-                                  ? FciControlLeaseState::kRenewing
-                                  : FciControlLeaseState::kAcquiring;
-        } else if (s_slot.m_kind == RpcKind::kReleaseLease) {
-            m_lease.m_state = FciControlLeaseState::kReleasing;
-        }
-    }
-
-    fci_arm_runtime_result_t s_started{};
-    switch (s_slot.m_kind) {
-        case RpcKind::kAcquireLease: {
-            acquire_control_lease_request_t s_request{};
-            acquire_control_lease_request_clear(&s_request);
-            s_request.has_requested_timeout_ms = true;
-            s_request.requested_timeout_ms =
-                s_slot.m_request.m_requested_lease_timeout_ms;
-            if (s_slot.m_request.m_lease_token != 0) {
-                s_request.has_current_token = true;
-                s_request.current_token = s_slot.m_request.m_lease_token;
-            }
-            s_started = fci_arm_acquire_control_lease_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kReleaseLease: {
-            release_control_lease_request_t s_request{};
-            release_control_lease_request_clear(&s_request);
-            s_request.has_lease_token = true;
-            s_request.lease_token = s_slot.m_request.m_lease_token;
-            s_started = fci_arm_release_control_lease_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kGetDeviceInfo: {
-            get_device_info_request_t s_request{};
-            get_device_info_request_clear(&s_request);
-            s_started = fci_arm_get_device_info_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetDeviceInfo: {
-            set_device_info_request_t s_request{};
-            set_device_info_request_clear(&s_request);
-            s_request.has_custom_name = true;
-            s_request.custom_name = {
-                s_slot.m_request.m_custom_name.data(),
-                s_slot.m_request.m_custom_name_size,
-            };
-            s_started = fci_arm_set_device_info_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kGetDeviceSettings: {
-            get_device_settings_request_t s_request{};
-            get_device_settings_request_clear(&s_request);
-            s_started = fci_arm_get_device_settings_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetDeviceSettings: {
-            set_device_settings_request_t s_request{};
-            set_device_settings_request_clear(&s_request);
-            s_request.has_settings = true;
-            s_settingsToWire(s_slot.m_request.m_device_settings,
-                             s_request.settings);
-            s_started = fci_arm_set_device_settings_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetArmControlMode: {
-            set_arm_control_mode_request_t s_request{};
-            set_arm_control_mode_request_clear(&s_request);
-            s_request.has_mode = true;
-            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_arm_control_mode_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetGripperControlMode: {
-            set_gripper_control_mode_request_t s_request{};
-            set_gripper_control_mode_request_clear(&s_request);
-            s_request.has_mode = true;
-            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
-            s_started = fci_arm_set_gripper_control_mode_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetArmMode: {
-            set_arm_mode_request_t s_request{};
-            set_arm_mode_request_clear(&s_request);
-            s_request.has_mode = true;
-            s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
-            s_started = fci_arm_set_arm_mode_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kHome: {
-            home_request_t s_request{};
-            home_request_clear(&s_request);
-            s_started = fci_arm_home_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kSetZero: {
-            set_zero_request_t s_request{};
-            set_zero_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_set_zero_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kClearError: {
-            clear_error_request_t s_request{};
-            clear_error_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_clear_error_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kClearFaults: {
-            clear_faults_request_t s_request{};
-            clear_faults_request_clear(&s_request);
-            s_started = fci_arm_clear_faults_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kEmergencyStop: {
-            emergency_stop_request_t s_request{};
-            emergency_stop_request_clear(&s_request);
-            s_started = fci_arm_emergency_stop_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kMotorRegisterRead: {
-            motor_register_read_request_t s_request{};
-            motor_register_read_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_request.has_register_id = true;
-            s_request.register_id = s_slot.m_request.m_register_id;
-            s_started = fci_arm_motor_register_read_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kMotorRegisterWrite: {
-            motor_register_write_request_t s_request{};
-            motor_register_write_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_request.has_register_id = true;
-            s_request.register_id = s_slot.m_request.m_register_id;
-            s_request.has_value = true;
-            s_request.value = s_slot.m_request.m_value;
-            s_started = fci_arm_motor_register_write_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kMotorStoreParameters: {
-            motor_store_parameters_request_t s_request{};
-            motor_store_parameters_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started =
-                fci_arm_motor_store_parameters_client_start(
-                    &s_context, &m_runtime_instance.runtime, &s_request,
-                    s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kMotorSetZero: {
-            motor_set_zero_request_t s_request{};
-            motor_set_zero_request_clear(&s_request);
-            s_request.has_joint_id = true;
-            s_request.joint_id = s_slot.m_request.m_joint_id;
-            s_started = fci_arm_motor_set_zero_client_start(
-                &s_context, &m_runtime_instance.runtime, &s_request,
-                s_slot.m_timeout_ms, s_now_ms);
-            break;
-        }
-        case RpcKind::kNone:
-            break;
-    }
-
-    const auto* const s_rpc_detail =
-        fci_arm_runtime_result_rpc_detail(&s_started);
-    const std::uint32_t s_operation_id =
-        s_rpc_detail != nullptr ? s_rpc_detail->operation_id : 0;
-    const bool s_retryable_backpressure =
-        s_rpc_detail != nullptr &&
-        s_operation_id == 0 &&
-        s_started.domain == FCI_ARM_RUNTIME_CORE_ERROR &&
-        (s_rpc_detail->core_result == WL_ERR_BUSY ||
-         s_rpc_detail->core_result == WL_ERR_WOULD_BLOCK ||
-         s_rpc_detail->core_result == WL_ERR_NO_SPACE);
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        auto& s_operation = m_operations[s_index];
-        if (s_retryable_backpressure) {
-            s_operation.m_operation_id = 0;
-            s_operation.m_state = FciOperationState::kQueued;
-            m_active_operation = s_kNoSlot;
-            if (s_operation.m_kind == RpcKind::kAcquireLease) {
-                m_lease.m_state =
-                    (s_operation.m_internal ||
-                     s_operation.m_request.m_lease_token != 0)
-                        ? FciControlLeaseState::kRenewQueued
-                        : FciControlLeaseState::kAcquireQueued;
-            } else if (s_operation.m_kind == RpcKind::kReleaseLease) {
-                m_lease.m_state = FciControlLeaseState::kReleaseQueued;
-            }
-        } else if (s_operation_id == 0) {
-            s_operation.m_state = FciOperationState::kLinkFailed;
-            s_operation.m_status =
-                s_started.domain == FCI_ARM_RUNTIME_RPC_ERROR &&
-                        s_started.detail.rpc.rpc_result ==
-                            WL_RPC_ERR_NO_SLOT
-                    ? FciEndpointStatus::kQueueFull
-                    : FciEndpointStatus::kLinkError;
-            s_operation.m_link_status = s_started.detail.rpc.core_result;
-            m_active_operation = s_kNoSlot;
-            if (s_operation.m_kind == RpcKind::kAcquireLease) {
-                m_lease.m_state =
-                    s_operation.m_request.m_lease_token != 0
-                                      ? FciControlLeaseState::kExpired
-                                      : FciControlLeaseState::kFailed;
-                m_lease.m_status = s_operation.m_status;
-                m_lease.m_token = 0;
-                m_lease.m_granted_timeout_ms = 0;
-            } else if (s_operation.m_kind == RpcKind::kReleaseLease) {
-                m_lease.m_state = FciControlLeaseState::kFailed;
-                m_lease.m_status = s_operation.m_status;
-            }
-            if (s_operation.m_internal) s_operation = OperationSlot{};
-            m_operation_changed.notify_all();
-        } else {
-            s_operation.m_operation_id = s_operation_id;
-        }
-    }
-    if (s_operation_id != 0) {
-        m_stats.m_rpc_started.fetch_add(1, std::memory_order_relaxed);
-    }
-    return !s_retryable_backpressure;
-}
-
-bool FciWirelinkEndpoint::s_scheduleRenewal(wl_time_ms_t s_now_ms) noexcept {
-    std::uint64_t s_token{};
-    std::uint32_t s_timeout{};
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        if (m_lease.m_state != FciControlLeaseState::kHeld ||
-            m_lease.m_token == 0 ||
-            s_until(s_now_ms, m_lease_renew_at_ms) != 0) {
-            return false;
-        }
-        s_token = m_lease.m_token;
-        s_timeout = m_lease_requested_timeout_ms;
-    }
-    OperationRequest s_request{};
-    s_request.m_requested_lease_timeout_ms = s_timeout;
-    s_request.m_lease_token = s_token;
-    const auto s_result = s_submit(RpcKind::kAcquireLease, s_timeout,
-                                   s_request, true);
-    return s_result.m_status == FciEndpointStatus::kOk;
-}
-
-void FciWirelinkEndpoint::s_stopOnOwner() noexcept {
-    std::size_t s_active{};
-    RpcKind s_kind{};
-    std::uint32_t s_operation_id{};
-    {
-        std::lock_guard<std::mutex> s_lock(m_mutex);
-        s_active = m_active_operation;
-        if (s_active != s_kNoSlot) {
-            s_kind = m_operations[s_active].m_kind;
-            s_operation_id = m_operations[s_active].m_operation_id;
-        }
-    }
-
-    if (s_active != s_kNoSlot && s_operation_id != 0) {
-        wl_rpc_client_result_t s_client{};
-        if (wl_rpc_client_get(m_runtime_instance.runtime.rpc_client,
-                              s_operation_id, &s_client) == WL_RPC_OK) {
-            if (s_client.tx_handle != 0) {
-                (void)wl_tx_cancel(&m_executor.context(), s_client.tx_handle);
-                wl_tx_result_t s_tx{};
-                (void)wl_tx_take(&m_executor.context(), s_client.tx_handle,
-                                 &s_tx);
-            }
-            if (!s_terminal(s_operationState(s_client.state))) {
-                (void)wl_rpc_client_cancel(
-                    m_runtime_instance.runtime.rpc_client, s_operation_id);
-            }
-        }
-        s_releaseRuntimeOperation(s_operation_id);
-        m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
-        m_stats.m_rpc_cancelled.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    std::lock_guard<std::mutex> s_lock(m_mutex);
-    for (auto& s_slot : m_operations) {
-        if (!s_slot.m_used || s_terminal(s_slot.m_state)) continue;
-        if (s_slot.m_internal) {
-            s_slot = OperationSlot{};
-        } else {
-            s_slot.m_state = FciOperationState::kCancelled;
-            s_slot.m_status = FciEndpointStatus::kCancelled;
-        }
-    }
-    m_active_operation = s_kNoSlot;
-    m_lease = FciControlLeaseSnapshot{};
-    m_lease.m_status = FciEndpointStatus::kCancelled;
-    m_operation_changed.notify_all();
-}
-
-void FciWirelinkEndpoint::s_finalize(
-    std::size_t s_index, const wl_rpc_client_result_t& s_client,
-    wl_ctx_t&, wl_time_ms_t s_now_ms) noexcept {
+template <typename Response>
+void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
+    const wl_rpc_completion_t& s_completion, const Response* s_response_ptr) noexcept {
+    wl_time_ms_t s_now_ms{};
+    (void)wl_endpoint_now(fci_arm_endpoint_handle(&m_endpoint), &s_now_ms);
     RpcKind s_kind{};
     bool s_internal{};
-    FixedDeviceInfo s_device_info{};
-    FciEndpointStatus s_status{FciEndpointStatus::kInternalError};
-    std::int32_t s_domain_status{s_client.application_status};
-    const FciOperationState s_state = s_operationState(s_client.state);
     {
         std::lock_guard<std::mutex> s_lock(m_mutex);
         s_kind = m_operations[s_index].m_kind;
         s_internal = m_operations[s_index].m_internal;
     }
-
-    std::uint64_t s_granted_token{};
-    std::uint32_t s_granted_timeout{};
+    FciOperationState s_state = FciOperationState::kLinkFailed;
+    switch (s_completion.status) {
+        case WL_RPC_SUCCESS: s_state = FciOperationState::kCompleted; break;
+        case WL_RPC_REJECTED: s_state = FciOperationState::kDomainError; break;
+        case WL_RPC_TIMED_OUT: s_state = FciOperationState::kTimedOut; break;
+        case WL_RPC_CANCELLED: s_state = FciOperationState::kCancelled; break;
+        default: break;
+    }
+    if (s_state == FciOperationState::kTimedOut)
+        m_stats.m_runtime_timeouts.fetch_add(1, std::memory_order_relaxed);
+    if (s_state == FciOperationState::kCancelled)
+        m_stats.m_rpc_cancelled.fetch_add(1, std::memory_order_relaxed);
+    FciEndpointStatus s_status{FciEndpointStatus::kInternalError};
+    std::int32_t s_domain_status = s_completion.rejection;
+    FixedDeviceInfo s_device_info{};
     DeviceSettings s_device_settings{};
     float s_motor_register_value{};
-    bool s_device_settings_valid{};
-    bool s_motor_register_valid{};
+    bool s_device_settings_valid{}, s_motor_register_valid{};
+    std::uint64_t s_granted_token{};
+    std::uint32_t s_granted_timeout{};
     bool s_response_valid = true;
-    if (s_state == FciOperationState::kCompleted ||
-        s_state == FciOperationState::kDomainError) {
-        switch (s_kind) {
-            case RpcKind::kAcquireLease: {
-                acquire_control_lease_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_acquire_control_lease_client_decode(&s_client,
-                                                                 &s_response);
-                s_response_valid =
-                    fci_arm_runtime_result_ok(&s_decoded) &&
-                    s_response.has_status;
+    if (s_completion.status == WL_RPC_SUCCESS) {
+        s_response_valid = s_response_ptr != nullptr;
+        if (s_response_ptr != nullptr) {
+            const auto& s_response = *s_response_ptr;
+            if constexpr (std::is_same_v<Response, acquire_control_lease_response_value_t>) {
+                s_response_valid = s_response.has_lease_token && s_response.lease_token != 0U &&
+                    s_response.has_granted_timeout_ms && s_response.granted_timeout_ms != 0U &&
+                    s_response.granted_timeout_ms < UINT32_C(0x80000000);
+                s_granted_token = s_response.lease_token;
+                s_granted_timeout = s_response.granted_timeout_ms;
+            } else if constexpr (std::is_same_v<Response, get_device_info_response_value_t>) {
+                const auto& s_info = s_response.info;
+                s_response_valid = s_response.has_info && s_info.serial.length != 0U;
                 if (s_response_valid) {
-                    s_domain_status = s_response.status;
-                    if (s_response.status == CONTROL_LEASE_OK) {
-                        s_response_valid = s_response.has_lease_token &&
-                                           s_response.lease_token != 0 &&
-                                           s_response.has_granted_timeout_ms &&
-                                           s_response.granted_timeout_ms != 0;
-                        s_granted_token = s_response.lease_token;
-                        s_granted_timeout = s_response.granted_timeout_ms;
-                    }
+                    s_device_info.m_protocol_version = {s_info.protocol_version.major,
+                        s_info.protocol_version.minor, s_info.protocol_version.patch};
+                    s_device_info.m_firmware_version = {s_info.firmware_version.major,
+                        s_info.firmware_version.minor, s_info.firmware_version.patch};
+                    s_device_info.m_firmware_type = s_firmwareType(s_info.firmware_type);
+                    s_device_info.m_command_capabilities = s_info.has_command_capabilities
+                        ? s_info.command_capabilities : 0U;
+                    s_response_valid = s_copyString(s_info.board_name,
+                        s_device_info.m_board_name.data(), s_device_info.m_board_name.size(),
+                        s_device_info.m_board_name_size) &&
+                        s_copyString(s_info.custom_name, s_device_info.m_custom_name.data(),
+                            s_device_info.m_custom_name.size(), s_device_info.m_custom_name_size) &&
+                        s_copyString(s_info.serial, s_device_info.m_serial_number.data(),
+                            s_device_info.m_serial_number.size(), s_device_info.m_serial_number_size);
+                    s_device_info.m_valid = s_response_valid;
                 }
-                break;
-            }
-            case RpcKind::kReleaseLease: {
-                release_control_lease_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_release_control_lease_client_decode(&s_client,
-                                                                 &s_response);
-                s_response_valid =
-                    fci_arm_runtime_result_ok(&s_decoded) &&
-                    s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kGetDeviceInfo: {
-                get_device_info_response_t s_response{};
-                const auto s_decoded = fci_arm_get_device_info_client_decode(
-                    &s_client, &s_response);
-                s_response_valid =
-                    fci_arm_runtime_result_ok(&s_decoded) &&
-                    s_response.has_status;
-                if (s_response_valid) {
-                    s_domain_status = s_response.status;
-                    if (s_response.status == DEVICE_INFO_OK) {
-                        const auto& s_info = s_response.info;
-                        s_response_valid =
-                            s_response.has_info &&
-                            s_info.has_protocol_version &&
-                            s_info.protocol_version.has_major &&
-                            s_info.protocol_version.has_minor &&
-                            s_info.protocol_version.has_patch &&
-                            s_info.has_firmware_version &&
-                            s_info.firmware_version.has_major &&
-                            s_info.firmware_version.has_minor &&
-                            s_info.firmware_version.has_patch &&
-                            s_info.has_board_name && s_info.has_custom_name &&
-                            s_info.has_firmware_type && s_info.has_serial &&
-                            s_info.serial.length != 0;
-                        if (s_response_valid) {
-                            s_device_info.m_protocol_version = Version{
-                                s_info.protocol_version.major,
-                                s_info.protocol_version.minor,
-                                s_info.protocol_version.patch,
-                            };
-                            s_device_info.m_firmware_version = Version{
-                                s_info.firmware_version.major,
-                                s_info.firmware_version.minor,
-                                s_info.firmware_version.patch,
-                            };
-                            s_device_info.m_firmware_type =
-                                s_firmwareType(s_info.firmware_type);
-                            s_device_info.m_command_capabilities =
-                                s_info.has_command_capabilities
-                                    ? s_info.command_capabilities
-                                    : 0U;
-                            s_response_valid = s_copyString(
-                                s_info.board_name,
-                                s_device_info.m_board_name.data(),
-                                s_device_info.m_board_name.size(),
-                                s_device_info.m_board_name_size);
-                            s_response_valid =
-                                s_response_valid &&
-                                s_copyString(
-                                    s_info.custom_name,
-                                    s_device_info.m_custom_name.data(),
-                                    s_device_info.m_custom_name.size(),
-                                    s_device_info.m_custom_name_size);
-                            s_response_valid =
-                                s_response_valid &&
-                                s_copyString(
-                                    s_info.serial,
-                                    s_device_info.m_serial_number.data(),
-                                    s_device_info.m_serial_number.size(),
-                                    s_device_info.m_serial_number_size);
-                            s_device_info.m_valid = s_response_valid;
-                        }
-                    }
+            } else if constexpr (std::is_same_v<Response, get_device_settings_response_value_t> ||
+                                 std::is_same_v<Response, set_device_settings_response_value_t>) {
+                s_response_valid = s_response.has_settings &&
+                    s_settingsFromWire(s_response.settings, s_device_settings);
+                s_device_settings_valid = s_response_valid;
+            } else if constexpr (std::is_same_v<Response, motor_register_read_response_value_t>) {
+                OperationRequest s_request{};
+                {
+                    std::lock_guard<std::mutex> s_lock(m_mutex);
+                    s_request = m_operations[s_index].m_request;
                 }
-                break;
+                s_response_valid = s_response.has_joint_id &&
+                    s_response.joint_id == s_request.m_joint_id && s_response.has_register_id &&
+                    s_response.register_id == s_request.m_register_id && s_response.has_value &&
+                    std::isfinite(s_response.value);
+                s_motor_register_value = s_response.value;
+                s_motor_register_valid = s_response_valid;
             }
-            case RpcKind::kSetDeviceInfo: {
-                set_device_info_response_t s_response{};
-                const auto s_decoded = fci_arm_set_device_info_client_decode(
-                    &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kGetDeviceSettings: {
-                get_device_settings_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_get_device_settings_client_decode(&s_client,
-                                                               &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) {
-                    s_domain_status = s_response.status;
-                    if (s_response.status == DEVICE_SETTINGS_OK) {
-                        s_response_valid = s_response.has_settings &&
-                                           s_settingsFromWire(
-                                               s_response.settings,
-                                               s_device_settings);
-                        s_device_settings_valid = s_response_valid;
-                    }
-                }
-                break;
-            }
-            case RpcKind::kSetDeviceSettings: {
-                set_device_settings_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_set_device_settings_client_decode(&s_client,
-                                                               &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) {
-                    s_domain_status = s_response.status;
-                    if (s_response.status == DEVICE_SETTINGS_OK) {
-                        s_response_valid = s_response.has_settings &&
-                                           s_settingsFromWire(
-                                               s_response.settings,
-                                               s_device_settings);
-                        s_device_settings_valid = s_response_valid;
-                    }
-                }
-                break;
-            }
-            case RpcKind::kSetArmControlMode: {
-                set_arm_control_mode_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_set_arm_control_mode_client_decode(&s_client,
-                                                                &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kSetGripperControlMode: {
-                set_gripper_control_mode_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_set_gripper_control_mode_client_decode(
-                        &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kSetArmMode: {
-                set_arm_mode_response_t s_response{};
-                const auto s_decoded = fci_arm_set_arm_mode_client_decode(
-                    &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kHome: {
-                home_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_home_client_decode(&s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kSetZero: {
-                set_zero_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_set_zero_client_decode(&s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kClearError: {
-                clear_error_response_t s_response{};
-                const auto s_decoded = fci_arm_clear_error_client_decode(
-                    &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kClearFaults: {
-                clear_faults_response_t s_response{};
-                const auto s_decoded = fci_arm_clear_faults_client_decode(
-                    &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kEmergencyStop: {
-                emergency_stop_response_t s_response{};
-                const auto s_decoded = fci_arm_emergency_stop_client_decode(
-                    &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kMotorRegisterRead: {
-                motor_register_read_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_motor_register_read_client_decode(&s_client,
-                                                               &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) {
-                    s_domain_status = s_response.status;
-                    if (s_response.status == MOTOR_OPERATION_OK) {
-                        OperationRequest s_request{};
-                        {
-                            std::lock_guard<std::mutex> s_lock(m_mutex);
-                            s_request = m_operations[s_index].m_request;
-                        }
-                        s_response_valid =
-                            s_response.has_joint_id &&
-                            s_response.joint_id == s_request.m_joint_id &&
-                            s_response.has_register_id &&
-                            s_response.register_id ==
-                                s_request.m_register_id &&
-                            s_response.has_value &&
-                            std::isfinite(s_response.value);
-                        if (s_response_valid) {
-                            s_motor_register_value = s_response.value;
-                            s_motor_register_valid = true;
-                        }
-                    }
-                }
-                break;
-            }
-            case RpcKind::kMotorRegisterWrite: {
-                motor_register_write_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_motor_register_write_client_decode(&s_client,
-                                                                &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kMotorStoreParameters: {
-                motor_store_parameters_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_motor_store_parameters_client_decode(
-                        &s_client, &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kMotorSetZero: {
-                motor_set_zero_response_t s_response{};
-                const auto s_decoded =
-                    fci_arm_motor_set_zero_client_decode(&s_client,
-                                                          &s_response);
-                s_response_valid = fci_arm_runtime_result_ok(&s_decoded) &&
-                                   s_response.has_status;
-                if (s_response_valid) s_domain_status = s_response.status;
-                break;
-            }
-            case RpcKind::kNone:
-                s_response_valid = false;
-                break;
         }
     }
 
@@ -2152,8 +1496,9 @@ void FciWirelinkEndpoint::s_finalize(
         }
     }
 
-    s_releaseRuntimeOperation(s_client.operation_id);
-    m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
+    // Generated async releases admitted slots before delivering this callback.
+    if (m_operations[s_index].m_admitted)
+        m_stats.m_rpc_released.fetch_add(1, std::memory_order_relaxed);
 
     if (s_kind == RpcKind::kGetDeviceInfo &&
         s_status == FciEndpointStatus::kOk && s_device_info.m_valid) {
@@ -2166,14 +1511,17 @@ void FciWirelinkEndpoint::s_finalize(
     s_slot.m_state = s_state;
     s_slot.m_status = s_status;
     s_slot.m_domain_status = s_domain_status;
-    s_slot.m_link_status = s_client.link_result;
+    s_slot.m_link_status = s_completion.transport_error;
     s_slot.m_device_info = s_device_info;
     s_slot.m_device_settings = s_device_settings;
     s_slot.m_motor_register_value = s_motor_register_value;
     s_slot.m_device_settings_valid = s_device_settings_valid;
     s_slot.m_motor_register_valid = s_motor_register_valid;
 
-    if (s_kind == RpcKind::kAcquireLease) {
+    if (!m_running) {
+        m_lease = FciControlLeaseSnapshot{};
+        m_lease.m_status = FciEndpointStatus::kCancelled;
+    } else if (s_kind == RpcKind::kAcquireLease) {
         if (s_status == FciEndpointStatus::kOk) {
             m_lease = FciControlLeaseSnapshot{
                 .m_state = FciControlLeaseState::kHeld,
@@ -2210,16 +1558,272 @@ void FciWirelinkEndpoint::s_finalize(
         }
     }
 
-    m_active_operation = s_kNoSlot;
+    if (m_active_operation == s_index) m_active_operation = s_kNoSlot;
     if (s_internal) s_slot = OperationSlot{};
     m_operation_changed.notify_all();
+    m_executor.notify(); // The next serialized product operation can start.
 }
 
-void FciWirelinkEndpoint::s_releaseRuntimeOperation(
-    std::uint32_t s_operation_id) noexcept {
-    if (s_operation_id == 0) return;
-    (void)wl_rpc_client_release(m_runtime_instance.runtime.rpc_client,
-                                s_operation_id);
+
+bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
+                                      wl_time_ms_t s_now_ms) noexcept {
+    std::size_t s_index{};
+    OperationSlot s_slot{};
+    {
+        std::lock_guard<std::mutex> s_lock(m_mutex);
+        if (m_active_operation != s_kNoSlot) return false;
+        s_index = s_findQueuedSlot();
+        if (s_index == s_kNoSlot) return false;
+        m_active_operation = s_index;
+        m_operations[s_index].m_state = FciOperationState::kLinkPending;
+        s_slot = m_operations[s_index];
+        if (s_slot.m_kind == RpcKind::kAcquireLease) {
+            m_lease.m_state =
+                (s_slot.m_internal || s_slot.m_request.m_lease_token != 0)
+                                  ? FciControlLeaseState::kRenewing
+                                  : FciControlLeaseState::kAcquiring;
+        } else if (s_slot.m_kind == RpcKind::kReleaseLease) {
+            m_lease.m_state = FciControlLeaseState::kReleasing;
+        }
+    }
+
+    int s_started = WL_ERR_INVALID_ARG;
+    const auto s_remaining = s_queueRemaining(s_now_ms, s_slot.m_submitted_at_ms,
+                                             s_slot.m_timeout_ms);
+    if (s_remaining == 0U) {
+        wl_rpc_completion_t s_timeout{};
+        s_timeout.status = WL_RPC_TIMED_OUT;
+        s_finalize(s_index, s_timeout, static_cast<const home_response_value_t*>(nullptr));
+        return true;
+    }
+    (void)s_context;
+    switch (s_slot.m_kind) {
+        case RpcKind::kAcquireLease: {
+            acquire_control_lease_request_value_t s_request{};
+            s_request.has_requested_timeout_ms = true;
+            s_request.requested_timeout_ms =
+                s_slot.m_request.m_requested_lease_timeout_ms;
+            if (s_slot.m_request.m_lease_token != 0) {
+                s_request.has_current_token = true;
+                s_request.current_token = s_slot.m_request.m_lease_token;
+            }
+            s_started = fci_arm_endpoint_acquire_control_lease_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<acquire_control_lease_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kReleaseLease: {
+            release_control_lease_request_value_t s_request{};
+            s_request.has_lease_token = true;
+            s_request.lease_token = s_slot.m_request.m_lease_token;
+            s_started = fci_arm_endpoint_release_control_lease_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<release_control_lease_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kGetDeviceInfo: {
+            get_device_info_request_value_t s_request{};
+            s_started = fci_arm_endpoint_get_device_info_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<get_device_info_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetDeviceInfo: {
+            set_device_info_request_value_t s_request{};
+            s_request.has_custom_name = true;
+            s_request.custom_name.length = s_slot.m_request.m_custom_name_size;
+            std::copy_n(s_slot.m_request.m_custom_name.data(), s_request.custom_name.length,
+                        s_request.custom_name.data);
+            s_started = fci_arm_endpoint_set_device_info_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_device_info_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kGetDeviceSettings: {
+            get_device_settings_request_value_t s_request{};
+            s_started = fci_arm_endpoint_get_device_settings_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<get_device_settings_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetDeviceSettings: {
+            set_device_settings_request_value_t s_request{};
+            s_request.has_settings = true;
+            s_settingsToWire(s_slot.m_request.m_device_settings,
+                             s_request.settings);
+            s_started = fci_arm_endpoint_set_device_settings_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_device_settings_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetArmControlMode: {
+            set_arm_control_mode_request_value_t s_request{};
+            s_request.has_mode = true;
+            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
+            s_started = fci_arm_endpoint_set_arm_control_mode_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_arm_control_mode_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetGripperControlMode: {
+            set_gripper_control_mode_request_value_t s_request{};
+            s_request.has_mode = true;
+            s_request.mode = s_controlMode(s_slot.m_request.m_control_mode);
+            s_started = fci_arm_endpoint_set_gripper_control_mode_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_gripper_control_mode_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetArmMode: {
+            set_arm_mode_request_value_t s_request{};
+            s_request.has_mode = true;
+            s_request.mode = s_armMode(s_slot.m_request.m_arm_mode);
+            s_started = fci_arm_endpoint_set_arm_mode_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_arm_mode_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kHome: {
+            home_request_value_t s_request{};
+            s_started = fci_arm_endpoint_home_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<home_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetZero: {
+            set_zero_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_endpoint_set_zero_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_zero_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kClearError: {
+            clear_error_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_endpoint_clear_error_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<clear_error_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kClearFaults: {
+            clear_faults_request_value_t s_request{};
+            s_started = fci_arm_endpoint_clear_faults_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<clear_faults_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kEmergencyStop: {
+            emergency_stop_request_value_t s_request{};
+            s_started = fci_arm_endpoint_emergency_stop_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<emergency_stop_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kMotorRegisterRead: {
+            motor_register_read_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_request.has_register_id = true;
+            s_request.register_id = s_slot.m_request.m_register_id;
+            s_started = fci_arm_endpoint_motor_register_read_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<motor_register_read_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kMotorRegisterWrite: {
+            motor_register_write_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_request.has_register_id = true;
+            s_request.register_id = s_slot.m_request.m_register_id;
+            s_request.has_value = true;
+            s_request.value = s_slot.m_request.m_value;
+            s_started = fci_arm_endpoint_motor_register_write_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<motor_register_write_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kMotorStoreParameters: {
+            motor_store_parameters_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started =
+                fci_arm_endpoint_motor_store_parameters_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<motor_store_parameters_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kMotorSetZero: {
+            motor_set_zero_request_value_t s_request{};
+            s_request.has_joint_id = true;
+            s_request.joint_id = s_slot.m_request.m_joint_id;
+            s_started = fci_arm_endpoint_motor_set_zero_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<motor_set_zero_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kNone:
+            break;
+    }
+
+    {
+        std::lock_guard<std::mutex> s_lock(m_mutex);
+        auto& s_operation = m_operations[s_index];
+        if (s_started == WL_OK) {
+            s_operation.m_admitted = true;
+            m_stats.m_rpc_started.fetch_add(1, std::memory_order_relaxed);
+            return true;
+        }
+        m_active_operation = s_kNoSlot;
+        // Admission may be retried; elapsed queue time stays in the deadline.
+        s_operation.m_state = FciOperationState::kQueued;
+    }
+    if (s_started != WL_ERR_BUSY && s_started != WL_ERR_WOULD_BLOCK) {
+        wl_rpc_completion_t s_failed{};
+        s_failed.status = WL_RPC_FAILED;
+        s_failed.local_error = s_started;
+        s_finalize(s_index, s_failed, static_cast<const home_response_value_t*>(nullptr));
+    }
+    return false;
+}
+
+bool FciWirelinkEndpoint::s_scheduleRenewal(wl_time_ms_t s_now_ms) noexcept {
+    std::uint64_t s_token{};
+    std::uint32_t s_timeout{};
+    {
+        std::lock_guard<std::mutex> s_lock(m_mutex);
+        if (m_lease.m_state != FciControlLeaseState::kHeld ||
+            m_lease.m_token == 0 ||
+            s_until(s_now_ms, m_lease_renew_at_ms) != 0) {
+            return false;
+        }
+        s_token = m_lease.m_token;
+        s_timeout = m_lease_requested_timeout_ms;
+    }
+    OperationRequest s_request{};
+    s_request.m_requested_lease_timeout_ms = s_timeout;
+    s_request.m_lease_token = s_token;
+    const auto s_result = s_submit(RpcKind::kAcquireLease, s_timeout,
+                                   s_request, true);
+    return s_result.m_status == FciEndpointStatus::kOk;
+}
+
+void FciWirelinkEndpoint::s_stopOnOwner() noexcept {
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    m_running = false;
+    for (auto& s_slot : m_operations) {
+        if (!s_slot.m_used || s_terminal(s_slot.m_state) ||
+            s_slot.m_state != FciOperationState::kQueued) continue;
+        s_slot.m_state = FciOperationState::kCancelled;
+        s_slot.m_status = FciEndpointStatus::kCancelled;
+        if (s_slot.m_internal) s_slot = OperationSlot{};
+    }
+    m_lease = FciControlLeaseSnapshot{};
+    m_lease.m_status = FciEndpointStatus::kCancelled;
+    m_operation_changed.notify_all();
 }
 
 FciSubmitResult FciWirelinkEndpoint::s_submit(
@@ -2236,8 +1840,10 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
         s_request_id = m_next_request_id++;
         if (m_next_request_id == 0) m_next_request_id = 1;
         m_operations[s_index] = OperationSlot{
+            .m_owner = this,
             .m_request_id = s_request_id,
             .m_timeout_ms = s_timeout_ms,
+            .m_submitted_at_ms = s_nowMs(),
             .m_request = s_request,
             .m_kind = s_kind,
             .m_state = FciOperationState::kQueued,
@@ -2302,7 +1908,6 @@ FciOperationResult FciWirelinkEndpoint::s_result(
     const OperationSlot& s_slot) const noexcept {
     return FciOperationResult{
         .m_request_id = s_slot.m_request_id,
-        .m_operation_id = s_slot.m_operation_id,
         .m_state = s_slot.m_state,
         .m_status = s_slot.m_status,
         .m_domain_status = s_slot.m_domain_status,
@@ -2329,7 +1934,7 @@ FciWirelinkEndpointStats FciWirelinkEndpoint::stats() const noexcept {
             m_stats.m_rpc_released.load(std::memory_order_relaxed),
         .m_rpc_cancelled =
             m_stats.m_rpc_cancelled.load(std::memory_order_relaxed),
-        .m_runtime_storage_bytes = m_runtime_storage_bytes,
+        .m_endpoint_storage_bytes = m_endpoint_storage_bytes,
     };
 }
 

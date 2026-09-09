@@ -1,3 +1,4 @@
+#include "../protocol/tests/support/managed_rpc_wire.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
 
 #include "fci_arm_bindings.h"
@@ -135,7 +136,10 @@ public:
     }
 
     int serviceWirelink() noexcept override {
-        m_service_calls.fetch_add(1, std::memory_order_relaxed);
+        const auto s_previous = m_service_calls.fetch_add(1, std::memory_order_relaxed);
+        if (s_previous == 0 && m_first_service != nullptr) {
+            m_first_service(m_first_service_context);
+        }
         return WL_OK;
     }
 
@@ -167,6 +171,8 @@ public:
     std::atomic<std::uint64_t> m_service_calls{};
     std::atomic<bool> m_quiesced{};
     std::uint64_t m_session_id{};
+    void (*m_first_service)(void*) noexcept {};
+    void* m_first_service_context{};
 
     static wl_sink_result_t prefeed(void* s_context, wl_io_token_t,
                                     const std::uint8_t* s_data,
@@ -344,11 +350,11 @@ private:
                 s_self.s_deviceInfo(s_context, s_event, s_now_ms);
                 break;
             case SET_DEVICE_INFO_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_device_info_request_t,
-                                        set_device_info_response_t>(
-                    s_context, s_event, s_now_ms, set_device_info_request_decode,
-                    set_device_info_response_clear,
-                    fci_arm_set_device_info_response_send,
+                s_self.s_statusResponse<test_rpc::set_device_info_request_t,
+                                        test_rpc::set_device_info_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::set_device_info_request_decode,
+                    test_rpc::set_device_info_response_clear,
+                    test_rpc::set_device_info_response_send,
                     DEVICE_INFO_OK);
                 break;
             case GET_DEVICE_SETTINGS_REQUEST_MESSAGE_ID:
@@ -358,96 +364,96 @@ private:
                 s_self.s_setDeviceSettings(s_context, s_event, s_now_ms);
                 break;
             case SET_ARM_CONTROL_MODE_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_arm_control_mode_request_t,
-                                        set_arm_control_mode_response_t>(
+                s_self.s_statusResponse<test_rpc::set_arm_control_mode_request_t,
+                                        test_rpc::set_arm_control_mode_response_t>(
                     s_context, s_event, s_now_ms,
-                    set_arm_control_mode_request_decode,
-                    set_arm_control_mode_response_clear,
-                    fci_arm_set_arm_control_mode_response_send,
+                    test_rpc::set_arm_control_mode_request_decode,
+                    test_rpc::set_arm_control_mode_response_clear,
+                    test_rpc::set_arm_control_mode_response_send,
                     MODE_OK);
                 break;
             case SET_GRIPPER_CONTROL_MODE_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_gripper_control_mode_request_t,
-                                        set_gripper_control_mode_response_t>(
+                s_self.s_statusResponse<test_rpc::set_gripper_control_mode_request_t,
+                                        test_rpc::set_gripper_control_mode_response_t>(
                     s_context, s_event, s_now_ms,
-                    set_gripper_control_mode_request_decode,
-                    set_gripper_control_mode_response_clear,
-                    fci_arm_set_gripper_control_mode_response_send,
+                    test_rpc::set_gripper_control_mode_request_decode,
+                    test_rpc::set_gripper_control_mode_response_clear,
+                    test_rpc::set_gripper_control_mode_response_send,
                     MODE_OK);
                 break;
             case SET_ARM_MODE_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_arm_mode_request_t,
-                                        set_arm_mode_response_t>(
-                    s_context, s_event, s_now_ms, set_arm_mode_request_decode,
-                    set_arm_mode_response_clear,
-                    fci_arm_set_arm_mode_response_send, MODE_OK);
+                s_self.s_statusResponse<test_rpc::set_arm_mode_request_t,
+                                        test_rpc::set_arm_mode_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::set_arm_mode_request_decode,
+                    test_rpc::set_arm_mode_response_clear,
+                    test_rpc::set_arm_mode_response_send, MODE_OK);
                 break;
             case HOME_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<home_request_t, home_response_t>(
-                    s_context, s_event, s_now_ms, home_request_decode,
-                    home_response_clear,
-                    fci_arm_home_response_send, HOME_OK);
+                s_self.s_statusResponse<test_rpc::home_request_t, test_rpc::home_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::home_request_decode,
+                    test_rpc::home_response_clear,
+                    test_rpc::home_response_send, HOME_OK);
                 break;
             case SET_ZERO_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<set_zero_request_t,
-                                        set_zero_response_t>(
-                    s_context, s_event, s_now_ms, set_zero_request_decode,
-                    set_zero_response_clear,
-                    fci_arm_set_zero_response_send,
+                s_self.s_statusResponse<test_rpc::set_zero_request_t,
+                                        test_rpc::set_zero_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::set_zero_request_decode,
+                    test_rpc::set_zero_response_clear,
+                    test_rpc::set_zero_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case CLEAR_ERROR_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<clear_error_request_t,
-                                        clear_error_response_t>(
-                    s_context, s_event, s_now_ms, clear_error_request_decode,
-                    clear_error_response_clear,
-                    fci_arm_clear_error_response_send,
+                s_self.s_statusResponse<test_rpc::clear_error_request_t,
+                                        test_rpc::clear_error_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::clear_error_request_decode,
+                    test_rpc::clear_error_response_clear,
+                    test_rpc::clear_error_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case CLEAR_FAULTS_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<clear_faults_request_t,
-                                        clear_faults_response_t>(
-                    s_context, s_event, s_now_ms, clear_faults_request_decode,
-                    clear_faults_response_clear,
-                    fci_arm_clear_faults_response_send,
+                s_self.s_statusResponse<test_rpc::clear_faults_request_t,
+                                        test_rpc::clear_faults_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::clear_faults_request_decode,
+                    test_rpc::clear_faults_response_clear,
+                    test_rpc::clear_faults_response_send,
                     FAULT_OPERATION_OK);
                 break;
             case EMERGENCY_STOP_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<emergency_stop_request_t,
-                                        emergency_stop_response_t>(
-                    s_context, s_event, s_now_ms, emergency_stop_request_decode,
-                    emergency_stop_response_clear,
-                    fci_arm_emergency_stop_response_send,
+                s_self.s_statusResponse<test_rpc::emergency_stop_request_t,
+                                        test_rpc::emergency_stop_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::emergency_stop_request_decode,
+                    test_rpc::emergency_stop_response_clear,
+                    test_rpc::emergency_stop_response_send,
                     EMERGENCY_STOP_OK);
                 break;
             case MOTOR_REGISTER_READ_REQUEST_MESSAGE_ID:
                 s_self.s_motorRegisterRead(s_context, s_event, s_now_ms);
                 break;
             case MOTOR_REGISTER_WRITE_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<motor_register_write_request_t,
-                                        motor_register_write_response_t>(
+                s_self.s_statusResponse<test_rpc::motor_register_write_request_t,
+                                        test_rpc::motor_register_write_response_t>(
                     s_context, s_event, s_now_ms,
-                    motor_register_write_request_decode,
-                    motor_register_write_response_clear,
-                    fci_arm_motor_register_write_response_send,
+                    test_rpc::motor_register_write_request_decode,
+                    test_rpc::motor_register_write_response_clear,
+                    test_rpc::motor_register_write_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case MOTOR_STORE_PARAMETERS_REQUEST_MESSAGE_ID:
                 s_self.s_statusResponse<
-                    motor_store_parameters_request_t,
-                    motor_store_parameters_response_t>(
+                    test_rpc::motor_store_parameters_request_t,
+                    test_rpc::motor_store_parameters_response_t>(
                     s_context, s_event, s_now_ms,
-                    motor_store_parameters_request_decode,
-                    motor_store_parameters_response_clear,
-                    fci_arm_motor_store_parameters_response_send,
+                    test_rpc::motor_store_parameters_request_decode,
+                    test_rpc::motor_store_parameters_response_clear,
+                    test_rpc::motor_store_parameters_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case MOTOR_SET_ZERO_REQUEST_MESSAGE_ID:
-                s_self.s_statusResponse<motor_set_zero_request_t,
-                                        motor_set_zero_response_t>(
-                    s_context, s_event, s_now_ms, motor_set_zero_request_decode,
-                    motor_set_zero_response_clear,
-                    fci_arm_motor_set_zero_response_send,
+                s_self.s_statusResponse<test_rpc::motor_set_zero_request_t,
+                                        test_rpc::motor_set_zero_response_t>(
+                    s_context, s_event, s_now_ms, test_rpc::motor_set_zero_request_decode,
+                    test_rpc::motor_set_zero_response_clear,
+                    test_rpc::motor_set_zero_response_send,
                     MOTOR_OPERATION_OK);
                 break;
             case JOINT_MIT_COMMAND_MESSAGE_ID:
@@ -523,6 +529,7 @@ private:
         s_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = s_status;
         s_recordSend(s_send(&s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
@@ -548,8 +555,8 @@ private:
 
     void s_acquire(wl_ctx_t& s_context,
                    const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        acquire_control_lease_request_t s_request{};
-        if (acquire_control_lease_request_decode(
+        test_rpc::acquire_control_lease_request_t s_request{};
+        if (test_rpc::acquire_control_lease_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
                 WL_CODEC_OK ||
             !s_request.has_operation_id ||
@@ -560,25 +567,26 @@ private:
             std::lock_guard<std::mutex> s_lock(m_mutex);
             ++m_acquire_requests;
         }
-        acquire_control_lease_response_t s_response{};
-        acquire_control_lease_response_clear(&s_response);
+        test_rpc::acquire_control_lease_response_t s_response{};
+        test_rpc::acquire_control_lease_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = CONTROL_LEASE_OK;
         s_response.has_lease_token = true;
         s_response.lease_token = m_lease_token;
         s_response.has_granted_timeout_ms = true;
         s_response.granted_timeout_ms = s_request.requested_timeout_ms;
-        s_recordSend(fci_arm_acquire_control_lease_response_send(
+        s_recordSend(test_rpc::acquire_control_lease_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_release(wl_ctx_t& s_context,
                    const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        release_control_lease_request_t s_request{};
-        if (release_control_lease_request_decode(
+        test_rpc::release_control_lease_request_t s_request{};
+        if (test_rpc::release_control_lease_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
                 WL_CODEC_OK ||
             !s_request.has_operation_id || !s_request.has_lease_token) {
@@ -588,23 +596,24 @@ private:
             std::lock_guard<std::mutex> s_lock(m_mutex);
             ++m_release_requests;
         }
-        release_control_lease_response_t s_response{};
-        release_control_lease_response_clear(&s_response);
+        test_rpc::release_control_lease_response_t s_response{};
+        test_rpc::release_control_lease_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = s_request.lease_token == m_lease_token
                                 ? CONTROL_LEASE_OK
                                 : CONTROL_LEASE_INVALID_TOKEN;
-        s_recordSend(fci_arm_release_control_lease_response_send(
+        s_recordSend(test_rpc::release_control_lease_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_deviceInfo(wl_ctx_t& s_context,
                       const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        get_device_info_request_t s_request{};
-        if (get_device_info_request_decode(s_event.payload,
+        test_rpc::get_device_info_request_t s_request{};
+        if (test_rpc::get_device_info_request_decode(s_event.payload,
                                            s_event.payload_len,
                                            &s_request) != WL_CODEC_OK ||
             !s_request.has_operation_id) {
@@ -620,10 +629,11 @@ private:
         constexpr char s_board[] = "ESP32-S3";
         constexpr char s_custom[] = "arm-\xE4\xB8\x80";
         constexpr char s_serial[] = "323738373233511200260036";
-        get_device_info_response_t s_response{};
-        get_device_info_response_clear(&s_response);
+        test_rpc::get_device_info_response_t s_response{};
+        test_rpc::get_device_info_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = DEVICE_INFO_OK;
         s_response.has_info = true;
@@ -653,14 +663,14 @@ private:
         s_info.has_command_capabilities = true;
         s_info.command_capabilities =
             m_command_capabilities.load(std::memory_order_acquire);
-        s_recordSend(fci_arm_get_device_info_response_send(
+        s_recordSend(test_rpc::get_device_info_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
     }
 
     void s_deviceSettings(wl_ctx_t& s_context,
                           const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        get_device_settings_request_t s_request{};
-        if (get_device_settings_request_decode(
+        test_rpc::get_device_settings_request_t s_request{};
+        if (test_rpc::get_device_settings_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
                 WL_CODEC_OK ||
             !s_request.has_operation_id) {
@@ -670,10 +680,11 @@ private:
             std::lock_guard<std::mutex> s_lock(m_mutex);
             ++m_other_rpc_requests;
         }
-        get_device_settings_response_t s_response{};
-        get_device_settings_response_clear(&s_response);
+        test_rpc::get_device_settings_response_t s_response{};
+        test_rpc::get_device_settings_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = DEVICE_SETTINGS_OK;
         s_response.has_settings = true;
@@ -698,15 +709,15 @@ private:
             s_settings.joint_limit_min[s_index] = -2.0F;
             s_settings.joint_limit_max[s_index] = 2.0F;
         }
-        s_recordSend(fci_arm_get_device_settings_response_send(
+        s_recordSend(test_rpc::get_device_settings_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_setDeviceSettings(wl_ctx_t& s_context,
                              const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        set_device_settings_request_t s_request{};
-        if (set_device_settings_request_decode(
+        test_rpc::set_device_settings_request_t s_request{};
+        if (test_rpc::set_device_settings_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
                 WL_CODEC_OK ||
             !s_request.has_operation_id || !s_request.has_settings) {
@@ -717,10 +728,11 @@ private:
             ++m_other_rpc_requests;
         }
         const int s_mode = m_set_settings_mode.load(std::memory_order_relaxed);
-        set_device_settings_response_t s_response{};
-        set_device_settings_response_clear(&s_response);
+        test_rpc::set_device_settings_response_t s_response{};
+        test_rpc::set_device_settings_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = s_mode == 2 ? DEVICE_SETTINGS_INVALID_ARGUMENT
                                         : DEVICE_SETTINGS_OK;
@@ -730,15 +742,15 @@ private:
             // Exercise host consumption of a device-normalized value.
             s_response.settings.firmware_dt_us = 1250;
         }
-        s_recordSend(fci_arm_set_device_settings_response_send(
+        s_recordSend(test_rpc::set_device_settings_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
 
     void s_motorRegisterRead(wl_ctx_t& s_context,
                              const wl_event_t& s_event, wl_time_ms_t s_now_ms) noexcept {
-        motor_register_read_request_t s_request{};
-        if (motor_register_read_request_decode(
+        test_rpc::motor_register_read_request_t s_request{};
+        if (test_rpc::motor_register_read_request_decode(
                 s_event.payload, s_event.payload_len, &s_request) !=
                 WL_CODEC_OK ||
             !s_request.has_operation_id || !s_request.has_joint_id ||
@@ -749,10 +761,11 @@ private:
             std::lock_guard<std::mutex> s_lock(m_mutex);
             ++m_other_rpc_requests;
         }
-        motor_register_read_response_t s_response{};
-        motor_register_read_response_clear(&s_response);
+        test_rpc::motor_register_read_response_t s_response{};
+        test_rpc::motor_register_read_response_clear(&s_response);
         s_response.has_operation_id = true;
         s_response.operation_id = s_request.operation_id;
+        s_response.session = s_request.session;
         s_response.has_status = true;
         s_response.status = MOTOR_OPERATION_OK;
         s_response.has_joint_id = true;
@@ -761,7 +774,7 @@ private:
         s_response.register_id = s_request.register_id;
         s_response.has_value = true;
         s_response.value = 12.5F;
-        s_recordSend(fci_arm_motor_register_read_response_send(
+        s_recordSend(test_rpc::motor_register_read_response_send(
             &s_context, &s_response, WL_DELIVERY_RELIABLE, s_now_ms));
         m_cv.notify_all();
     }
@@ -1173,6 +1186,12 @@ void testTypedEndpointLifecycle() {
     s_device.m_drop_device_info.store(true, std::memory_order_release);
     const auto s_timed = s_host.getDeviceInfo(45);
     const auto s_poll_before = s_host.stats().m_runtime_poll_calls;
+    const auto s_queued_timeout = s_host.clearFaults(5);
+    require(s_host.waitOperation(s_queued_timeout.m_request_id, 1s, s_operation) ==
+                FciEndpointStatus::kTimeout &&
+                s_host.takeOperation(s_queued_timeout.m_request_id, s_operation) ==
+                FciEndpointStatus::kTimeout,
+            "serialized queue extended the RPC deadline or leaked an unadmitted call");
     require(s_host.waitOperation(s_timed.m_request_id, 1s, s_operation) ==
                 FciEndpointStatus::kTimeout &&
                 s_operation.m_state == FciOperationState::kTimedOut,
@@ -1229,20 +1248,18 @@ void testTypedEndpointLifecycle() {
                 s_stats.m_rpc_cancelled == 1,
             "RPC runtime slots were not released exactly once");
     if (s_stats.m_dispatch_errors != 0 ||
-        s_stats.m_runtime_storage_bytes > 4096 ||
-        s_stats.m_runtime_storage_bytes < 4000) {
+        s_stats.m_endpoint_storage_bytes != sizeof(fci_arm_endpoint_t)) {
         std::fprintf(stderr,
-                     "dispatch_errors=%llu runtime_storage=%zu "
+                     "dispatch_errors=%llu endpoint_storage=%zu "
                      "rpc_started=%llu rpc_released=%llu\n",
                      static_cast<unsigned long long>(
                          s_stats.m_dispatch_errors),
-                     s_stats.m_runtime_storage_bytes,
+                     s_stats.m_endpoint_storage_bytes,
                      static_cast<unsigned long long>(s_stats.m_rpc_started),
                      static_cast<unsigned long long>(s_stats.m_rpc_released));
     }
     require(s_stats.m_dispatch_errors == 0 &&
-                s_stats.m_runtime_storage_bytes <= 4096 &&
-                s_stats.m_runtime_storage_bytes >= 4000,
+                s_stats.m_endpoint_storage_bytes == sizeof(fci_arm_endpoint_t),
             "generated runtime dispatch or bounded storage sizing failed");
     require(s_host_to_device.m_failures.load() == 0 &&
                 s_device_to_host.m_failures.load() == 0 &&
@@ -1316,6 +1333,35 @@ void testSessionSource() {
             "default endpoints must receive distinct nonzero identities");
     s_platform_a.stop();
     s_platform_b.stop();
+}
+
+void testSubmissionAfterPassClockIsNotExpired() {
+    DirectTransportProbe s_transport;
+    FciWirelinkEndpoint s_endpoint;
+    struct Submission {
+        FciWirelinkEndpoint* m_endpoint;
+        florid::detail::FciSubmitResult m_result{};
+    } s_submission{&s_endpoint};
+    s_transport.m_first_service_context = &s_submission;
+    s_transport.m_first_service = [](void* s_context) noexcept {
+        // Adapter service runs after the pass clock was sampled. Cross the next
+        // clock tick before submitting: this fixes the ordering, not a latency
+        // threshold, and models a producer arriving during the owner pass.
+        const auto s_next_tick = std::chrono::time_point_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now()) + 2ms;
+        std::this_thread::sleep_until(s_next_tick);
+        auto& s_call = *static_cast<Submission*>(s_context);
+        s_call.m_result = s_call.m_endpoint->getDeviceInfo(10000U);
+    };
+    require(s_endpoint.initialize() == FciEndpointStatus::kOk &&
+                s_endpoint.attachDirectTransport(s_transport) == FciEndpointStatus::kOk &&
+                s_endpoint.start() == FciEndpointStatus::kOk,
+            "late-submission endpoint setup failed");
+    (void)s_transport.firstHintServiceCalls();
+    require(s_submission.m_result.m_status == FciEndpointStatus::kOk &&
+                s_endpoint.stats().m_rpc_started == 1U,
+            "submission after the pass clock was incorrectly expired before admission");
+    s_endpoint.stop();
 }
 
 void testConsumedTelemetryDoesNotRequestAnotherPass() {
@@ -1409,6 +1455,7 @@ int main() {
     try {
         testTypedEndpointLifecycle();
         testSessionSource();
+        testSubmissionAfterPassClockIsNotExpired();
         testConsumedTelemetryDoesNotRequestAnotherPass();
         testDirectTransportLifecycle();
         std::puts("PASS: typed FCI endpoint owns runtime, RPC, LATEST, and shutdown");

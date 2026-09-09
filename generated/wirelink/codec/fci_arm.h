@@ -182,60 +182,40 @@ struct arm_diagnostics {
 };
 
 struct set_zero_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 };
 
 struct set_zero_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct clear_error_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 };
 
 struct clear_error_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct home_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct home_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  home_status_t status;
+  uint8_t _empty;
 };
 
 struct clear_faults_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct clear_faults_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  fault_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct acquire_control_lease_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_requested_timeout_ms;
   uint32_t requested_timeout_ms;
   bool has_current_token;
@@ -243,10 +223,6 @@ struct acquire_control_lease_request {
 };
 
 struct acquire_control_lease_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  control_lease_status_t status;
   bool has_lease_token;
   uint64_t lease_token;
   bool has_granted_timeout_ms;
@@ -254,92 +230,60 @@ struct acquire_control_lease_response {
 };
 
 struct release_control_lease_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_lease_token;
   uint64_t lease_token;
 };
 
 struct release_control_lease_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  control_lease_status_t status;
+  uint8_t _empty;
 };
 
 struct get_motor_feedback_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct get_motor_feedback_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
   bool has_feedback;
   motor_feedback_t feedback;
 };
 
 struct get_device_info_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct get_device_info_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_info_status_t status;
   bool has_info;
   device_info_t info;
 };
 
 struct set_device_info_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_custom_name;
   wl_codec_string_t custom_name;
 };
 
 struct set_device_info_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_info_status_t status;
+  uint8_t _empty;
 };
 
 struct set_arm_control_mode_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   motor_control_mode_t mode;
 };
 
 struct set_arm_control_mode_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 };
 
 struct set_gripper_control_mode_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   motor_control_mode_t mode;
 };
 
 struct set_gripper_control_mode_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 };
 
 struct motor_register_read_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -347,10 +291,6 @@ struct motor_register_read_request {
 };
 
 struct motor_register_read_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -360,8 +300,6 @@ struct motor_register_read_response {
 };
 
 struct motor_register_write_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
   bool has_register_id;
@@ -371,80 +309,51 @@ struct motor_register_write_request {
 };
 
 struct motor_register_write_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct motor_store_parameters_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 };
 
 struct motor_store_parameters_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct motor_set_zero_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_joint_id;
   uint8_t joint_id;
 };
 
 struct motor_set_zero_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  motor_operation_status_t status;
+  uint8_t _empty;
 };
 
 struct set_arm_mode_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_mode;
   arm_mode_t mode;
 };
 
 struct set_arm_mode_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  mode_status_t status;
+  uint8_t _empty;
 };
 
 struct get_device_settings_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct get_device_settings_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_settings_status_t status;
   bool has_settings;
   device_settings_t settings;
 };
 
 struct set_device_settings_request {
-  bool has_operation_id;
-  uint32_t operation_id;
   bool has_settings;
   device_settings_t settings;
 };
 
 struct set_device_settings_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  device_settings_status_t status;
   bool has_settings;
   device_settings_t settings;
 };
@@ -473,15 +382,11 @@ struct joint_mit_command {
 };
 
 struct emergency_stop_request {
-  bool has_operation_id;
-  uint32_t operation_id;
+  uint8_t _empty;
 };
 
 struct emergency_stop_response {
-  bool has_operation_id;
-  uint32_t operation_id;
-  bool has_status;
-  emergency_stop_status_t status;
+  uint8_t _empty;
 };
 
 struct gripper_mit_command {

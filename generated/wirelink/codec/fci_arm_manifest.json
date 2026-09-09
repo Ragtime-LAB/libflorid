@@ -3,12 +3,12 @@
   "compiler": {
     "name": "wlc",
     "version": "0.5.0",
-    "codegen_abi": 30
+    "codegen_abi": 31
   },
   "module": "fci_arm",
   "identity": {
     "algorithm": "fnv1a64-v1",
-    "schema": "0x7b0f695d2a4abfb3",
+    "schema": "0xc71fa187aa9f7433",
     "binding_profile": null
   },
   "bounded_fields": [
@@ -19,10 +19,10 @@
   ],
   "artifact_digest_algorithm": "fnv1a64-domain-bytes-v1",
   "artifacts": [
-    {"path": "fci_arm.c", "size": 394711, "digest": "0x9b7bc1b9a88b7bcc"},
-    {"path": "fci_arm.h", "size": 60786, "digest": "0xdced799f0eaf15f2"},
+    {"path": "fci_arm.c", "size": 364031, "digest": "0x9ddd64fafbfeadd4"},
+    {"path": "fci_arm.h", "size": 58259, "digest": "0x13fb63a6e3ce5af0"},
     {"path": "fci_arm_bindings.c", "size": 125001, "digest": "0x44f97b6ffbad5d1d"},
     {"path": "fci_arm_bindings.h", "size": 34172, "digest": "0x0aecc50020ac5448"},
-    {"path": "fci_arm_values.h", "size": 57658, "digest": "0xb1adecc740ddcdb0"}
+    {"path": "fci_arm_values.h", "size": 55113, "digest": "0x35f20d9325fa6782"}
   ]
 }
