@@ -3,6 +3,9 @@
 本轮接续 [计划 1–3](fci-integration-cleanup.md)，完成剩余的 4–5。
 MPC、性能 benchmark、实板测试和发布不在本轮范围内。
 
+发布收尾：本轮实现已合入 main，依赖固定到 Wirelink/WLC **v0.6.0 / ABI 31**。
+以下验证记录来自配套代码；实板仍需主机和固件一起更新。
+
 ## 从哪里读起
 
 1. `protocol/schema/wirelink/arm/services.bind.wl`：19 个 RPC 的请求/响应配对。
@@ -39,8 +42,8 @@ Arm revision 8 改用 managed metadata v2，移除业务消息中的 operation_i
 upgrade 和 dual 的线格式不变。详见
 [共享协议说明](../protocol/docs/arm-managed-endpoints.md)。
 
-生成代码要求开发版 WLC ABI 31；已发布 v0.5.0 是 ABI 30。从配套 WLC 开发分支
-执行 `cargo build --release`，然后配置 `-DLF_ENABLE_WLC=ON` 和
+生成代码要求 WLC v0.6.0 / ABI 31；v0.5.0 是 ABI 30。下载 v0.6.0 编译器，
+或从其 tag 执行 `cargo build --release --locked`，然后配置 `-DLF_ENABLE_WLC=ON` 和
 `-DWLC_EXECUTABLE=/absolute/path/to/wlc`。`lf_update_wirelink` 更新快照，
 `lf_check_wirelink` 校验快照；`LF_ENABLE_WLC=OFF` 不调用编译器。
 八个 RPC 槽、4096 字节 COBS FIFO 由共享 CMake 函数统一传播，不能在业务文件单独覆盖。
@@ -59,5 +62,5 @@ upgrade 和 dual 的线格式不变。详见
   测试 17/17；生成 runtime 的 QEMU 集成 5/5。后者使用仅含 Wirelink/CMSIS
   的 `ZEPHYR_MODULES`，排除当前 Ragtime workspace 全局模块引入的 CXX 配置错误。
 
-没有测 CPU 或延迟，也没有在 H7 烧录。本轮仅本地 dev 提交；依赖尚未推送。
-发布开发分支时须先推送 Wirelink/WLC/FCI，再推送引用这些提交的消费者。
+没有测 CPU 或延迟，也没有在 H7 烧录。发布收尾按 Wirelink/WLC/FCI、消费者的
+依赖顺序推送 main；没有额外创建 libflorid/pyflorid 产品 tag。
