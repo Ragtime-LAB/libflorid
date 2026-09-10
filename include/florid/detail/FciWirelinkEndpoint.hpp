@@ -7,6 +7,7 @@
 #include "florid/detail/WirelinkExecutor.hpp"
 #include "florid/detail/Transport.hpp"
 #include "florid/detail/FciUpgradeClient.hpp"
+#include "florid/detail/FirmwareUpdateSession.hpp"
 
 #include "fci_device_endpoint.h"
 #include "wirelink/platform.h"
@@ -162,6 +163,7 @@ public:
                                 std::size_t& s_accepted) noexcept;
     void notify() noexcept { m_executor.notify(); }
     FciUpgradeClient& upgrade() noexcept { return m_upgrade; }
+    FirmwareUpdateSession& firmwareSession() noexcept { return m_firmware_session; }
 
     FciSubmitResult acquireControlLease(std::uint32_t s_requested_timeout_ms,
                                         std::uint32_t s_rpc_timeout_ms) noexcept;
@@ -389,6 +391,7 @@ private:
     Transport* m_direct_transport{};
     fci_device_endpoint_t m_endpoint{};
     FciUpgradeClient m_upgrade;
+    FirmwareUpdateSession m_firmware_session{*this};
     fci_device_runtime_t* s_runtime() noexcept { return fci_device_endpoint_runtime(&m_endpoint); }
 
     mutable std::mutex m_mutex;

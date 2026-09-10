@@ -1229,8 +1229,8 @@ int FciWirelinkEndpoint::s_transportService(void* s_user_data) noexcept {
     if (!s_self.m_direct_transport) return WL_OK;
     const int s_result = s_self.m_direct_transport->serviceWirelink();
     const auto s_state = s_self.m_direct_transport->connectionState();
-    if (s_state == TransportConnectionState::kDisconnected || s_state == TransportConnectionState::kClosed)
-        s_self.m_upgrade.disconnected();
+    if (s_state != TransportConnectionState::kUnknown)
+        s_self.m_upgrade.transportState(s_state == TransportConnectionState::kConnected);
     return s_result;
 }
 

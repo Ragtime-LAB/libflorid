@@ -28,6 +28,7 @@ add_library(florid
     Arm.cpp
     Gripper.cpp
     FirmwareUpdater.cpp
+    FirmwareUpdateSession.cpp
     LatencyEstimator.cpp
 )
 

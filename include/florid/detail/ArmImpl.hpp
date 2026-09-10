@@ -67,6 +67,7 @@ public:
     [[nodiscard]] bool waitUntilReady(std::chrono::milliseconds s_timeout);
     ArmControl& controlHandle() { return m_arm_control; }
     detail::FciUpgradeClient& upgradeClient() { return m_endpoint.upgrade(); }
+    detail::FciWirelinkEndpoint& firmwareEndpoint() { return m_endpoint; }
     bool firmwareUploadAllowed() const noexcept { return !m_running.load(std::memory_order_acquire); }
 
     template <typename Callback>
