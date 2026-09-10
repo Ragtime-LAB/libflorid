@@ -1,7 +1,7 @@
 # 共享产品路由与 RAM 上传验证
 
 2026-09-10。FCI `device` 组合 arm revision 8 和 upgrade v1，不改变已有消息 ID、
-arm managed RPC 线格式或 upgrade mapped RPC 字段。编译器为 WLC
+arm managed RPC 线格式或 upgrade mapped RPC 字段。下述路由实机验证使用的编译器为 WLC
 `18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29`（0.7.0-dev / ABI 32），
 Wirelink 为 `e180aa846893735f90d516271a5dedb599cb9264`（包含实机发现的 USB RX
 短尾部修复，ABI 32 不变）。
@@ -83,3 +83,17 @@ USB 断线、peer session 改变和关闭会终止本地任务并释放 mapped R
 
 下一步是严格性能复测，以及单独接入/验证 `UpgradeManager`/Flash sink 和 MCUboot
 生命周期。现有公开 Arm API 保持不变；新增 C++ 升级 API 尚未绑定到 Python。
+
+## 后续 WLC Flash 优化（2026-09-10）
+
+预生成快照已用 WLC `85b1bdc`（0.7.0-dev / ABI 32）刷新：按 endpoint 角色裁剪
+接收分支，并共享 managed RPC 校验、准入/重放和响应完成逻辑。业务 codec、公开
+头文件、schema/profile identity 和线格式均不变；不需要改变 SDK 业务调用。
+
+使用该编译器时，Willow 在相同 `-O2 + LTO` 配置下由 402,340 B 减至 383,124 B，
+未改 Ruckig 或启用 `-Os`。libflorid Release 的 `LF_ENABLE_WLC=ON` 与默认 OFF
+快照模式各 7/7；`lf_check_wirelink` 确认快照与现场生成一致。
+
+本次只做构建及软件测试，没有重新烧录或复测硬件性能；上述 HIL 记录仍对应原版本。
+完整优化原理及回归门槛见配套 WLC 仓库 `docs/rpc-flash.md`，固件测量记录见
+Ragtime 仓库 `firmware/docs/willow-flash.md`。

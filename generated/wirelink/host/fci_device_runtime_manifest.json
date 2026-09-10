@@ -22,7 +22,7 @@
   "artifacts": [
     {"path": "fci_device_advanced.h", "size": 139727, "digest": "0x7d524225c44a739f"},
     {"path": "fci_device_endpoint.h", "size": 409, "digest": "0x2fad15809201d4c3"},
-    {"path": "fci_device_runtime.c", "size": 514887, "digest": "0x91d08b7fab9578f1"},
+    {"path": "fci_device_runtime.c", "size": 365072, "digest": "0xbcfe80268a18eb2a"},
     {"path": "fci_device_runtime.h", "size": 307801, "digest": "0x5aaa689a7497eae5"}
   ]
 }
