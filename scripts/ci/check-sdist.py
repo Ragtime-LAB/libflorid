@@ -61,7 +61,7 @@ def main():
     subprocess.run([str(python), "-m", "pip", "install", str(wheels[0])], check=True)
     subprocess.run(
         [str(python), "-I", "-c",
-         "import pyflorid; assert hasattr(pyflorid, 'Arm'); print(pyflorid.__file__)"],
+         "import pyflorid; assert hasattr(pyflorid, 'UnderwaterTeleop'); print(pyflorid.__file__)"],
         cwd=work, check=True,
     )
     print("sdist -> wheel -> isolated import: PASS")

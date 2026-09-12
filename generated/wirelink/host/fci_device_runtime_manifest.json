@@ -2,27 +2,31 @@
   "format": "wirelink-codegen-manifest-v1",
   "compiler": {
     "name": "wlc",
-    "version": "0.7.0-dev",
+    "version": "0.7.0-rc.1",
     "codegen_abi": 32
   },
   "module": "fci_device",
   "identity": {
     "algorithm": "fnv1a64-v1",
-    "schema": "0xc4d48a693e596565",
-    "binding_profile": "0x86107756b707fc65"
+    "schema": "0x0df8dbd11bdbcb26",
+    "binding_profile": "0x9fbeff639088520e"
   },
   "bounded_fields": [
     {"message": "DeviceInfo", "message_id": 20738, "field": "board_name", "field_number": 3, "kind": "string", "max_length": 31},
     {"message": "DeviceInfo", "message_id": 20738, "field": "custom_name", "field_number": 4, "kind": "string", "max_length": 31},
     {"message": "DeviceInfo", "message_id": 20738, "field": "serial", "field_number": 6, "kind": "string", "max_length": 31},
     {"message": "SetDeviceInfoRequest", "message_id": 25111, "field": "custom_name", "field_number": 2, "kind": "string", "max_length": 31},
-    {"message": "BulkChunk", "message_id": 28705, "field": "data", "field_number": 3, "kind": "bytes", "max_length": 2031}
+    {"message": "BulkChunk", "message_id": 28705, "field": "data", "field_number": 3, "kind": "bytes", "max_length": 2031},
+    {"message": "UnderwaterStatus", "message_id": 29968, "field": "reason", "field_number": 12, "kind": "string", "max_length": 95},
+    {"message": "GetUnderwaterSettingsResponse", "message_id": 29989, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95},
+    {"message": "SetUnderwaterSettingsResponse", "message_id": 29991, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95},
+    {"message": "GetUnderwaterDefaultSettingsResponse", "message_id": 29993, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95}
   ],
   "artifact_digest_algorithm": "fnv1a64-domain-bytes-v1",
   "artifacts": [
-    {"path": "fci_device_advanced.h", "size": 139727, "digest": "0x7d524225c44a739f"},
+    {"path": "fci_device_advanced.h", "size": 184599, "digest": "0x1cc0bf878cebb0ae"},
     {"path": "fci_device_endpoint.h", "size": 409, "digest": "0x2fad15809201d4c3"},
-    {"path": "fci_device_runtime.c", "size": 365072, "digest": "0xbcfe80268a18eb2a"},
-    {"path": "fci_device_runtime.h", "size": 307801, "digest": "0x5aaa689a7497eae5"}
+    {"path": "fci_device_runtime.c", "size": 457124, "digest": "0x788a39d57c69aa2c"},
+    {"path": "fci_device_runtime.h", "size": 392190, "digest": "0x0a3f612f8b35aa96"}
   ]
 }

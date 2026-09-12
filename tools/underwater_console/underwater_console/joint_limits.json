@@ -1,0 +1,76 @@
+{
+  "units": "rad",
+  "coordinates": "motor",
+  "axes": [
+    {
+      "arm": "master",
+      "joint": "joint1",
+      "lower": -6.28,
+      "upper": 6.28,
+      "source": "master.urdf"
+    },
+    {
+      "arm": "master",
+      "joint": "joint2",
+      "lower": -2.2,
+      "upper": 2.2,
+      "source": "master.urdf"
+    },
+    {
+      "arm": "master",
+      "joint": "joint3",
+      "lower": -2.2,
+      "upper": 2.2,
+      "source": "master.urdf"
+    },
+    {
+      "arm": "master",
+      "joint": "joint4",
+      "lower": -6.28,
+      "upper": 6.28,
+      "source": "master.urdf"
+    },
+    {
+      "arm": "master",
+      "joint": "gripper",
+      "lower": -3.14,
+      "upper": 3.14,
+      "source": "User-specified motor range; gripper is not in the URDF"
+    },
+    {
+      "arm": "slave",
+      "joint": "joint1",
+      "lower": -6.28,
+      "upper": 6.28,
+      "source": "slave.urdf"
+    },
+    {
+      "arm": "slave",
+      "joint": "joint2",
+      "lower": -2.2,
+      "upper": 2.2,
+      "source": "slave.urdf"
+    },
+    {
+      "arm": "slave",
+      "joint": "joint3",
+      "lower": -2.2,
+      "upper": 2.2,
+      "source": "slave.urdf"
+    },
+    {
+      "arm": "slave",
+      "joint": "joint4",
+      "lower": -6.28,
+      "upper": 6.28,
+      "source": "slave.urdf"
+    },
+    {
+      "arm": "slave",
+      "joint": "gripper",
+      "lower": -3.14,
+      "upper": 3.14,
+      "source": "User-specified motor range; gripper is not in the URDF"
+    }
+  ]
+}

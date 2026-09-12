@@ -1,114 +1,37 @@
-# libflorid — Agent Guide
+# libflorid-underwater agent guide
 
-C++20 variable-frequency arm control SDK. USB transport, 6-DOF, real-time control loop.
+This repository is the host SDK for the Ragtime Underwater dual-arm firmware.
+Keep changes scoped to the Underwater USB Bulk product API. Do not restore the
+generic Arm, UDP, model-generation, or MPC layers removed from this branch.
 
-## Build & test
+## Build and test
 
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON -DBUILD_PYFLORID=ON
 cmake --build build
-cd build && ctest --output-on-failure   # single test, no hardware
+ctest --test-dir build --output-on-failure
+python3 -m unittest discover -s tools/underwater_console/tests -v
+python3 tools/underwater_console/run.py --smoke
 ```
 
-| Flag | Default | Notes |
-|---|---|---|
-| `BUILD_TESTS` | OFF | Single test via CTest, no hardware needed |
-| `BUILD_EXAMPLES` | ON | 9 executables (10 with `BUILD_MPC`) |
-| `BUILD_PYFLORID` | OFF | Needs pybind11 + NumPy |
-| `BUILD_MPC` | OFF | Enables the checked-in acados C runtime; no extra submodules |
-| `LF_ENABLE_WLC` | OFF | Compile checked-in FCI bindings; ON generates with matching host WLC |
+`LF_ENABLE_WLC=OFF` is the normal build. It verifies and compiles
+`generated/wirelink/` without resolving or executing WLC. For schema work,
+apply `protocol-patches/underwater-management.patch`, configure with the paired
+ABI 32 compiler, and use `lf_update_wirelink` / `lf_check_wirelink` as described
+in `protocol-patches/README.md`.
 
-`pip install .` builds the `pyflorid` wheel (scikit-build-core sets
-`-DBUILD_PYFLORID=ON` automatically via `pyproject.toml` at the repo root).
-Python CI/CD lives in `.github/workflows/` (`wheels.yml`, `publish-pypi.yml`),
-built with cibuildwheel; MPC stays OFF for bindings. The source distribution
-includes the vendored runtime.
+## API and behavior
 
-## Submodules
+- Public C++ API: `UnderwaterTeleop`, `UnderwaterTypes`, device discovery, and firmware-update DTOs.
+- Python API mirrors the C++ Underwater API through `pyflorid`.
+- Control telemetry and commands contain ten motors in master four joints,
+  master gripper, slave four joints, slave gripper order.
+- Control commands support only MIT and MitWithGravity.
+- Closing an SDK object does not request Damp. Call `disable()` explicitly.
+- Device settings are persisted by firmware; the desktop console performs the
+  user confirmation and Damp transition before writing them.
+- Zeroing is admitted by firmware only from Damp.
 
-`git clone --recurse-submodules`:
-| Path | Upstream |
-|---|---|
-| `protocol/` | FCI `.wl` schemas, WLC profiles, and generated Wirelink component targets |
-| `3rdparty/astrial/` | Cross-platform serial library (ASIO, io_uring on Linux) |
-
-## Key targets
-
-| Target | Path | Links |
-|---|---|---|
-| `florid` (lib) | `src/*.cpp` | `fci_protocol` + `astrial` |
-| `fci_protocol::arm` | `generated/wirelink/` by default | ABI-26 host endpoint linked with Wirelink |
-| `astrial` | `3rdparty/astrial/` | Static lib, vendored ASIO |
-| `florid_example_*` | `examples/` | `florid` |
-| `test_transport_pipeline` | `tests/` | `MockTransport`, no hardware |
-| `_pyflorid` (.so) | `pyflorid/` | pybind11 module, links `florid` |
-
-## API essentials
-
-**URI** formats passed to `Arm::create()`:
-- `usb:///dev/ttyACM0` — `usb://` prefix mandatory
-- `udp://<ip>:<port>` — binds a fixed local UDP endpoint (e.g. `udp://192.168.1.200:5080`), learns the device source endpoint from the first received datagram, and carries the same Wirelink COBS stream over UDP (best-effort)
-
-**Control loops** (two APIs):
-1. **Callback**: `arm.control([](const ArmState&, ArmControl&) -> ControlCmd { ... })` — blocking, internal thread. Return type is one of `JointMIT`, `JointPosVel`, `JointVel`, `JointPVT`, `CartesianPose`, `CartesianVelocities`.
-2. **Active control**: `auto ac = arm.startJointMITControl()` → `ac->readOnce()` / `ac->writeOnce(cmd)` — caller owns the loop. `Gripper` has a similar pattern (only `JointMIT` active control, but all 4 joint-mode callbacks).
-
-**`MotionFinished`**: Static method — `JointMIT::MotionFinished(cmd)` returns a copy with `m_motion_finished=true`.
-
-**`JointMIT`** has `m_firmware_gravity` flag.
-
-**`ArmState`** fields are `float[6]` (`m_q`, `m_dq`, `m_tau`, ...). Also has `m_gripper_q`, `m_gripper_dq`, `m_gripper_tau` (single floats).
-
-**`Errors`**: `uint32_t` bitset with named accessors; bits 0–10 defined (position limits, velocity, collision, reflexes, E-stop, watchdog, etc.).
-
-**Motor register helpers** in `florid::motor` (`MotorRegisters.hpp`). Joint IDs: 1–6 arm, 7 gripper.
-
-**Model/Kinematics**: `Model<Traits>` — `forwardKinematics`, `zeroJacobian`, `bodyJacobian`, `pose`, `mass`, `coriolis`, `gravity`. Two CasADi-generated traits: `WillowTraits` and `PantheraTraits` (both include safety params like `collision_lower`, `cartesian_impedance`, `watchdog_timeout_ms`).
-
-**MPC**: `CartesianMPCSolver<WillowMPCTraits>`, position-only acados OCP. Enable via `-DBUILD_MPC=ON`. C solver sources in `generated/c_generated_code/`. Column-major target translation is `[12..14]`; orientation and Cartesian gains are unused. Five 20 ms intervals, each with five 4 ms ERK substeps. `startCartesianPoseControl(MPCControlConfig)` owns an internal 50 Hz solver and 500 Hz C1 Hermite output session; users only publish targets. The MPC handle adds `status()`/`stop()` and reads non-consuming latest feedback. MPC exchanges use existing Wirelink `wl_latest` SPSC triple buffers with one channel per worker/consumer; caller locks never serialize worker data access. Lifecycle locks and transport locks remain. Arm control handles expire on mode/session changes via generation checks. See `docs/mpc.md` for limits, deadlines, stop semantics and example usage. `test_cartesian_mpc` exercises the actual solver without hardware when MPC/tests are enabled.
-
-## Conventions
-
-- Template params/return locals: `s_` prefix (`s_arm`, `s_cb`). Class members: `m_` prefix.
-- C++20, `float[6]` for joint arrays, `std::uint32_t` errors bitset.
-- Public headers: `include/florid/*.hpp`. Private detail: `include/florid/detail/`.
-
-## Codegen
-
-| Script | Output | Prerequisites |
-|---|---|---|
-| `scripts/urdf2traits.py` | `include/florid/traits/*Traits.hpp` | CasADi + Pinocchio |
-| `scripts/urdf2mpc.py` | `generated/` C code + `WillowMPCTraits.hpp` | CasADi + Pinocchio + acados_template |
-
-Both run offline; generated files are committed.
-
-MPC C/C++ adapter templates live in `scripts/templates/`. Run
-`python3 scripts/urdf2mpc.py --wrappers-only` after changing them (NumPy only).
-Changing model/cost expressions requires full URDF generation, including the
-gravity reference function. Host CI compares regenerated adapters and runs MPC
-under ASan/UBSan with GENERIC BLASFEO/HPIPM.
-
-The MPC C runtime is vendored in `3rdparty/acados_runtime/` with original upstream
-bytes and BSD licenses. Verify with `python3 scripts/vendor_acados.py --check`;
-all files plus metadata must stay within 15,000,000 bytes. Update using the pinned
-Git objects via `--source /path/to/acados`, then rerun MPC and MPC-OFF checks.
-The default BLASFEO backend is GENERIC; optional optimized targets are documented
-in the runtime README. `3rdparty/acados/` is now an ignored maintainer checkout,
-not a submodule or build input. Leave any existing local changes there intact.
-
-FCI bindings are checked in under `generated/wirelink/` and verified by CMake
-without WLC. For schema/profile updates, configure with `-DLF_ENABLE_WLC=ON`
-and a matching `WLC_EXECUTABLE`, then build `lf_update_wirelink` to refresh the
-snapshot. Commit the snapshot with the input/submodule changes. Build
-`lf_check_wirelink` to compare fresh WLC output against the checked-in files.
-Normal WLC output stays in the build tree; `FCI_PROTOCOL_GENERATED_BASE_DIR`
-can override its root. The snapshot is the SDK's standard arm/host recipe.
-
-## Platform notes
-
-- io_uring auto-detected on Linux (kernel >= 5.15 + liburing). Disable with `-DASTRIAL_IO_URING=OFF`.
-- USB enumeration reads `/sys/class/tty` on Linux.
-- Host CI checks both FCI build modes and snapshot regeneration; wheel CI uses the snapshot.
-- License: ISC.
-- CMake minimum: 3.21.
-- Build and regeneration instructions are in `README.md` and `README_CN.md`.
+Use C++20. Method parameters and local result values conventionally use the
+`s_` prefix; members use `m_`.

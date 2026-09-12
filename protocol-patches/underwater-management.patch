@@ -1,0 +1,769 @@
+diff --git a/README.md b/README.md
+index 68828f4..144907c 100644
+--- a/README.md
++++ b/README.md
+@@ -4,6 +4,7 @@ This repository holds the Wirelink FCI contracts shared by host and firmware.
+ 
+ Current scope:
+ - independent single-arm, upgrade, and dual-arm Wirelink schemas
++- a composed device endpoint with underwater mode/status/settings management and ten-motor Control telemetry
+ - host and firmware binding profiles for every component
+ - generated allocation-free C11 codecs, dispatchers, and runtimes
+ 
+@@ -21,6 +22,8 @@ Zephyr module support:
+ - `CONFIG_FCI_PROTOCOL` enables the module without selecting a component
+ - `CONFIG_FCI_PROTOCOL_ARM`, `CONFIG_FCI_PROTOCOL_UPGRADE`, and
+   `CONFIG_FCI_PROTOCOL_DUAL` select generated firmware components
++- `CONFIG_FCI_PROTOCOL_DEVICE` selects the composed arm/upgrade/underwater
++  endpoint; products register only the handlers they implement
+ - root `CMakeLists.txt` detects `ZEPHYR_BASE` and dispatches to
+   `cmake/Zephyr.cmake`; otherwise it behaves like a normal standalone CMake
+   subproject
+@@ -58,8 +61,9 @@ The first canonical single-arm core contract is
+   once. The role files declare COBS, client/server capability and outbound
+   `send` routes. There is no generic `USBAck` in the Wirelink schema.
+ 
+-Arm revision 8 uses managed RPC and requires **WLC v0.6.0 / codegen ABI 31**
+-with **Wirelink v0.6.0**. WLC v0.5.0 / ABI 30 cannot generate this API.
++The current composed endpoint requires **WLC v0.7.0-rc.1 / codegen ABI 32**
++and its matching Wirelink runtime. The pinned runtime's CMake integration can
++automatically obtain that released WLC; no development executable is required.
+ Deploy host and firmware together: revision 7 arm RPC
+ payloads are not compatible, and no legacy fallback is provided. Telemetry and
+ real-time command fields/IDs remain unchanged. See
+@@ -90,7 +94,7 @@ cmake --build build --target fci_protocol_wirelink_arm
+ If Wirelink is not installed, pass
+ `-DFCI_PROTOCOL_WIRELINK_SOURCE_DIR=/path/to/wirelink`. Set
+ `FCI_PROTOCOL_WIRELINK_COMPONENTS` to a semicolon-separated subset of `arm`,
+-`upgrade`, and `dual`. The generated targets are
++`upgrade`, `dual`, and `device`. The generated targets are
+ `fci_protocol_wirelink_<component>` with aliases
+ `fci_protocol::<component>`.
+ 
+@@ -108,8 +112,85 @@ fci_protocol_generate_wirelink_component(
+ 
+ Enable `FCI_PROTOCOL_BUILD_SCHEMA_TESTS` to compile and link the selected
+ generated runtime, exercise required-field encode/decode failures and static
+-size bounds in C, and compile all three contracts in both roles as strict C11
++size bounds in C, and compile all four components in both roles as strict C11
+ and C++20. WLC is always a host executable, including during Zephyr cross
+ builds. It is found on the host `PATH`, through
+ `WIRELINK_WLC_EXECUTABLE`, or through the explicit `WLC_EXECUTABLE` cache path
+ above.
++
++## Underwater management
++
++`schema/wirelink/device/fci_device.wl` imports
++`underwater/fci_underwater.wl`; the device CMake recipe composes the shared
++`underwater/services.bind.wl` with both host and firmware roles. The standalone
++arm and dual contracts keep their identities and array dimensions.
++
++| Contract | ID | Payload |
++|---|---|---|
++| UnderwaterMode | `0x7500` | Damp=0, Gravity=1, Teleop=2, Usb=3, Zeroing=4, Retract=5 |
++| UnderwaterResult | `0x7501` | OK=0, InvalidMode=1, InvalidState=2, Busy=3, Rejected=4, InternalError=5 |
++| UnderwaterSettingsResult | `0x7502` | OK=0, Busy=1, StorageFailed=2, InternalError=3 |
++| UnderwaterSettingsSource | `0x7503` | Defaults=0, Stored=1, Corrupt=2, StorageError=3 |
++| UnderwaterStatus | `0x7510` | mode, uptime, arm/motor masks, upgrading, bounded reason |
++| UnderwaterSettings | `0x7511` | 110 tuning floats in fixed arrays/scalars |
++| UnderwaterSettingsSnapshot | `0x7512` | settings, revision, source, storage_error |
++| GetUnderwaterStatus | `0x7520` / `0x7521` | empty request; required result + info |
++| SetUnderwaterMode | `0x7522` / `0x7523` | required mode; required result + info |
++| GetUnderwaterSettings | `0x7524` / `0x7525` | empty request; required result + snapshot + reason |
++| SetUnderwaterSettings | `0x7526` / `0x7527` | required settings; required result + snapshot + reason |
++| GetUnderwaterDefaultSettings | `0x7528` / `0x7529` | empty request; required result + snapshot + reason |
++
++Mode/status calls use managed RPC v2 without application operation/session IDs.
++Business results are an explicit `result` field so a Busy/InvalidMode reply can
++still carry its state snapshot and `reason`. Handlers return managed success
++for such replies; a runtime/transport rejection is a separate failed call and
++does not carry a business response. This distinction matters when mapping the
++result to SDK exceptions or diagnostics.
++
++Remote mode selection supports Damp, Gravity and Teleop. The other modes are
++reported as state. A successful mode response describes the control owner's
++state after processing that request; it does not wait for all motors to enable
++or for Retract to align the arms. Hosts use GetUnderwaterStatus to observe
++progress. `enabling_arms` and `gravity_arms` use bit 0 for master and bit 1 for
++slave. Each motor mask uses bits 0..3 for joint IDs 1..4 and bit 4 for gripper
++ID 5. Availability denotes discovered motors with fresh position feedback,
++independent of whether they are enabled. `reason` is at most 95 UTF-8 bytes.
++The optional `master_disabled_mask` and `slave_disabled_mask` are positive
++acknowledgements from fresh motor feedback with status zero. Missing fields
++on older firmware mean unknown; an unset enabled bit alone is not a disable
++acknowledgement.
++
++Settings include Teleop scale/offset/Kp/Kd (five axes), gravity scales (four
++master then four slave joints), six friction parameter arrays (five master
++then five slave motors), force feedback high/low gains, load thresholds and
++velocity/load filter times. Retract trajectory limits and identified self-load
++coefficients are outside this writable object. Every field is required, and
++fixed packed arrays retain signed float32 values without schema-level tuning
++limits or implicit substitutions.
++
++SetUnderwaterSettings saves to persistent storage, then applies the owned copy
++on the control thread before returning success. It introduces no mode guard;
++upgrade/reboot ownership returns Busy. A storage failure preserves the active
++settings and returns StorageFailed with a concrete errno/reason. Sources
++distinguish stored values, compiled defaults, corrupt saved data and storage
++errors. GetUnderwaterDefaultSettings only reads defaults; hosts explicitly set
++them to reset saved settings. Managed replay does not write storage twice.
++An already persisted write still applies after disconnect or an abandoned RPC;
++the abandoned response does not undo persistence. A host timeout/local cancel
++therefore has an unknown remote result, and hosts query settings to reconcile.
++
++The ordinary C endpoint uses owned `underwater_status_value_t`,
++`get_underwater_status_response_value_t`, and
++`set_underwater_mode_response_value_t`. Initialize every required `has_*` flag;
++owned strings expose `data` plus `length`. Async host entry points are
++`fci_device_endpoint_get_underwater_status_async` and
++`fci_device_endpoint_set_underwater_mode_async`. Firmware config callbacks are
++`on_get_underwater_status` and `on_set_underwater_mode`.
++
++`fci_protocol_underwater_endpoints` runs both generated endpoints over an
++in-memory COBS link. It checks successful mode acceptance before enable
++completion, Busy/InvalidMode with complete snapshots, owned response lifetimes,
++mask widths, required fields, the string bound, settings ownership,
++read-only defaults, upgrade Busy and the full settings response size (including
++its 20-byte managed header) within a 2048-byte payload. The existing compiler
++matrix also builds the device composition as strict C11 and C++20 in both roles.
+diff --git a/cmake/FciProtocolWirelink.cmake b/cmake/FciProtocolWirelink.cmake
+index 54f7fd3..5919d06 100644
+--- a/cmake/FciProtocolWirelink.cmake
++++ b/cmake/FciProtocolWirelink.cmake
+@@ -127,7 +127,8 @@ function(fci_protocol_generate_wirelink_component)
+         list(PREPEND _profiles
+             "${_fci_protocol_root}/schema/wirelink/arm/services.bind.wl"
+             "${_fci_protocol_root}/schema/wirelink/arm/${FCI_ROLE}.bind.wl"
+-            "${_fci_protocol_root}/schema/wirelink/upgrade/${FCI_ROLE}.bind.wl")
++            "${_fci_protocol_root}/schema/wirelink/upgrade/${FCI_ROLE}.bind.wl"
++            "${_fci_protocol_root}/schema/wirelink/underwater/services.bind.wl")
+     endif()
+     set(_codec_target "fci_protocol_wirelink_${FCI_COMPONENT}_codec")
+     if(FCI_OUTPUT_DIR)
+diff --git a/schema/wirelink/device/fci_device.wl b/schema/wirelink/device/fci_device.wl
+index 4c027b6..b36e628 100644
+--- a/schema/wirelink/device/fci_device.wl
++++ b/schema/wirelink/device/fci_device.wl
+@@ -3,3 +3,4 @@ version 1;
+ // Product composition only: the imported contracts retain their wire IDs.
+ import "../arm/fci_arm.wl";
+ import "../upgrade/fci_upgrade.wl";
++import "../underwater/fci_underwater.wl";
+diff --git a/schema/wirelink/device/firmware.bind.wl b/schema/wirelink/device/firmware.bind.wl
+index cff8f00..77b8059 100644
+--- a/schema/wirelink/device/firmware.bind.wl
++++ b/schema/wirelink/device/firmware.bind.wl
+@@ -7,3 +7,7 @@ direct BulkChunk { delivery = unreliable; }
+ direct BulkEnd { delivery = reliable; }
+ direct BulkAbort { delivery = reliable; }
+ send BulkStatus { delivery = unreliable; }
++
++// Underwater ten-axis control and state streams.
++latest UnderwaterArmCommand { delivery = unreliable; }
++send UnderwaterArmStatus { delivery = unreliable; }
+diff --git a/schema/wirelink/device/host.bind.wl b/schema/wirelink/device/host.bind.wl
+index 45b84bb..3825851 100644
+--- a/schema/wirelink/device/host.bind.wl
++++ b/schema/wirelink/device/host.bind.wl
+@@ -5,3 +5,7 @@ send BulkChunk { delivery = unreliable; }
+ send BulkEnd { delivery = reliable; }
+ send BulkAbort { delivery = reliable; }
+ direct BulkStatus { delivery = unreliable; }
++
++// Underwater ten-axis control and state streams.
++send UnderwaterArmCommand { delivery = unreliable; }
++latest UnderwaterArmStatus { delivery = unreliable; }
+diff --git a/schema/wirelink/underwater/fci_underwater.wl b/schema/wirelink/underwater/fci_underwater.wl
+new file mode 100644
+index 0000000..d422947
+--- /dev/null
++++ b/schema/wirelink/underwater/fci_underwater.wl
+@@ -0,0 +1,210 @@
++version 2;
++
++// Underwater product management. These contracts are composed into fci_device;
++// they do not change the independent six-axis arm or twelve-axis dual schemas.
++// Allocation: 0x7500..0x751f values; 0x7520..0x752f managed RPC messages.
++enum UnderwaterMode = 29952 { // 0x7500
++  UNDERWATER_MODE_DAMP = 0;
++  UNDERWATER_MODE_GRAVITY = 1;
++  UNDERWATER_MODE_TELEOP = 2;
++  UNDERWATER_MODE_CONTROL = 3;
++  UNDERWATER_MODE_ZEROING = 4;
++  UNDERWATER_MODE_RETRACT = 5;
++}
++
++// Business results accompany the state snapshot even when a mode request
++// cannot be accepted. Managed RPC rejection remains a runtime/protocol error;
++// business handlers return managed success and put their result here.
++enum UnderwaterResult = 29953 { // 0x7501
++  UNDERWATER_RESULT_OK = 0;
++  UNDERWATER_RESULT_INVALID_MODE = 1;
++  UNDERWATER_RESULT_INVALID_STATE = 2;
++  UNDERWATER_RESULT_BUSY = 3;
++  UNDERWATER_RESULT_REJECTED = 4;
++  UNDERWATER_RESULT_INTERNAL_ERROR = 5;
++}
++
++enum UnderwaterSettingsResult = 29954 { // 0x7502
++  UNDERWATER_SETTINGS_OK = 0;
++  UNDERWATER_SETTINGS_BUSY = 1;
++  UNDERWATER_SETTINGS_STORAGE_FAILED = 2;
++  UNDERWATER_SETTINGS_INTERNAL_ERROR = 3;
++}
++
++enum UnderwaterSettingsSource = 29955 { // 0x7503
++  UNDERWATER_SETTINGS_SOURCE_DEFAULTS = 0;
++  UNDERWATER_SETTINGS_SOURCE_STORED = 1;
++  UNDERWATER_SETTINGS_SOURCE_CORRUPT = 2;
++  UNDERWATER_SETTINGS_SOURCE_STORAGE_ERROR = 3;
++}
++
++message UnderwaterStatus = 29968 { // 0x7510
++  required UnderwaterMode mode = 1;
++  required fixed32 uptime_ms = 2;
++  // Arm masks: bit 0 master, bit 1 slave.
++  required uint8 enabling_arms = 3;
++  required uint8 gravity_arms = 4;
++  // Motor masks: bits 0..3 joints 1..4, bit 4 gripper (motor ID 5).
++  // Available means discovered with fresh position feedback; enabled state is
++  // reported separately and is not a prerequisite for availability.
++  required uint8 master_available_mask = 5;
++  required uint8 slave_available_mask = 6;
++  required uint8 master_enabled_mask = 7;
++  required uint8 slave_enabled_mask = 8;
++  required uint8 master_disable_pending_mask = 9;
++  required uint8 slave_disable_pending_mask = 10;
++  required bool upgrading = 11;
++  // Current mode/transition detail, including pending enables or missing
++  // feedback. UTF-8 byte limit; not a separate high-rate telemetry stream.
++  required string<95> reason = 12;
++  // Newer firmware reports fresh feedback explicitly confirming status=0.
++  // Unlike "not enabled", these bits are positive disable acknowledgements.
++  optional uint8 master_disabled_mask = 13;
++  optional uint8 slave_disabled_mask = 14;
++  optional fixed64 control_session = 15;
++}
++
++// Axis order: vectors of 5 use joints 1..4, then the gripper. Gravity uses
++// master joints 1..4 followed by slave joints 1..4. Friction vectors use all
++// five master motors followed by all five slave motors. Units are SI.
++// This tuning object excludes Retract trajectory limits, zero calibration,
++// and identified self-load coefficients. No raw native struct is on the wire.
++message UnderwaterSettings = 29969 { // 0x7511
++  required packed float32 angle_scale[5] = 1;
++  required packed float32 angle_offset_rad[5] = 2;
++  required packed float32 kp[5] = 3;
++  required packed float32 kd[5] = 4;
++  required packed float32 gravity_scale[8] = 5;
++  required packed float32 friction_coulomb_positive_nm[10] = 6;
++  required packed float32 friction_coulomb_negative_nm[10] = 7;
++  required packed float32 friction_viscous_nm_per_rad_s[10] = 8;
++  required packed float32 friction_deadband_rad_s[10] = 9;
++  required packed float32 friction_transition_rad_s[10] = 10;
++  required packed float32 friction_filter_time_constant_s[10] = 11;
++  required packed float32 force_gain[5] = 12;
++  required packed float32 force_low_gain[5] = 13;
++  required float32 force_low_load_nm = 14;
++  required float32 force_high_load_nm = 15;
++  required packed float32 force_velocity_filter_s[5] = 16;
++  required packed float32 force_load_filter_s[5] = 17;
++  // Missing on writes preserves the current alarm preference (older SDKs).
++  // New firmware includes this field in reads and compiled defaults.
++  optional bool buzzer_alarm_enabled = 18;
++}
++
++message UnderwaterSettingsSnapshot = 29970 { // 0x7512
++  required UnderwaterSettings settings = 1;
++  required fixed32 revision = 2;
++  required UnderwaterSettingsSource source = 3;
++  required int32 storage_error = 4;
++}
++
++message GetUnderwaterStatusRequest = 29984 { // 0x7520
++}
++
++message GetUnderwaterStatusResponse = 29985 { // 0x7521
++  required UnderwaterResult result = 1;
++  required UnderwaterStatus info = 2;
++}
++
++message SetUnderwaterModeRequest = 29986 { // 0x7522
++  // Damp, Gravity, Teleop and Control are remotely selectable.
++  // Zero calibration uses Zeroing, not SetUnderwaterMode.
++  required UnderwaterMode mode = 1;
++}
++
++message SetUnderwaterModeResponse = 29987 { // 0x7523
++  required UnderwaterResult result = 1;
++  // Snapshot after the control owner processes this request. Acceptance does
++  // not imply all motors have completed enabling or Teleop alignment.
++  required UnderwaterStatus info = 2;
++}
++
++message GetUnderwaterSettingsRequest = 29988 { // 0x7524
++}
++
++message GetUnderwaterSettingsResponse = 29989 { // 0x7525
++  required UnderwaterSettingsResult result = 1;
++  required UnderwaterSettingsSnapshot snapshot = 2;
++  required string<95> reason = 3;
++}
++
++message SetUnderwaterSettingsRequest = 29990 { // 0x7526
++  required UnderwaterSettings settings = 1;
++}
++
++message SetUnderwaterSettingsResponse = 29991 { // 0x7527
++  required UnderwaterSettingsResult result = 1;
++  // Success acknowledges persistent storage and application by the control
++  // owner. A failed write retains the active snapshot and a concrete reason.
++  required UnderwaterSettingsSnapshot snapshot = 2;
++  required string<95> reason = 3;
++}
++
++message GetUnderwaterDefaultSettingsRequest = 29992 { // 0x7528
++}
++
++message GetUnderwaterDefaultSettingsResponse = 29993 { // 0x7529
++  required UnderwaterSettingsResult result = 1;
++  // Read-only firmware defaults; does not reset active or persisted settings.
++  required UnderwaterSettingsSnapshot snapshot = 2;
++  required string<95> reason = 3;
++}
++
++// Ten motors: master joints 1..4, master gripper, slave joints 1..4, slave gripper.
++// Position/velocity/torque are motor coordinates, in rad, rad/s, Nm.
++enum UnderwaterControlKind = 29956 {
++  UNDERWATER_CONTROL_MIT = 1;
++  UNDERWATER_CONTROL_MIT_WITH_GRAVITY = 2;
++}
++
++message UnderwaterArmCommand = 29972 { // 0x7514
++  required packed float32 q[10] = 1;
++  required packed float32 dq[10] = 2;
++  required packed float32 kp[10] = 3;
++  required packed float32 kd[10] = 4;
++  required packed float32 tau[10] = 5;
++  required UnderwaterControlKind kind = 6;
++  required fixed32 sequence = 7;
++  required fixed64 sdk_timestamp_us = 8;
++  required fixed64 control_session = 9;
++}
++
++message UnderwaterArmStatus = 29971 { // 0x7513
++  required packed float32 q[10] = 1;
++  required packed float32 dq[10] = 2;
++  required packed float32 tau[10] = 3;
++  // Bits 0..7 temperature (C), bits 8..15 raw DM status, upper bits reserved.
++  required packed fixed32 motor_info[10] = 4;
++  // UINT32_MAX means no feedback has ever been observed.
++  required packed fixed32 feedback_age_ms[10] = 6;
++  required uint16 fresh_mask = 7;
++  required uint16 enabled_mask = 8;
++  required uint16 available_mask = 9;
++  required UnderwaterMode mode = 10;
++  required UnderwaterControlKind kind = 11;
++  required fixed32 sequence = 12;
++  required fixed64 timestamp_us = 13;
++  required fixed64 control_session = 14;
++  // CAN queue acceptance, not an acknowledgement from the motor drive.
++  required fixed32 applied_command_sequence = 15;
++  required fixed64 last_sdk_timestamp_us = 16;
++  required uint16 applied_mask = 17;
++  required bool command_received = 18;
++  // 0 none, 1 command timeout, 2 USB disconnect.
++  required uint8 control_stop_reason = 19;
++  required fixed32 commands_received = 20;
++  required fixed32 commands_overwritten = 21;
++  required fixed32 commands_rejected = 22;
++  // 0 none, 1 not Control, 2 session, 3 sequence, 4 kind, 5 numeric fields, 6 stale.
++  required uint8 command_reject_reason = 23;
++}
++
++// Set the current pose as zero on every configured motor. Requires Damp.
++// Completion waits for the existing post-zero feedback/retry sequence.
++message ZeroingRequest = 29994 { // 0x752a
++}
++message ZeroingResponse = 29995 { // 0x752b
++  required UnderwaterResult result = 1;
++  required UnderwaterStatus info = 2;
++}
+diff --git a/schema/wirelink/underwater/services.bind.wl b/schema/wirelink/underwater/services.bind.wl
+new file mode 100644
+index 0000000..0003327
+--- /dev/null
++++ b/schema/wirelink/underwater/services.bind.wl
+@@ -0,0 +1,33 @@
++profile version 1;
++
++// Managed RPC v2 owns call/session IDs and transport status. Business results
++// remain in the DTO alongside an actionable status snapshot on every reply.
++rpc GetUnderwaterStatus {
++  request = GetUnderwaterStatusRequest;
++  response = GetUnderwaterStatusResponse;
++}
++
++rpc SetUnderwaterMode {
++  request = SetUnderwaterModeRequest;
++  response = SetUnderwaterModeResponse;
++}
++
++rpc GetUnderwaterSettings {
++  request = GetUnderwaterSettingsRequest;
++  response = GetUnderwaterSettingsResponse;
++}
++
++rpc SetUnderwaterSettings {
++  request = SetUnderwaterSettingsRequest;
++  response = SetUnderwaterSettingsResponse;
++}
++
++rpc GetUnderwaterDefaultSettings {
++  request = GetUnderwaterDefaultSettingsRequest;
++  response = GetUnderwaterDefaultSettingsResponse;
++}
++
++rpc Zeroing {
++  request = ZeroingRequest;
++  response = ZeroingResponse;
++}
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index 342e2a6..cba879b 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -28,6 +28,22 @@ target_link_libraries(fci_protocol_managed_endpoints PRIVATE
+     fci_protocol_wirelink_arm_host_smoke fci_protocol_wirelink_arm_firmware_smoke)
+ add_test(NAME fci_protocol_managed_endpoints COMMAND fci_protocol_managed_endpoints)
+ 
++foreach(_role IN ITEMS host firmware)
++    fci_protocol_generate_wirelink_component(
++        COMPONENT device ROLE ${_role}
++        TARGET fci_protocol_wirelink_device_${_role}_smoke
++        RUNTIME_NAME fci_device_${_role} NO_ALIAS)
++endforeach()
++add_executable(fci_protocol_underwater_endpoints wirelink_underwater_endpoints.c)
++target_link_libraries(fci_protocol_underwater_endpoints PRIVATE
++    fci_protocol_wirelink_device_host_smoke
++    fci_protocol_wirelink_device_firmware_smoke)
++if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
++    target_compile_options(fci_protocol_underwater_endpoints PRIVATE
++        -Wall -Wextra -Wpedantic -Werror)
++endif()
++add_test(NAME fci_protocol_underwater_endpoints COMMAND fci_protocol_underwater_endpoints)
++
+ foreach(_configured_component IN LISTS FCI_PROTOCOL_WIRELINK_COMPONENTS)
+     if(NOT TARGET fci_protocol_wirelink_${_configured_component} OR
+        NOT TARGET fci_protocol::${_configured_component})
+@@ -149,7 +165,8 @@ foreach(_component IN ITEMS arm upgrade dual device)
+             set(_services
+                 "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/arm/services.bind.wl"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/arm/${_role}.bind.wl"
+-                "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/upgrade/${_role}.bind.wl")
++                "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/upgrade/${_role}.bind.wl"
++                "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/underwater/services.bind.wl")
+         endif()
+         set(_schema
+             "${CMAKE_CURRENT_SOURCE_DIR}/../schema/wirelink/${_component}/${_module}.wl")
+diff --git a/tests/wirelink_underwater_endpoints.c b/tests/wirelink_underwater_endpoints.c
+new file mode 100644
+index 0000000..165ef97
+--- /dev/null
++++ b/tests/wirelink_underwater_endpoints.c
+@@ -0,0 +1,295 @@
++/* SPDX-License-Identifier: ISC */
++#include "fci_device_host_endpoint.h"
++#include "fci_device_firmware_endpoint.h"
++#include "wirelink/port.h"
++#include <stdio.h>
++#include <string.h>
++
++#define CHECK(x) do { if (!(x)) { fprintf(stderr, "%d: %s\n", __LINE__, #x); return 1; } } while (0)
++_Static_assert(sizeof(((underwater_status_value_t *)0)->master_enabled_mask) == 1U,
++               "motor masks use exact byte storage");
++_Static_assert(sizeof(((underwater_status_value_t *)0)->uptime_ms) == 4U,
++               "uptime uses fixed32 storage");
++static fci_device_host_endpoint_t host;
++static fci_device_firmware_endpoint_t firmware;
++static wl_time_ms_t now = 100U;
++static unsigned completed;
++static wl_rpc_status_t completion_status;
++static underwater_result_t business_result;
++static underwater_status_value_t current, saved;
++static underwater_settings_snapshot_value_t settings_current, settings_saved;
++static underwater_settings_result_t settings_result;
++static char settings_reason[96];
++
++#define SETTINGS_ARRAYS(X) \
++    X(angle_scale) X(angle_offset_rad) X(kp) X(kd) X(gravity_scale) \
++    X(friction_coulomb_positive_nm) X(friction_coulomb_negative_nm) \
++    X(friction_viscous_nm_per_rad_s) X(friction_deadband_rad_s) \
++    X(friction_transition_rad_s) X(friction_filter_time_constant_s) \
++    X(force_gain) X(force_low_gain) X(force_velocity_filter_s) X(force_load_filter_s)
++
++static void fill_settings(underwater_settings_value_t *value) {
++    float number = -16.0f;
++#define FILL(field) \
++    value->has_##field = true; \
++    for (size_t i = 0U; i < sizeof(value->field) / sizeof(value->field[0]); ++i) \
++        value->field[i] = number += 0.25f;
++    SETTINGS_ARRAYS(FILL)
++#undef FILL
++    value->has_force_low_load_nm = value->has_force_high_load_nm = true;
++    value->has_buzzer_alarm_enabled = true;
++    value->buzzer_alarm_enabled = true;
++    value->force_low_load_nm = 2.0f; value->force_high_load_nm = 5.0f;
++}
++
++static int equal_settings(const underwater_settings_value_t *a, const underwater_settings_value_t *b) {
++#define EQUAL(field) CHECK(a->has_##field == b->has_##field && memcmp(a->field, b->field, sizeof(a->field)) == 0);
++    SETTINGS_ARRAYS(EQUAL)
++#undef EQUAL
++    CHECK(a->force_low_load_nm == b->force_low_load_nm);
++    CHECK(a->force_high_load_nm == b->force_high_load_nm);
++    CHECK(a->has_buzzer_alarm_enabled == b->has_buzzer_alarm_enabled);
++    CHECK(a->buzzer_alarm_enabled == b->buzzer_alarm_enabled);
++    return 0;
++}
++
++#define SETTINGS_RESPONSE(out, text) do { \
++    (out)->has_result = (out)->has_snapshot = (out)->has_reason = true; \
++    (out)->result = UNDERWATER_SETTINGS_OK; (out)->snapshot = settings_current; \
++    (out)->reason.length = strlen(text); memcpy((out)->reason.data, text, (out)->reason.length); \
++} while (0)
++static int32_t get_settings(void *context, const get_underwater_settings_request_value_t *request,
++                            get_underwater_settings_response_value_t *response) {
++    (void)context; (void)request;
++    SETTINGS_RESPONSE(response, "active settings");
++    return 0;
++}
++static int32_t set_settings(void *context, const set_underwater_settings_request_value_t *request,
++                            set_underwater_settings_response_value_t *response) {
++    (void)context;
++    if (!current.upgrading) {
++        settings_current.settings = request->settings;
++        settings_current.revision++;
++        settings_current.source = UNDERWATER_SETTINGS_SOURCE_STORED;
++    }
++    SETTINGS_RESPONSE(response, "saved and applied");
++    if (current.upgrading) {
++        response->result = UNDERWATER_SETTINGS_BUSY;
++        const char *text = "upgrade active; settings unchanged";
++        response->reason.length = strlen(text);
++        memcpy(response->reason.data, text, response->reason.length);
++    }
++    return 0;
++}
++static int32_t get_defaults(void *context, const get_underwater_default_settings_request_value_t *request,
++                            get_underwater_default_settings_response_value_t *response) {
++    (void)context; (void)request;
++    SETTINGS_RESPONSE(response, "firmware defaults");
++    fill_settings(&response->snapshot.settings);
++    response->snapshot.revision = 0;
++    response->snapshot.source = UNDERWATER_SETTINGS_SOURCE_DEFAULTS;
++    return 0;
++}
++#undef SETTINGS_RESPONSE
++#define SETTINGS_COMPLETION(service) \
++static void service##_done(void *context, const wl_rpc_completion_t *result, \
++                           const service##_response_value_t *response) { \
++    (void)context; ++completed; completion_status = result->status; \
++    if (response != NULL) { \
++        settings_result = response->result; settings_saved = response->snapshot; \
++        memcpy(settings_reason, response->reason.data, response->reason.length); \
++        settings_reason[response->reason.length] = '\0'; \
++    } \
++}
++SETTINGS_COMPLETION(get_underwater_settings)
++SETTINGS_COMPLETION(set_underwater_settings)
++SETTINGS_COMPLETION(get_underwater_default_settings)
++#undef SETTINGS_COMPLETION
++
++static wl_time_ms_t clock_now(void *context) { (void)context; return now; }
++static wl_err_t session(void *context, uint64_t *out) {
++    *out = *(const uint64_t *)context;
++    return WL_OK;
++}
++static wl_sink_result_t sink(void *peer, wl_io_token_t token,
++                             const uint8_t *data, size_t length) {
++    size_t accepted = 0U;
++    (void)token;
++    return wl_feed_bytes(wl_endpoint_link(peer), data, length, &accepted) == WL_OK
++        && accepted == length ? WL_SINK_SENT : WL_SINK_FAILED;
++}
++static void reason(const char *text) {
++    current.reason.length = strlen(text);
++    memcpy(current.reason.data, text, current.reason.length);
++}
++static int32_t get_status(void *context,
++                         const get_underwater_status_request_value_t *request,
++                         get_underwater_status_response_value_t *response) {
++    (void)context; (void)request;
++    response->has_result = response->has_info = true;
++    response->result = UNDERWATER_RESULT_OK;
++    response->info = current;
++    return 0;
++}
++static int32_t set_mode(void *context,
++                       const set_underwater_mode_request_value_t *request,
++                       set_underwater_mode_response_value_t *response) {
++    (void)context;
++    response->has_result = response->has_info = true;
++    if (current.upgrading) {
++        response->result = UNDERWATER_RESULT_BUSY;
++        reason("upgrade active; remain in Damp");
++    } else if (request->mode != UNDERWATER_MODE_DAMP &&
++               request->mode != UNDERWATER_MODE_GRAVITY &&
++               request->mode != UNDERWATER_MODE_TELEOP) {
++        response->result = UNDERWATER_RESULT_INVALID_MODE;
++        reason("requested mode is not remotely selectable");
++    } else {
++        response->result = UNDERWATER_RESULT_OK;
++        current.mode = request->mode;
++        current.enabling_arms = 1U;
++        reason("master enabling; slave feedback absent");
++    }
++    response->info = current;
++    return 0; /* Preserve business rejection details in the response DTO. */
++}
++#define COMPLETION(service) \
++static void service##_done(void *context, const wl_rpc_completion_t *result, \
++                           const service##_response_value_t *response) { \
++    (void)context; ++completed; completion_status = result->status; \
++    if (response != NULL) { business_result = response->result; saved = response->info; } \
++}
++COMPLETION(get_underwater_status)
++COMPLETION(set_underwater_mode)
++#undef COMPLETION
++static int drive(unsigned expected) {
++    for (unsigned i = 0U; i < 24U && completed < expected; ++i, ++now) {
++        CHECK(fci_device_host_endpoint_step(&host) == WL_OK);
++        CHECK(fci_device_firmware_endpoint_step(&firmware) == WL_OK);
++    }
++    CHECK(completed == expected);
++    CHECK(completion_status == WL_RPC_SUCCESS);
++    return 0;
++}
++int main(void) {
++    uint64_t host_id = 11U, firmware_id = 22U;
++    wl_environment_t environment = {.clock = {clock_now, NULL}, .session = {session, &host_id}};
++    fci_device_firmware_endpoint_config_t config;
++    CHECK(fci_device_host_endpoint_init(&host, environment) == WL_OK);
++    environment.session.context = &firmware_id;
++    CHECK(fci_device_firmware_endpoint_config_defaults(&config, environment) == WL_OK);
++    config.on_get_underwater_status = get_status;
++    config.on_set_underwater_mode = set_mode;
++    config.on_get_underwater_settings = get_settings;
++    config.on_set_underwater_settings = set_settings;
++    config.on_get_underwater_default_settings = get_defaults;
++    CHECK(fci_device_firmware_endpoint_init_config(&firmware, &config) == WL_OK);
++    CHECK(wl_set_sink(wl_endpoint_link(fci_device_host_endpoint_handle(&host)), sink,
++        fci_device_firmware_endpoint_handle(&firmware)) == WL_OK);
++    CHECK(wl_set_sink(wl_endpoint_link(fci_device_firmware_endpoint_handle(&firmware)), sink,
++        fci_device_host_endpoint_handle(&host)) == WL_OK);
++    current.has_mode = current.has_uptime_ms = current.has_enabling_arms = true;
++    current.has_gravity_arms = current.has_master_available_mask = true;
++    current.has_slave_available_mask = current.has_master_enabled_mask = true;
++    current.has_slave_enabled_mask = current.has_master_disable_pending_mask = true;
++    current.has_slave_disable_pending_mask = current.has_upgrading = current.has_reason = true;
++    current.mode = UNDERWATER_MODE_DAMP;
++    current.uptime_ms = UINT32_MAX;
++    current.master_available_mask = 0x1fU;
++    current.slave_disable_pending_mask = 0x1fU;
++    current.has_master_disabled_mask = current.has_slave_disabled_mask = true;
++    current.master_disabled_mask = 0x15U;
++    reason("Damp");
++    get_underwater_status_request_value_t get = {0};
++    CHECK(fci_device_host_endpoint_get_underwater_status_async(&host, &get, 100U,
++        get_underwater_status_done, NULL, NULL) == WL_OK);
++    CHECK(drive(1U) == 0 && business_result == UNDERWATER_RESULT_OK);
++    CHECK(saved.mode == UNDERWATER_MODE_DAMP && saved.uptime_ms == UINT32_MAX);
++    CHECK(saved.master_available_mask == 0x1fU && saved.master_enabled_mask == 0U);
++    CHECK(saved.slave_disable_pending_mask == 0x1fU);
++    CHECK(saved.has_master_disabled_mask && saved.master_disabled_mask == 0x15U);
++    CHECK(saved.has_slave_disabled_mask && saved.slave_disabled_mask == 0U);
++    set_underwater_mode_request_value_t set = {.has_mode = true, .mode = UNDERWATER_MODE_GRAVITY};
++    CHECK(fci_device_host_endpoint_set_underwater_mode_async(&host, &set, 100U,
++        set_underwater_mode_done, NULL, NULL) == WL_OK);
++    set.mode = UNDERWATER_MODE_CONTROL; /* The admitted call owns its request. */
++    CHECK(drive(2U) == 0 && business_result == UNDERWATER_RESULT_OK);
++    CHECK(saved.mode == UNDERWATER_MODE_GRAVITY && saved.enabling_arms == 1U);
++    CHECK(saved.master_enabled_mask == 0U); /* Accepted, not yet enabled. */
++    CHECK(fci_device_host_endpoint_set_underwater_mode_async(&host, &set, 100U,
++        set_underwater_mode_done, NULL, NULL) == WL_OK);
++    CHECK(drive(3U) == 0 && business_result == UNDERWATER_RESULT_INVALID_MODE);
++    CHECK(saved.mode == UNDERWATER_MODE_GRAVITY && saved.reason.length != 0U);
++    current.upgrading = true;
++    current.mode = UNDERWATER_MODE_DAMP;
++    current.enabling_arms = 0U;
++    set.mode = UNDERWATER_MODE_TELEOP;
++    CHECK(fci_device_host_endpoint_set_underwater_mode_async(&host, &set, 100U,
++        set_underwater_mode_done, NULL, NULL) == WL_OK);
++    CHECK(drive(4U) == 0 && business_result == UNDERWATER_RESULT_BUSY);
++    CHECK(saved.mode == UNDERWATER_MODE_DAMP && saved.upgrading);
++    CHECK(saved.reason.length == strlen("upgrade active; remain in Damp"));
++    CHECK(memcmp(saved.reason.data, "upgrade active; remain in Damp", saved.reason.length) == 0);
++    /* Owned response strings survive later calls using the shared scratch. */
++    reason("different later state");
++    CHECK(memcmp(saved.reason.data, "upgrade active; remain in Damp", saved.reason.length) == 0);
++    settings_current.has_settings = settings_current.has_revision = true;
++    settings_current.has_source = settings_current.has_storage_error = true;
++    fill_settings(&settings_current.settings);
++    get_underwater_settings_request_value_t settings_get = {0};
++    CHECK(fci_device_host_endpoint_get_underwater_settings_async(&host, &settings_get, 100U,
++        get_underwater_settings_done, NULL, NULL) == WL_OK);
++    CHECK(drive(5U) == 0 && settings_result == UNDERWATER_SETTINGS_OK);
++    CHECK(equal_settings(&settings_current.settings, &settings_saved.settings) == 0);
++    set_underwater_settings_request_value_t settings_set = {.has_settings = true};
++    settings_set.settings = settings_current.settings;
++    settings_set.settings.angle_scale[2] = -2.0f;
++    settings_set.settings.buzzer_alarm_enabled = false;
++    current.upgrading = false; current.mode = UNDERWATER_MODE_TELEOP;
++    CHECK(fci_device_host_endpoint_set_underwater_settings_async(&host, &settings_set, 100U,
++        set_underwater_settings_done, NULL, NULL) == WL_OK);
++    settings_set.settings.angle_scale[2] = 9.0f; /* Async admission owns the entire settings object. */
++    settings_set.settings.buzzer_alarm_enabled = true;
++    CHECK(drive(6U) == 0 && settings_result == UNDERWATER_SETTINGS_OK);
++    CHECK(settings_saved.settings.angle_scale[2] == -2.0f && settings_saved.revision == 1U);
++    CHECK(settings_saved.source == UNDERWATER_SETTINGS_SOURCE_STORED);
++    CHECK(settings_saved.settings.has_buzzer_alarm_enabled && !settings_saved.settings.buzzer_alarm_enabled);
++    current.upgrading = true;
++    CHECK(fci_device_host_endpoint_set_underwater_settings_async(&host, &settings_set, 100U,
++        set_underwater_settings_done, NULL, NULL) == WL_OK);
++    CHECK(drive(7U) == 0 && settings_result == UNDERWATER_SETTINGS_BUSY);
++    CHECK(settings_saved.settings.angle_scale[2] == -2.0f && settings_saved.revision == 1U);
++    CHECK(strcmp(settings_reason, "upgrade active; settings unchanged") == 0);
++    get_underwater_default_settings_request_value_t settings_defaults = {0};
++    CHECK(fci_device_host_endpoint_get_underwater_default_settings_async(&host, &settings_defaults, 100U,
++        get_underwater_default_settings_done, NULL, NULL) == WL_OK);
++    CHECK(drive(8U) == 0 && settings_result == UNDERWATER_SETTINGS_OK);
++    CHECK(settings_saved.source == UNDERWATER_SETTINGS_SOURCE_DEFAULTS && settings_saved.revision == 0U);
++    CHECK(settings_current.settings.angle_scale[2] == -2.0f && settings_current.revision == 1U);
++    set_underwater_settings_response_value_t full_response = {
++        .has_result = true, .result = UNDERWATER_SETTINGS_STORAGE_FAILED,
++        .has_snapshot = true, .snapshot = settings_current, .has_reason = true
++    };
++    full_response.reason.length = 95U; memset(full_response.reason.data, 'x', 95U);
++    full_response.snapshot.storage_error = INT32_MIN;
++    full_response.snapshot.revision = UINT32_MAX;
++    uint8_t full_encoded[2048]; size_t full_length = 0U;
++    CHECK(set_underwater_settings_response_value_encode(&full_response, full_encoded,
++        sizeof(full_encoded), &full_length) == WL_CODEC_OK);
++    CHECK(full_length + 20U <= 2048U); /* Includes managed v2 header. */
++    full_response.snapshot.settings.has_force_load_filter_s = false;
++    CHECK(set_underwater_settings_response_value_encode(&full_response, full_encoded,
++        sizeof(full_encoded), &full_length) != WL_CODEC_OK);
++    uint8_t encoded[256];
++    size_t length = 0U;
++    set.has_mode = false;
++    CHECK(set_underwater_mode_request_value_encode(&set, encoded, sizeof(encoded), &length) != WL_CODEC_OK);
++    current.has_reason = false;
++    CHECK(underwater_status_value_encode(&current, encoded, sizeof(encoded), &length) != WL_CODEC_OK);
++    current.has_reason = true;
++    current.reason.length = 96U;
++    CHECK(underwater_status_value_encode(&current, encoded, sizeof(encoded), &length) != WL_CODEC_OK);
++    CHECK(fci_device_host_endpoint_close(&host) == WL_OK);
++    CHECK(fci_device_firmware_endpoint_close(&firmware) == WL_OK);
++    return 0;
++}

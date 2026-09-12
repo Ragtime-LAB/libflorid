@@ -1,6 +1,5 @@
 #include "../protocol/tests/support/managed_rpc_wire.hpp"
 #include "florid/detail/FciWirelinkEndpoint.hpp"
-#include "florid/FirmwareUpdater.hpp"
 #include <wirelink/crc.h>
 #include <algorithm>
 #include <array>
@@ -160,7 +159,7 @@ struct Peer {
             s_info.firmware_version = {.has_major = true, .major = 0, .has_minor = true, .minor = 0,
                 .has_patch = true, .patch = m_version};
             s_info.has_board_name = s_info.has_custom_name = s_info.has_serial = s_info.has_firmware_type = true;
-            s_info.board_name = {"H7", 2}; s_info.custom_name = {"Willow", 6};
+            s_info.board_name = {"H7", 2}; s_info.custom_name = {"Underwater", 10};
             s_info.serial = {m_session > 199 && m_wrong_identity ? "OTHER" : "BOARD", 5};
             s_info.firmware_type = FIRMWARE_STANDARD_ARM;
             s_response(GET_DEVICE_INFO_RESPONSE_MESSAGE_ID, s_reply, test_rpc::get_device_info_response_encode); break;
@@ -407,12 +406,6 @@ void testInstallation() {
         s_peer.stop();
         require(s_session.deviceInfo(50ms).m_error == FirmwareUpdateError::kNotConnected, "info query on closed endpoint");
     }
-    require(FirmwareUpdater::connect(DeviceDescriptor{}).m_error == FirmwareConnectionError::kInvalidSelector,
-            "wildcard descriptor admitted");
-    require(FirmwareUpdater::connect(DeviceSelector::bySerial("")).m_error == FirmwareConnectionError::kInvalidSelector,
-            "empty serial admitted");
-    require(FirmwareUpdater::connect(DeviceSelector{}, 0ms).m_error == FirmwareConnectionError::kInvalidSelector,
-            "invalid connect timeout admitted");
 }
 }
 

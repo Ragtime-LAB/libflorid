@@ -75,6 +75,23 @@ typedef struct start_upgrade_request start_upgrade_request_t;
 typedef struct start_upgrade_response start_upgrade_response_t;
 typedef struct reboot_request reboot_request_t;
 typedef struct reboot_response reboot_response_t;
+typedef struct underwater_status underwater_status_t;
+typedef struct underwater_settings underwater_settings_t;
+typedef struct underwater_settings_snapshot underwater_settings_snapshot_t;
+typedef struct underwater_arm_status underwater_arm_status_t;
+typedef struct underwater_arm_command underwater_arm_command_t;
+typedef struct get_underwater_status_request get_underwater_status_request_t;
+typedef struct get_underwater_status_response get_underwater_status_response_t;
+typedef struct set_underwater_mode_request set_underwater_mode_request_t;
+typedef struct set_underwater_mode_response set_underwater_mode_response_t;
+typedef struct get_underwater_settings_request get_underwater_settings_request_t;
+typedef struct get_underwater_settings_response get_underwater_settings_response_t;
+typedef struct set_underwater_settings_request set_underwater_settings_request_t;
+typedef struct set_underwater_settings_response set_underwater_settings_response_t;
+typedef struct get_underwater_default_settings_request get_underwater_default_settings_request_t;
+typedef struct get_underwater_default_settings_response get_underwater_default_settings_response_t;
+typedef struct zeroing_request zeroing_request_t;
+typedef struct zeroing_response zeroing_response_t;
 
 struct semantic_version {
   bool has_major;
@@ -698,6 +715,231 @@ struct reboot_response {
   upgrade_status_t status;
   bool has_mode;
   reboot_mode_t mode;
+};
+
+struct underwater_status {
+  bool has_mode;
+  underwater_mode_t mode;
+  bool has_uptime_ms;
+  uint32_t uptime_ms;
+  bool has_enabling_arms;
+  uint8_t enabling_arms;
+  bool has_gravity_arms;
+  uint8_t gravity_arms;
+  bool has_master_available_mask;
+  uint8_t master_available_mask;
+  bool has_slave_available_mask;
+  uint8_t slave_available_mask;
+  bool has_master_enabled_mask;
+  uint8_t master_enabled_mask;
+  bool has_slave_enabled_mask;
+  uint8_t slave_enabled_mask;
+  bool has_master_disable_pending_mask;
+  uint8_t master_disable_pending_mask;
+  bool has_slave_disable_pending_mask;
+  uint8_t slave_disable_pending_mask;
+  bool has_upgrading;
+  bool upgrading;
+  bool has_reason;
+  wl_codec_string_t reason;
+  bool has_master_disabled_mask;
+  uint8_t master_disabled_mask;
+  bool has_slave_disabled_mask;
+  uint8_t slave_disabled_mask;
+  bool has_control_session;
+  uint64_t control_session;
+};
+
+struct underwater_settings {
+  bool has_angle_scale;
+  float angle_scale[5];
+  bool has_angle_offset_rad;
+  float angle_offset_rad[5];
+  bool has_kp;
+  float kp[5];
+  bool has_kd;
+  float kd[5];
+  bool has_gravity_scale;
+  float gravity_scale[8];
+  bool has_friction_coulomb_positive_nm;
+  float friction_coulomb_positive_nm[10];
+  bool has_friction_coulomb_negative_nm;
+  float friction_coulomb_negative_nm[10];
+  bool has_friction_viscous_nm_per_rad_s;
+  float friction_viscous_nm_per_rad_s[10];
+  bool has_friction_deadband_rad_s;
+  float friction_deadband_rad_s[10];
+  bool has_friction_transition_rad_s;
+  float friction_transition_rad_s[10];
+  bool has_friction_filter_time_constant_s;
+  float friction_filter_time_constant_s[10];
+  bool has_force_gain;
+  float force_gain[5];
+  bool has_force_low_gain;
+  float force_low_gain[5];
+  bool has_force_low_load_nm;
+  float force_low_load_nm;
+  bool has_force_high_load_nm;
+  float force_high_load_nm;
+  bool has_force_velocity_filter_s;
+  float force_velocity_filter_s[5];
+  bool has_force_load_filter_s;
+  float force_load_filter_s[5];
+  bool has_buzzer_alarm_enabled;
+  bool buzzer_alarm_enabled;
+};
+
+struct underwater_settings_snapshot {
+  bool has_settings;
+  underwater_settings_t settings;
+  bool has_revision;
+  uint32_t revision;
+  bool has_source;
+  underwater_settings_source_t source;
+  bool has_storage_error;
+  int32_t storage_error;
+};
+
+struct underwater_arm_status {
+  bool has_q;
+  float q[10];
+  bool has_dq;
+  float dq[10];
+  bool has_tau;
+  float tau[10];
+  bool has_motor_info;
+  uint32_t motor_info[10];
+  bool has_feedback_age_ms;
+  uint32_t feedback_age_ms[10];
+  bool has_fresh_mask;
+  uint16_t fresh_mask;
+  bool has_enabled_mask;
+  uint16_t enabled_mask;
+  bool has_available_mask;
+  uint16_t available_mask;
+  bool has_mode;
+  underwater_mode_t mode;
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_timestamp_us;
+  uint64_t timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+  bool has_applied_command_sequence;
+  uint32_t applied_command_sequence;
+  bool has_last_sdk_timestamp_us;
+  uint64_t last_sdk_timestamp_us;
+  bool has_applied_mask;
+  uint16_t applied_mask;
+  bool has_command_received;
+  bool command_received;
+  bool has_control_stop_reason;
+  uint8_t control_stop_reason;
+  bool has_commands_received;
+  uint32_t commands_received;
+  bool has_commands_overwritten;
+  uint32_t commands_overwritten;
+  bool has_commands_rejected;
+  uint32_t commands_rejected;
+  bool has_command_reject_reason;
+  uint8_t command_reject_reason;
+};
+
+struct underwater_arm_command {
+  bool has_q;
+  float q[10];
+  bool has_dq;
+  float dq[10];
+  bool has_kp;
+  float kp[10];
+  bool has_kd;
+  float kd[10];
+  bool has_tau;
+  float tau[10];
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_sdk_timestamp_us;
+  uint64_t sdk_timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+};
+
+struct get_underwater_status_request {
+  uint8_t _empty;
+};
+
+struct get_underwater_status_response {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_t info;
+};
+
+struct set_underwater_mode_request {
+  bool has_mode;
+  underwater_mode_t mode;
+};
+
+struct set_underwater_mode_response {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_t info;
+};
+
+struct get_underwater_settings_request {
+  uint8_t _empty;
+};
+
+struct get_underwater_settings_response {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_t snapshot;
+  bool has_reason;
+  wl_codec_string_t reason;
+};
+
+struct set_underwater_settings_request {
+  bool has_settings;
+  underwater_settings_t settings;
+};
+
+struct set_underwater_settings_response {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_t snapshot;
+  bool has_reason;
+  wl_codec_string_t reason;
+};
+
+struct get_underwater_default_settings_request {
+  uint8_t _empty;
+};
+
+struct get_underwater_default_settings_response {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_t snapshot;
+  bool has_reason;
+  wl_codec_string_t reason;
+};
+
+struct zeroing_request {
+  uint8_t _empty;
+};
+
+struct zeroing_response {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_t info;
 };
 
 void semantic_version_clear(semantic_version_t *value);
@@ -1369,6 +1611,176 @@ wl_codec_status_t reboot_response_decode(const uint8_t *input, size_t input_leng
  * must not overlap; failures leave output unchanged. */
 wl_codec_status_t reboot_response_value_from_view(const reboot_response_t *view, reboot_response_value_t *out);
 wl_codec_status_t reboot_response_value_to_view(const reboot_response_value_t *value, reboot_response_t *out);
+
+void underwater_status_clear(underwater_status_t *value);
+size_t underwater_status_encoded_size(const underwater_status_t *value);
+wl_codec_status_t underwater_status_encode(const underwater_status_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t underwater_status_decode(const uint8_t *input, size_t input_length, underwater_status_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t underwater_status_value_from_view(const underwater_status_t *view, underwater_status_value_t *out);
+wl_codec_status_t underwater_status_value_to_view(const underwater_status_value_t *value, underwater_status_t *out);
+
+void underwater_settings_clear(underwater_settings_t *value);
+size_t underwater_settings_encoded_size(const underwater_settings_t *value);
+wl_codec_status_t underwater_settings_encode(const underwater_settings_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t underwater_settings_decode(const uint8_t *input, size_t input_length, underwater_settings_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t underwater_settings_value_from_view(const underwater_settings_t *view, underwater_settings_value_t *out);
+wl_codec_status_t underwater_settings_value_to_view(const underwater_settings_value_t *value, underwater_settings_t *out);
+
+void underwater_settings_snapshot_clear(underwater_settings_snapshot_t *value);
+size_t underwater_settings_snapshot_encoded_size(const underwater_settings_snapshot_t *value);
+wl_codec_status_t underwater_settings_snapshot_encode(const underwater_settings_snapshot_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t underwater_settings_snapshot_decode(const uint8_t *input, size_t input_length, underwater_settings_snapshot_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t underwater_settings_snapshot_value_from_view(const underwater_settings_snapshot_t *view, underwater_settings_snapshot_value_t *out);
+wl_codec_status_t underwater_settings_snapshot_value_to_view(const underwater_settings_snapshot_value_t *value, underwater_settings_snapshot_t *out);
+
+void underwater_arm_status_clear(underwater_arm_status_t *value);
+size_t underwater_arm_status_encoded_size(const underwater_arm_status_t *value);
+wl_codec_status_t underwater_arm_status_encode(const underwater_arm_status_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t underwater_arm_status_decode(const uint8_t *input, size_t input_length, underwater_arm_status_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t underwater_arm_status_value_from_view(const underwater_arm_status_t *view, underwater_arm_status_value_t *out);
+wl_codec_status_t underwater_arm_status_value_to_view(const underwater_arm_status_value_t *value, underwater_arm_status_t *out);
+
+void underwater_arm_command_clear(underwater_arm_command_t *value);
+size_t underwater_arm_command_encoded_size(const underwater_arm_command_t *value);
+wl_codec_status_t underwater_arm_command_encode(const underwater_arm_command_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t underwater_arm_command_decode(const uint8_t *input, size_t input_length, underwater_arm_command_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t underwater_arm_command_value_from_view(const underwater_arm_command_t *view, underwater_arm_command_value_t *out);
+wl_codec_status_t underwater_arm_command_value_to_view(const underwater_arm_command_value_t *value, underwater_arm_command_t *out);
+
+void get_underwater_status_request_clear(get_underwater_status_request_t *value);
+size_t get_underwater_status_request_encoded_size(const get_underwater_status_request_t *value);
+wl_codec_status_t get_underwater_status_request_encode(const get_underwater_status_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_status_request_decode(const uint8_t *input, size_t input_length, get_underwater_status_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_status_request_value_from_view(const get_underwater_status_request_t *view, get_underwater_status_request_value_t *out);
+wl_codec_status_t get_underwater_status_request_value_to_view(const get_underwater_status_request_value_t *value, get_underwater_status_request_t *out);
+
+void get_underwater_status_response_clear(get_underwater_status_response_t *value);
+size_t get_underwater_status_response_encoded_size(const get_underwater_status_response_t *value);
+wl_codec_status_t get_underwater_status_response_encode(const get_underwater_status_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_status_response_decode(const uint8_t *input, size_t input_length, get_underwater_status_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_status_response_value_from_view(const get_underwater_status_response_t *view, get_underwater_status_response_value_t *out);
+wl_codec_status_t get_underwater_status_response_value_to_view(const get_underwater_status_response_value_t *value, get_underwater_status_response_t *out);
+
+void set_underwater_mode_request_clear(set_underwater_mode_request_t *value);
+size_t set_underwater_mode_request_encoded_size(const set_underwater_mode_request_t *value);
+wl_codec_status_t set_underwater_mode_request_encode(const set_underwater_mode_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t set_underwater_mode_request_decode(const uint8_t *input, size_t input_length, set_underwater_mode_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t set_underwater_mode_request_value_from_view(const set_underwater_mode_request_t *view, set_underwater_mode_request_value_t *out);
+wl_codec_status_t set_underwater_mode_request_value_to_view(const set_underwater_mode_request_value_t *value, set_underwater_mode_request_t *out);
+
+void set_underwater_mode_response_clear(set_underwater_mode_response_t *value);
+size_t set_underwater_mode_response_encoded_size(const set_underwater_mode_response_t *value);
+wl_codec_status_t set_underwater_mode_response_encode(const set_underwater_mode_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t set_underwater_mode_response_decode(const uint8_t *input, size_t input_length, set_underwater_mode_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t set_underwater_mode_response_value_from_view(const set_underwater_mode_response_t *view, set_underwater_mode_response_value_t *out);
+wl_codec_status_t set_underwater_mode_response_value_to_view(const set_underwater_mode_response_value_t *value, set_underwater_mode_response_t *out);
+
+void get_underwater_settings_request_clear(get_underwater_settings_request_t *value);
+size_t get_underwater_settings_request_encoded_size(const get_underwater_settings_request_t *value);
+wl_codec_status_t get_underwater_settings_request_encode(const get_underwater_settings_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_settings_request_decode(const uint8_t *input, size_t input_length, get_underwater_settings_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_settings_request_value_from_view(const get_underwater_settings_request_t *view, get_underwater_settings_request_value_t *out);
+wl_codec_status_t get_underwater_settings_request_value_to_view(const get_underwater_settings_request_value_t *value, get_underwater_settings_request_t *out);
+
+void get_underwater_settings_response_clear(get_underwater_settings_response_t *value);
+size_t get_underwater_settings_response_encoded_size(const get_underwater_settings_response_t *value);
+wl_codec_status_t get_underwater_settings_response_encode(const get_underwater_settings_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_settings_response_decode(const uint8_t *input, size_t input_length, get_underwater_settings_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_settings_response_value_from_view(const get_underwater_settings_response_t *view, get_underwater_settings_response_value_t *out);
+wl_codec_status_t get_underwater_settings_response_value_to_view(const get_underwater_settings_response_value_t *value, get_underwater_settings_response_t *out);
+
+void set_underwater_settings_request_clear(set_underwater_settings_request_t *value);
+size_t set_underwater_settings_request_encoded_size(const set_underwater_settings_request_t *value);
+wl_codec_status_t set_underwater_settings_request_encode(const set_underwater_settings_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t set_underwater_settings_request_decode(const uint8_t *input, size_t input_length, set_underwater_settings_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t set_underwater_settings_request_value_from_view(const set_underwater_settings_request_t *view, set_underwater_settings_request_value_t *out);
+wl_codec_status_t set_underwater_settings_request_value_to_view(const set_underwater_settings_request_value_t *value, set_underwater_settings_request_t *out);
+
+void set_underwater_settings_response_clear(set_underwater_settings_response_t *value);
+size_t set_underwater_settings_response_encoded_size(const set_underwater_settings_response_t *value);
+wl_codec_status_t set_underwater_settings_response_encode(const set_underwater_settings_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t set_underwater_settings_response_decode(const uint8_t *input, size_t input_length, set_underwater_settings_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t set_underwater_settings_response_value_from_view(const set_underwater_settings_response_t *view, set_underwater_settings_response_value_t *out);
+wl_codec_status_t set_underwater_settings_response_value_to_view(const set_underwater_settings_response_value_t *value, set_underwater_settings_response_t *out);
+
+void get_underwater_default_settings_request_clear(get_underwater_default_settings_request_t *value);
+size_t get_underwater_default_settings_request_encoded_size(const get_underwater_default_settings_request_t *value);
+wl_codec_status_t get_underwater_default_settings_request_encode(const get_underwater_default_settings_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_default_settings_request_decode(const uint8_t *input, size_t input_length, get_underwater_default_settings_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_default_settings_request_value_from_view(const get_underwater_default_settings_request_t *view, get_underwater_default_settings_request_value_t *out);
+wl_codec_status_t get_underwater_default_settings_request_value_to_view(const get_underwater_default_settings_request_value_t *value, get_underwater_default_settings_request_t *out);
+
+void get_underwater_default_settings_response_clear(get_underwater_default_settings_response_t *value);
+size_t get_underwater_default_settings_response_encoded_size(const get_underwater_default_settings_response_t *value);
+wl_codec_status_t get_underwater_default_settings_response_encode(const get_underwater_default_settings_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t get_underwater_default_settings_response_decode(const uint8_t *input, size_t input_length, get_underwater_default_settings_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t get_underwater_default_settings_response_value_from_view(const get_underwater_default_settings_response_t *view, get_underwater_default_settings_response_value_t *out);
+wl_codec_status_t get_underwater_default_settings_response_value_to_view(const get_underwater_default_settings_response_value_t *value, get_underwater_default_settings_response_t *out);
+
+void zeroing_request_clear(zeroing_request_t *value);
+size_t zeroing_request_encoded_size(const zeroing_request_t *value);
+wl_codec_status_t zeroing_request_encode(const zeroing_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t zeroing_request_decode(const uint8_t *input, size_t input_length, zeroing_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t zeroing_request_value_from_view(const zeroing_request_t *view, zeroing_request_value_t *out);
+wl_codec_status_t zeroing_request_value_to_view(const zeroing_request_value_t *value, zeroing_request_t *out);
+
+void zeroing_response_clear(zeroing_response_t *value);
+size_t zeroing_response_encoded_size(const zeroing_response_t *value);
+wl_codec_status_t zeroing_response_encode(const zeroing_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t zeroing_response_decode(const uint8_t *input, size_t input_length, zeroing_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t zeroing_response_value_from_view(const zeroing_response_t *view, zeroing_response_value_t *out);
+wl_codec_status_t zeroing_response_value_to_view(const zeroing_response_value_t *value, zeroing_response_t *out);
 
 #ifdef __cplusplus
 }

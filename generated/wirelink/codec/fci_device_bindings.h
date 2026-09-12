@@ -527,6 +527,125 @@ typedef struct {
   void *user_data;
 } fci_device_reboot_response_route_t;
 
+typedef int32_t (*fci_device_underwater_status_handler_fn)(void *user_data, const underwater_status_t *message, wl_delivery_t delivery);
+typedef struct {
+  underwater_status_t *scratch;
+  fci_device_underwater_status_handler_fn handler;
+  void *user_data;
+} fci_device_underwater_status_route_t;
+
+typedef int32_t (*fci_device_underwater_settings_handler_fn)(void *user_data, const underwater_settings_t *message, wl_delivery_t delivery);
+typedef struct {
+  underwater_settings_t *scratch;
+  fci_device_underwater_settings_handler_fn handler;
+  void *user_data;
+} fci_device_underwater_settings_route_t;
+
+typedef int32_t (*fci_device_underwater_settings_snapshot_handler_fn)(void *user_data, const underwater_settings_snapshot_t *message, wl_delivery_t delivery);
+typedef struct {
+  underwater_settings_snapshot_t *scratch;
+  fci_device_underwater_settings_snapshot_handler_fn handler;
+  void *user_data;
+} fci_device_underwater_settings_snapshot_route_t;
+
+typedef int32_t (*fci_device_underwater_arm_status_handler_fn)(void *user_data, const underwater_arm_status_t *message, wl_delivery_t delivery);
+typedef struct {
+  underwater_arm_status_t *scratch;
+  fci_device_underwater_arm_status_handler_fn handler;
+  void *user_data;
+} fci_device_underwater_arm_status_route_t;
+
+typedef int32_t (*fci_device_underwater_arm_command_handler_fn)(void *user_data, const underwater_arm_command_t *message, wl_delivery_t delivery);
+typedef struct {
+  underwater_arm_command_t *scratch;
+  fci_device_underwater_arm_command_handler_fn handler;
+  void *user_data;
+} fci_device_underwater_arm_command_route_t;
+
+typedef int32_t (*fci_device_get_underwater_status_request_handler_fn)(void *user_data, const get_underwater_status_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_status_request_t *scratch;
+  fci_device_get_underwater_status_request_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_status_request_route_t;
+
+typedef int32_t (*fci_device_get_underwater_status_response_handler_fn)(void *user_data, const get_underwater_status_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_status_response_t *scratch;
+  fci_device_get_underwater_status_response_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_status_response_route_t;
+
+typedef int32_t (*fci_device_set_underwater_mode_request_handler_fn)(void *user_data, const set_underwater_mode_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  set_underwater_mode_request_t *scratch;
+  fci_device_set_underwater_mode_request_handler_fn handler;
+  void *user_data;
+} fci_device_set_underwater_mode_request_route_t;
+
+typedef int32_t (*fci_device_set_underwater_mode_response_handler_fn)(void *user_data, const set_underwater_mode_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  set_underwater_mode_response_t *scratch;
+  fci_device_set_underwater_mode_response_handler_fn handler;
+  void *user_data;
+} fci_device_set_underwater_mode_response_route_t;
+
+typedef int32_t (*fci_device_get_underwater_settings_request_handler_fn)(void *user_data, const get_underwater_settings_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_settings_request_t *scratch;
+  fci_device_get_underwater_settings_request_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_settings_request_route_t;
+
+typedef int32_t (*fci_device_get_underwater_settings_response_handler_fn)(void *user_data, const get_underwater_settings_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_settings_response_t *scratch;
+  fci_device_get_underwater_settings_response_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_settings_response_route_t;
+
+typedef int32_t (*fci_device_set_underwater_settings_request_handler_fn)(void *user_data, const set_underwater_settings_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  set_underwater_settings_request_t *scratch;
+  fci_device_set_underwater_settings_request_handler_fn handler;
+  void *user_data;
+} fci_device_set_underwater_settings_request_route_t;
+
+typedef int32_t (*fci_device_set_underwater_settings_response_handler_fn)(void *user_data, const set_underwater_settings_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  set_underwater_settings_response_t *scratch;
+  fci_device_set_underwater_settings_response_handler_fn handler;
+  void *user_data;
+} fci_device_set_underwater_settings_response_route_t;
+
+typedef int32_t (*fci_device_get_underwater_default_settings_request_handler_fn)(void *user_data, const get_underwater_default_settings_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_default_settings_request_t *scratch;
+  fci_device_get_underwater_default_settings_request_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_default_settings_request_route_t;
+
+typedef int32_t (*fci_device_get_underwater_default_settings_response_handler_fn)(void *user_data, const get_underwater_default_settings_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  get_underwater_default_settings_response_t *scratch;
+  fci_device_get_underwater_default_settings_response_handler_fn handler;
+  void *user_data;
+} fci_device_get_underwater_default_settings_response_route_t;
+
+typedef int32_t (*fci_device_zeroing_request_handler_fn)(void *user_data, const zeroing_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  zeroing_request_t *scratch;
+  fci_device_zeroing_request_handler_fn handler;
+  void *user_data;
+} fci_device_zeroing_request_route_t;
+
+typedef int32_t (*fci_device_zeroing_response_handler_fn)(void *user_data, const zeroing_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  zeroing_response_t *scratch;
+  fci_device_zeroing_response_handler_fn handler;
+  void *user_data;
+} fci_device_zeroing_response_route_t;
+
 typedef struct {
   fci_device_semantic_version_route_t semantic_version;
   fci_device_device_info_route_t device_info;
@@ -595,6 +714,23 @@ typedef struct {
   fci_device_start_upgrade_response_route_t start_upgrade_response;
   fci_device_reboot_request_route_t reboot_request;
   fci_device_reboot_response_route_t reboot_response;
+  fci_device_underwater_status_route_t underwater_status;
+  fci_device_underwater_settings_route_t underwater_settings;
+  fci_device_underwater_settings_snapshot_route_t underwater_settings_snapshot;
+  fci_device_underwater_arm_status_route_t underwater_arm_status;
+  fci_device_underwater_arm_command_route_t underwater_arm_command;
+  fci_device_get_underwater_status_request_route_t get_underwater_status_request;
+  fci_device_get_underwater_status_response_route_t get_underwater_status_response;
+  fci_device_set_underwater_mode_request_route_t set_underwater_mode_request;
+  fci_device_set_underwater_mode_response_route_t set_underwater_mode_response;
+  fci_device_get_underwater_settings_request_route_t get_underwater_settings_request;
+  fci_device_get_underwater_settings_response_route_t get_underwater_settings_response;
+  fci_device_set_underwater_settings_request_route_t set_underwater_settings_request;
+  fci_device_set_underwater_settings_response_route_t set_underwater_settings_response;
+  fci_device_get_underwater_default_settings_request_route_t get_underwater_default_settings_request;
+  fci_device_get_underwater_default_settings_response_route_t get_underwater_default_settings_response;
+  fci_device_zeroing_request_route_t zeroing_request;
+  fci_device_zeroing_response_route_t zeroing_response;
   fci_device_dispatch_counters_t counters;
 } fci_device_router_t;
 
@@ -800,6 +936,57 @@ fci_device_send_result_t fci_device_reboot_request_send(wl_ctx_t *ctx, const reb
 
 /* Encodes directly into Wirelink-owned TX storage. */
 fci_device_send_result_t fci_device_reboot_response_send(wl_ctx_t *ctx, const reboot_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_underwater_status_send(wl_ctx_t *ctx, const underwater_status_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_underwater_settings_send(wl_ctx_t *ctx, const underwater_settings_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_underwater_settings_snapshot_send(wl_ctx_t *ctx, const underwater_settings_snapshot_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_underwater_arm_status_send(wl_ctx_t *ctx, const underwater_arm_status_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_underwater_arm_command_send(wl_ctx_t *ctx, const underwater_arm_command_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_status_request_send(wl_ctx_t *ctx, const get_underwater_status_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_status_response_send(wl_ctx_t *ctx, const get_underwater_status_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_set_underwater_mode_request_send(wl_ctx_t *ctx, const set_underwater_mode_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_set_underwater_mode_response_send(wl_ctx_t *ctx, const set_underwater_mode_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_settings_request_send(wl_ctx_t *ctx, const get_underwater_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_settings_response_send(wl_ctx_t *ctx, const get_underwater_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_set_underwater_settings_request_send(wl_ctx_t *ctx, const set_underwater_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_set_underwater_settings_response_send(wl_ctx_t *ctx, const set_underwater_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_default_settings_request_send(wl_ctx_t *ctx, const get_underwater_default_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_get_underwater_default_settings_response_send(wl_ctx_t *ctx, const get_underwater_default_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_zeroing_request_send(wl_ctx_t *ctx, const zeroing_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_zeroing_response_send(wl_ctx_t *ctx, const zeroing_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
 
 #ifdef __cplusplus
 }

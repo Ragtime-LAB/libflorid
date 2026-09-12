@@ -257,6 +257,71 @@ void s_settingsToWire(const DeviceSettings& s_settings,
     }
 }
 
+template <typename Settings>
+UnderwaterSettings s_underwaterSettingsFromWire(const Settings& s_wire) noexcept {
+    UnderwaterSettings s_settings{};
+    std::copy_n(s_wire.angle_scale, s_settings.m_angle_scale.size(), s_settings.m_angle_scale.begin());
+    std::copy_n(s_wire.angle_offset_rad, s_settings.m_angle_offset_rad.size(), s_settings.m_angle_offset_rad.begin());
+    std::copy_n(s_wire.kp, s_settings.m_kp.size(), s_settings.m_kp.begin());
+    std::copy_n(s_wire.kd, s_settings.m_kd.size(), s_settings.m_kd.begin());
+    std::copy_n(s_wire.gravity_scale, s_settings.m_gravity_scale.size(), s_settings.m_gravity_scale.begin());
+    std::copy_n(s_wire.friction_coulomb_positive_nm, s_settings.m_friction_coulomb_positive_nm.size(), s_settings.m_friction_coulomb_positive_nm.begin());
+    std::copy_n(s_wire.friction_coulomb_negative_nm, s_settings.m_friction_coulomb_negative_nm.size(), s_settings.m_friction_coulomb_negative_nm.begin());
+    std::copy_n(s_wire.friction_viscous_nm_per_rad_s, s_settings.m_friction_viscous_nm_per_rad_s.size(), s_settings.m_friction_viscous_nm_per_rad_s.begin());
+    std::copy_n(s_wire.friction_deadband_rad_s, s_settings.m_friction_deadband_rad_s.size(), s_settings.m_friction_deadband_rad_s.begin());
+    std::copy_n(s_wire.friction_transition_rad_s, s_settings.m_friction_transition_rad_s.size(), s_settings.m_friction_transition_rad_s.begin());
+    std::copy_n(s_wire.friction_filter_time_constant_s, s_settings.m_friction_filter_time_constant_s.size(), s_settings.m_friction_filter_time_constant_s.begin());
+    std::copy_n(s_wire.force_gain, s_settings.m_force_gain.size(), s_settings.m_force_gain.begin());
+    std::copy_n(s_wire.force_low_gain, s_settings.m_force_low_gain.size(), s_settings.m_force_low_gain.begin());
+    std::copy_n(s_wire.force_velocity_filter_s, s_settings.m_force_velocity_filter_s.size(), s_settings.m_force_velocity_filter_s.begin());
+    std::copy_n(s_wire.force_load_filter_s, s_settings.m_force_load_filter_s.size(), s_settings.m_force_load_filter_s.begin());
+    s_settings.m_force_low_load_nm = s_wire.force_low_load_nm;
+    s_settings.m_force_high_load_nm = s_wire.force_high_load_nm;
+    s_settings.m_buzzer_alarm_enabled = !s_wire.has_buzzer_alarm_enabled || s_wire.buzzer_alarm_enabled;
+    return s_settings;
+}
+
+template <typename Settings>
+void s_underwaterSettingsToWire(const UnderwaterSettings& s_settings, Settings& s_wire) noexcept {
+    s_wire = {};
+    s_wire.has_angle_scale = true;
+    std::copy(s_settings.m_angle_scale.begin(), s_settings.m_angle_scale.end(), s_wire.angle_scale);
+    s_wire.has_angle_offset_rad = true;
+    std::copy(s_settings.m_angle_offset_rad.begin(), s_settings.m_angle_offset_rad.end(), s_wire.angle_offset_rad);
+    s_wire.has_kp = true;
+    std::copy(s_settings.m_kp.begin(), s_settings.m_kp.end(), s_wire.kp);
+    s_wire.has_kd = true;
+    std::copy(s_settings.m_kd.begin(), s_settings.m_kd.end(), s_wire.kd);
+    s_wire.has_gravity_scale = true;
+    std::copy(s_settings.m_gravity_scale.begin(), s_settings.m_gravity_scale.end(), s_wire.gravity_scale);
+    s_wire.has_friction_coulomb_positive_nm = true;
+    std::copy(s_settings.m_friction_coulomb_positive_nm.begin(), s_settings.m_friction_coulomb_positive_nm.end(), s_wire.friction_coulomb_positive_nm);
+    s_wire.has_friction_coulomb_negative_nm = true;
+    std::copy(s_settings.m_friction_coulomb_negative_nm.begin(), s_settings.m_friction_coulomb_negative_nm.end(), s_wire.friction_coulomb_negative_nm);
+    s_wire.has_friction_viscous_nm_per_rad_s = true;
+    std::copy(s_settings.m_friction_viscous_nm_per_rad_s.begin(), s_settings.m_friction_viscous_nm_per_rad_s.end(), s_wire.friction_viscous_nm_per_rad_s);
+    s_wire.has_friction_deadband_rad_s = true;
+    std::copy(s_settings.m_friction_deadband_rad_s.begin(), s_settings.m_friction_deadband_rad_s.end(), s_wire.friction_deadband_rad_s);
+    s_wire.has_friction_transition_rad_s = true;
+    std::copy(s_settings.m_friction_transition_rad_s.begin(), s_settings.m_friction_transition_rad_s.end(), s_wire.friction_transition_rad_s);
+    s_wire.has_friction_filter_time_constant_s = true;
+    std::copy(s_settings.m_friction_filter_time_constant_s.begin(), s_settings.m_friction_filter_time_constant_s.end(), s_wire.friction_filter_time_constant_s);
+    s_wire.has_force_gain = true;
+    std::copy(s_settings.m_force_gain.begin(), s_settings.m_force_gain.end(), s_wire.force_gain);
+    s_wire.has_force_low_gain = true;
+    std::copy(s_settings.m_force_low_gain.begin(), s_settings.m_force_low_gain.end(), s_wire.force_low_gain);
+    s_wire.has_force_velocity_filter_s = true;
+    std::copy(s_settings.m_force_velocity_filter_s.begin(), s_settings.m_force_velocity_filter_s.end(), s_wire.force_velocity_filter_s);
+    s_wire.has_force_load_filter_s = true;
+    std::copy(s_settings.m_force_load_filter_s.begin(), s_settings.m_force_load_filter_s.end(), s_wire.force_load_filter_s);
+    s_wire.has_force_low_load_nm = true;
+    s_wire.force_low_load_nm = s_settings.m_force_low_load_nm;
+    s_wire.has_force_high_load_nm = true;
+    s_wire.force_high_load_nm = s_settings.m_force_high_load_nm;
+    s_wire.has_buzzer_alarm_enabled = true;
+    s_wire.buzzer_alarm_enabled = s_settings.m_buzzer_alarm_enabled;
+}
+
 template <typename String>
 bool s_copyString(const String& s_source, char* s_destination,
                   std::size_t s_capacity,
@@ -327,6 +392,7 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
     if (s_result != WL_OK) return s_endpointStatus(s_result);
 
     m_command_capabilities.store(0U, std::memory_order_relaxed);
+    m_underwater_arm_status.reset();
 
     std::lock_guard<std::mutex> s_lock(m_mutex);
     m_initialized = true;
@@ -464,6 +530,28 @@ FciSubmitResult FciWirelinkEndpoint::releaseControlLease(
                     false);
 }
 
+FciSubmitResult FciWirelinkEndpoint::zeroing(std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    return s_submit(RpcKind::kZeroing, s_timeout_ms, {}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::getUnderwaterStatus(
+    std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    return s_submit(RpcKind::kGetUnderwaterStatus, s_timeout_ms, {}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setUnderwaterMode(
+    UnderwaterMode s_mode, std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    OperationRequest s_request{};
+    s_request.m_underwater_mode = s_mode;
+    return s_submit(RpcKind::kSetUnderwaterMode, s_timeout_ms, s_request, false);
+}
+
 FciSubmitResult FciWirelinkEndpoint::getDeviceInfo(
     std::uint32_t s_timeout_ms) noexcept {
     if (s_timeout_ms == 0 || s_timeout_ms >= s_kMaximumRelativeTimeout) {
@@ -471,6 +559,27 @@ FciSubmitResult FciWirelinkEndpoint::getDeviceInfo(
     }
     return s_submit(RpcKind::kGetDeviceInfo, s_timeout_ms,
                     OperationRequest{}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::getUnderwaterSettings(std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    return s_submit(RpcKind::kGetUnderwaterSettings, s_timeout_ms, {}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::getUnderwaterDefaultSettings(std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    return s_submit(RpcKind::kGetUnderwaterDefaultSettings, s_timeout_ms, {}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::setUnderwaterSettings(
+    const UnderwaterSettings& s_settings, std::uint32_t s_timeout_ms) noexcept {
+    if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
+        return {FciEndpointStatus::kInvalidArgument, 0};
+    OperationRequest s_request{};
+    s_request.m_underwater_settings = s_settings;
+    return s_submit(RpcKind::kSetUnderwaterSettings, s_timeout_ms, s_request, false);
 }
 
 FciSubmitResult FciWirelinkEndpoint::setDeviceInfo(
@@ -727,6 +836,75 @@ FciEndpointStatus FciWirelinkEndpoint::takeDeviceInfo(
     return s_result_out.m_status;
 }
 
+FciEndpointStatus FciWirelinkEndpoint::takeUnderwaterStatus(
+    std::uint64_t s_request_id, FciOperationResult& s_result_out,
+    UnderwaterStatus& s_info, bool& s_has_info) {
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    s_has_info = false;
+    const auto s_index = s_findSlot(s_request_id);
+    if (s_index == s_kNoSlot ||
+        (m_operations[s_index].m_kind != RpcKind::kGetUnderwaterStatus &&
+         m_operations[s_index].m_kind != RpcKind::kSetUnderwaterMode &&
+         m_operations[s_index].m_kind != RpcKind::kZeroing))
+        return FciEndpointStatus::kNoData;
+    auto& s_slot = m_operations[s_index];
+    s_result_out = s_result(s_slot);
+    if (!s_terminal(s_slot.m_state)) return FciEndpointStatus::kBusy;
+    if (s_slot.m_underwater_status_valid) {
+        const auto& s_wire = s_slot.m_underwater_status;
+        s_info = UnderwaterStatus{
+            .m_mode = static_cast<UnderwaterMode>(s_wire.mode),
+            .m_uptime_ms = s_wire.uptime_ms,
+            .m_control_session = s_wire.has_control_session ? s_wire.control_session : 0,
+            .m_enabling_arms = s_wire.enabling_arms,
+            .m_gravity_arms = s_wire.gravity_arms,
+            .m_master_available_mask = s_wire.master_available_mask,
+            .m_slave_available_mask = s_wire.slave_available_mask,
+            .m_master_enabled_mask = s_wire.master_enabled_mask,
+            .m_slave_enabled_mask = s_wire.slave_enabled_mask,
+            .m_master_disable_pending_mask = s_wire.master_disable_pending_mask,
+            .m_slave_disable_pending_mask = s_wire.slave_disable_pending_mask,
+            .m_master_disabled_mask = s_wire.has_master_disabled_mask
+                ? std::make_optional(s_wire.master_disabled_mask) : std::nullopt,
+            .m_slave_disabled_mask = s_wire.has_slave_disabled_mask
+                ? std::make_optional(s_wire.slave_disabled_mask) : std::nullopt,
+            .m_upgrading = s_wire.upgrading,
+            .m_reason = std::string(s_wire.reason.data, s_wire.reason.length),
+        };
+        s_has_info = true;
+    }
+    s_slot = OperationSlot{};
+    return s_result_out.m_status;
+}
+
+FciEndpointStatus FciWirelinkEndpoint::takeUnderwaterSettings(
+    std::uint64_t s_request_id, FciOperationResult& s_result_out,
+    UnderwaterSettingsRpcResult& s_reply) {
+    std::lock_guard<std::mutex> s_lock(m_mutex);
+    const auto s_index = s_findSlot(s_request_id);
+    if (s_index == s_kNoSlot) return FciEndpointStatus::kNoData;
+    auto& s_slot = m_operations[s_index];
+    if (s_slot.m_kind != RpcKind::kGetUnderwaterSettings &&
+        s_slot.m_kind != RpcKind::kSetUnderwaterSettings &&
+        s_slot.m_kind != RpcKind::kGetUnderwaterDefaultSettings)
+        return FciEndpointStatus::kNoData;
+    s_result_out = s_result(s_slot);
+    if (!s_terminal(s_slot.m_state)) return FciEndpointStatus::kBusy;
+    if (s_slot.m_underwater_settings_valid) {
+        const auto& s_wire = s_slot.m_underwater_settings_snapshot;
+        s_reply.m_snapshot = UnderwaterSettingsSnapshot{
+            .m_settings = s_underwaterSettingsFromWire(s_wire.settings),
+            .m_revision = s_wire.revision,
+            .m_source = static_cast<UnderwaterSettingsSource>(s_wire.source),
+            .m_storage_error = s_wire.storage_error,
+        };
+        s_reply.m_reason.assign(s_slot.m_underwater_settings_reason.data(),
+                               s_slot.m_underwater_settings_reason_size);
+    }
+    s_slot = OperationSlot{};
+    return s_result_out.m_status;
+}
+
 FciEndpointStatus FciWirelinkEndpoint::takeDeviceSettings(
     std::uint64_t s_request_id, FciOperationResult& s_result_out,
     DeviceSettings& s_settings) noexcept {
@@ -772,6 +950,39 @@ FciEndpointStatus FciWirelinkEndpoint::takeMotorRegister(
     }
     s_slot = OperationSlot{};
     return s_result_out.m_status;
+}
+
+std::optional<UnderwaterArmStatus> FciWirelinkEndpoint::underwaterArmStatus() const {
+    std::lock_guard s_lock(m_mutex);
+    return m_underwater_arm_status;
+}
+
+FciEndpointStatus FciWirelinkEndpoint::sendUnderwaterArmCommand(
+    const UnderwaterArmCommand& s_command, std::uint64_t s_session, std::uint32_t& s_sequence) noexcept {
+    if (!s_session || (s_command.m_kind != UnderwaterControlKind::kMIT &&
+        s_command.m_kind != UnderwaterControlKind::kMitWithGravity)) return FciEndpointStatus::kInvalidArgument;
+    underwater_arm_command_t s_wire{};
+#define COPY(field) s_wire.has_##field = true; std::copy(s_command.m_##field.begin(), s_command.m_##field.end(), s_wire.field);
+    COPY(q) COPY(dq) COPY(kp) COPY(kd) COPY(tau)
+#undef COPY
+    for (std::size_t s_i = 0; s_i < 10; ++s_i) {
+        if (!std::isfinite(s_wire.q[s_i]) || !std::isfinite(s_wire.dq[s_i]) || !std::isfinite(s_wire.tau[s_i]) ||
+            !std::isfinite(s_wire.kp[s_i]) || !std::isfinite(s_wire.kd[s_i]) || s_wire.kp[s_i] < 0 || s_wire.kd[s_i] < 0)
+            return FciEndpointStatus::kInvalidArgument;
+    }
+    s_wire.has_kind = s_wire.has_sequence = s_wire.has_sdk_timestamp_us = s_wire.has_control_session = true;
+    s_wire.kind = static_cast<underwater_control_kind_t>(s_command.m_kind);
+    s_wire.sequence = m_command_sequence.fetch_add(1, std::memory_order_relaxed) + 1;
+    s_wire.sdk_timestamp_us = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    s_wire.control_session = s_session;
+    std::array<std::uint8_t, WirelinkExecutor::s_kMaximumCommandPayload> s_payload{};
+    std::size_t s_size{};
+    if (underwater_arm_command_encode(&s_wire, s_payload.data(), s_payload.size(), &s_size) != WL_CODEC_OK)
+        return FciEndpointStatus::kCodecError;
+    const auto s_result = s_submitLatestPayload(UNDERWATER_ARM_COMMAND_MESSAGE_ID, s_payload.data(), s_size);
+    if (s_result == FciEndpointStatus::kOk) s_sequence = s_wire.sequence;
+    return s_result;
 }
 
 FciControlLeaseSnapshot FciWirelinkEndpoint::controlLease() const noexcept {
@@ -1352,6 +1563,32 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
 
 bool FciWirelinkEndpoint::s_drainLatest() noexcept {
     bool s_progressed = false;
+    fci_device_underwater_arm_status_latest_view_t s_underwater_view{};
+    if (fci_device_underwater_arm_status_latest_acquire(s_runtime(), &s_underwater_view) == WL_OK) {
+        if (s_underwater_view.value) {
+            const auto& s_wire = *s_underwater_view.value;
+            UnderwaterArmStatus s_status{};
+#define COPY(field) std::copy_n(s_wire.field, 10, s_status.m_##field.begin());
+            COPY(q) COPY(dq) COPY(tau) COPY(feedback_age_ms)
+#undef COPY
+            for (std::size_t s_i = 0; s_i < 10; ++s_i) {
+                s_status.m_temperature_c[s_i] = s_wire.motor_info[s_i] & 0xff;
+                s_status.m_motor_status[s_i] = (s_wire.motor_info[s_i] >> 8) & 0xff;
+            }
+#define FIELD(field) s_status.m_##field = s_wire.field;
+            FIELD(fresh_mask) FIELD(enabled_mask) FIELD(available_mask) FIELD(applied_mask)
+            FIELD(sequence) FIELD(timestamp_us) FIELD(control_session) FIELD(applied_command_sequence)
+            FIELD(last_sdk_timestamp_us) FIELD(command_received) FIELD(control_stop_reason)
+            FIELD(commands_received) FIELD(commands_overwritten) FIELD(commands_rejected) FIELD(command_reject_reason)
+#undef FIELD
+            s_status.m_mode = static_cast<UnderwaterMode>(s_wire.mode);
+            s_status.m_kind = static_cast<UnderwaterControlKind>(s_wire.kind);
+            std::lock_guard s_lock(m_mutex);
+            m_underwater_arm_status = s_status;
+        }
+        (void)fci_device_underwater_arm_status_latest_release(s_runtime(), &s_underwater_view);
+        s_progressed = true;
+    }
     fci_device_arm_status_latest_view_t s_arm_view{};
     const int s_arm_result = fci_device_arm_status_latest_acquire(
         s_runtime(), &s_arm_view);
@@ -1431,6 +1668,12 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
     std::int32_t s_domain_status = s_completion.rejection;
     FixedDeviceInfo s_device_info{};
     DeviceSettings s_device_settings{};
+    underwater_status_value_t s_underwater_status{};
+    bool s_underwater_status_valid{};
+    underwater_settings_snapshot_value_t s_underwater_settings_snapshot{};
+    std::array<char, 96> s_underwater_settings_reason{};
+    std::uint8_t s_underwater_settings_reason_size{};
+    bool s_underwater_settings_valid{};
     float s_motor_register_value{};
     bool s_device_settings_valid{}, s_motor_register_valid{};
     std::uint64_t s_granted_token{};
@@ -1465,6 +1708,26 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
                         s_copyString(s_info.serial, s_device_info.m_serial_number.data(),
                             s_device_info.m_serial_number.size(), s_device_info.m_serial_number_size);
                     s_device_info.m_valid = s_response_valid;
+                }
+            } else if constexpr (std::is_same_v<Response, get_underwater_status_response_value_t> ||
+                                 std::is_same_v<Response, set_underwater_mode_response_value_t> ||
+                                 std::is_same_v<Response, zeroing_response_value_t>) {
+                s_response_valid = s_response.has_info && s_response.has_result;
+                if (s_response_valid) {
+                    s_underwater_status = s_response.info;
+                    s_underwater_status_valid = true;
+                    s_domain_status = static_cast<std::int32_t>(s_response.result);
+                }
+            } else if constexpr (std::is_same_v<Response, get_underwater_settings_response_value_t> ||
+                                 std::is_same_v<Response, set_underwater_settings_response_value_t> ||
+                                 std::is_same_v<Response, get_underwater_default_settings_response_value_t>) {
+                s_response_valid = s_response.has_snapshot && s_response.has_result && s_response.has_reason;
+                if (s_response_valid) {
+                    s_response_valid = s_copyString(s_response.reason, s_underwater_settings_reason.data(),
+                        s_underwater_settings_reason.size(), s_underwater_settings_reason_size);
+                    s_underwater_settings_snapshot = s_response.snapshot;
+                    s_underwater_settings_valid = s_response_valid;
+                    s_domain_status = static_cast<std::int32_t>(s_response.result);
                 }
             } else if constexpr (std::is_same_v<Response, get_device_settings_response_value_t> ||
                                  std::is_same_v<Response, set_device_settings_response_value_t>) {
@@ -1532,6 +1795,12 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
     s_slot.m_link_status = s_completion.transport_error;
     s_slot.m_device_info = s_device_info;
     s_slot.m_device_settings = s_device_settings;
+    s_slot.m_underwater_status = s_underwater_status;
+    s_slot.m_underwater_status_valid = s_underwater_status_valid;
+    s_slot.m_underwater_settings_snapshot = s_underwater_settings_snapshot;
+    s_slot.m_underwater_settings_reason = s_underwater_settings_reason;
+    s_slot.m_underwater_settings_reason_size = s_underwater_settings_reason_size;
+    s_slot.m_underwater_settings_valid = s_underwater_settings_valid;
     s_slot.m_motor_register_value = s_motor_register_value;
     s_slot.m_device_settings_valid = s_device_settings_valid;
     s_slot.m_motor_register_valid = s_motor_register_valid;
@@ -1636,6 +1905,53 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             s_request.lease_token = s_slot.m_request.m_lease_token;
             s_started = fci_device_endpoint_release_control_lease_async(
                 &m_endpoint, &s_request, s_remaining, s_complete<release_control_lease_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kZeroing: {
+            zeroing_request_value_t s_request{};
+            s_started = fci_device_endpoint_zeroing_async(&m_endpoint, &s_request, s_remaining,
+                s_complete<zeroing_response_value_t>, &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kGetUnderwaterStatus: {
+            get_underwater_status_request_value_t s_request{};
+            s_started = fci_device_endpoint_get_underwater_status_async(
+                &m_endpoint, &s_request, s_remaining,
+                s_complete<get_underwater_status_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetUnderwaterMode: {
+            set_underwater_mode_request_value_t s_request{};
+            s_request.has_mode = true;
+            s_request.mode = static_cast<underwater_mode_t>(s_slot.m_request.m_underwater_mode);
+            s_started = fci_device_endpoint_set_underwater_mode_async(
+                &m_endpoint, &s_request, s_remaining,
+                s_complete<set_underwater_mode_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kGetUnderwaterSettings: {
+            get_underwater_settings_request_value_t s_request{};
+            s_started = fci_device_endpoint_get_underwater_settings_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<get_underwater_settings_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kGetUnderwaterDefaultSettings: {
+            get_underwater_default_settings_request_value_t s_request{};
+            s_started = fci_device_endpoint_get_underwater_default_settings_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<get_underwater_default_settings_response_value_t>,
+                &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSetUnderwaterSettings: {
+            set_underwater_settings_request_value_t s_request{};
+            s_request.has_settings = true;
+            s_underwaterSettingsToWire(s_slot.m_request.m_underwater_settings, s_request.settings);
+            s_started = fci_device_endpoint_set_underwater_settings_async(
+                &m_endpoint, &s_request, s_remaining, s_complete<set_underwater_settings_response_value_t>,
                 &m_operations[s_index], nullptr);
             break;
         }
@@ -1849,6 +2165,9 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
     const OperationRequest& s_request, bool s_internal) noexcept {
     std::uint64_t s_request_id{};
     if (m_upgrade.active() && s_kind != RpcKind::kGetDeviceInfo &&
+        s_kind != RpcKind::kGetUnderwaterStatus && s_kind != RpcKind::kSetUnderwaterMode &&
+        s_kind != RpcKind::kGetUnderwaterSettings && s_kind != RpcKind::kSetUnderwaterSettings &&
+        s_kind != RpcKind::kGetUnderwaterDefaultSettings && s_kind != RpcKind::kZeroing &&
         s_kind != RpcKind::kGetDeviceSettings && s_kind != RpcKind::kEmergencyStop)
         return {FciEndpointStatus::kBusy, 0};
     {

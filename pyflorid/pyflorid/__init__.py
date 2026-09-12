@@ -4,22 +4,16 @@ except ImportError:
     from ._pyflorid import *
 
 __all__ = [
-    "Arm", "ArmState", "ArmControl",
-    "Duration", "ControllerMode",
-    "Version", "FirmwareType", "BusState", "MotorRegister",
-    "DeviceDescriptor", "DeviceSelector", "DeviceAccessStatus",
-    "DeviceCompatibility", "ArmConnectionState",
-    "discover_devices", "wait_for_device",
-    "DeviceInfo", "DeviceSettings", "TorqueFoldParameters", "JointLimits",
-    "ArmDiagnostics", "JointDiag", "GripperDiag",
-    "JointMIT", "JointPosVel", "JointVel", "JointPVT",
-    "CartesianPose", "CartesianVelocities",
-    "ActiveJointMIT", "ActiveJointPosVel", "ActiveJointVel", "ActiveJointPVT",
-    "ActiveCartesianPose", "ActiveCartesianVelocities",
-    "Model", "Gripper",
-    "Exception", "NetworkException", "ControlException",
-    "CommandException", "InvalidOperationException", "RealtimeException",
+    "Version", "FirmwareType", "DeviceInfo", "DeviceDescriptor", "DeviceSelector",
+    "DeviceAccessStatus", "DeviceCompatibility", "discover_devices", "wait_for_device",
+    "UnderwaterTeleop", "UnderwaterMode", "UnderwaterStatus",
+    "UnderwaterArmStatus", "UnderwaterArmCommand", "UnderwaterControlKind",
+    "UnderwaterCommandResult", "UnderwaterBusinessStatus", "UnderwaterRpcError",
+    "UnderwaterRpcResult", "UnderwaterSettings", "UnderwaterSettingsSnapshot",
+    "UnderwaterSettingsRpcResult", "UnderwaterSettingsBusinessStatus",
+    "UnderwaterSettingsSource", "UnderwaterFirmwareUpdateResult",
+    "FirmwareUpdateError", "FirmwareRebootMode", "FirmwareInstallState",
+    "FirmwareUploadState", "FirmwareUploadOptions", "FirmwareInstallOptions",
+    "FirmwareDeviceInfoResult", "FirmwareRebootResult", "FirmwareUploadProgress",
+    "FirmwareInstallResult", "BootStatus",
 ]
-
-if "MPCControlConfig" in globals():
-    __all__ += ["MPCControlConfig", "MPCControlStatus", "MPCControlState"]

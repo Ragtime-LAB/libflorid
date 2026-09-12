@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   linux:
-    name: Linux Sanitizer (io_uring ${{ matrix.io_uring }}, WLC ${{ matrix.wlc }}, MPC ${{ matrix.mpc }})
+    name: Linux Sanitizer (io_uring ${{ matrix.io_uring }}, WLC ${{ matrix.wlc }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -22,13 +22,8 @@ jobs:
         include:
           - io_uring: 'ON'
             wlc: 'ON'
-            mpc: 'OFF'
           - io_uring: 'OFF'
             wlc: 'OFF'
-            mpc: 'OFF'
-          - io_uring: 'OFF'
-            wlc: 'OFF'
-            mpc: 'ON'
     steps:
       - name: Check out libflorid
         uses: actions/checkout@v5
@@ -36,28 +31,19 @@ jobs:
       - name: Check out required submodules
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
-      - name: Check vendored MPC runtime integrity and size
-        if: matrix.mpc == 'ON'
-        run: python3 scripts/vendor_acados.py --check
+      - name: Apply Underwater protocol contract
+        run: git -C protocol apply ../protocol-patches/underwater-management.patch
 
-      - name: Check out paired WLC 0.7.0-dev / ABI 32 compiler
+      - name: Check out paired WLC 0.7.0-rc.1 / ABI 32 compiler
         if: matrix.wlc == 'ON'
         uses: actions/checkout@v5
         with:
           repository: starwey604/wlc
-          ref: 18b830af2cdd535bdfc6e2bbd3f147f9a9a4ce29
+          ref: 1ec38f103948a0ef7a33d8655a261eed63101350
           path: .tools/wlc
 
       - name: Install native dependencies
-        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev liburing-dev clang ninja-build python3-numpy
-
-      - name: Check generated MPC adapters
-        if: matrix.mpc == 'ON'
-        run: |
-          /usr/bin/python3 scripts/urdf2mpc.py --wrappers-only --outdir build/mpc-adapters
-          diff -u generated/WillowMPCTraits.hpp build/mpc-adapters/WillowMPCTraits.hpp
-          diff -u generated/c_generated_code/acados_solver_willow_mpc.h build/mpc-adapters/c_generated_code/acados_solver_willow_mpc.h
-          diff -u generated/c_generated_code/acados_solver_willow_mpc.c build/mpc-adapters/c_generated_code/acados_solver_willow_mpc.c
+        run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev liburing-dev clang ninja-build
 
       - name: Build paired compiler
         if: matrix.wlc == 'ON'
@@ -69,8 +55,7 @@ jobs:
           -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
           -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
           -DASTRIAL_IO_URING=${{ matrix.io_uring }}
-          -DBUILD_MPC=${{ matrix.mpc }} -DBUILD_SHARED_LIBS=OFF
-          -DBLASFEO_TARGET=GENERIC -DHPIPM_TARGET=GENERIC
+          -DBUILD_SHARED_LIBS=OFF
           -DLF_ENABLE_WLC=${{ matrix.wlc }}
           -DWLC_EXECUTABLE="${{ github.workspace }}/.tools/wlc/target/release/wlc"
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
@@ -78,8 +63,6 @@ jobs:
           "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -O1"
 
       - name: Build and test
-        env:
-          UBSAN_OPTIONS: ${{ matrix.mpc == 'ON' && 'halt_on_error=1:print_stacktrace=1' || '' }}
         run: |
           cmake --build build/host-sanitize --parallel 2
           ctest --test-dir build/host-sanitize --output-on-failure
@@ -89,24 +72,17 @@ jobs:
         run: cmake --build build/host-sanitize --target lf_check_wirelink
 
   windows:
-    name: Windows MSVC (${{ matrix.linkage }}, MPC ${{ matrix.mpc }})
+    name: Windows MSVC (${{ matrix.linkage }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - linkage: dynamic
-            mpc: 'OFF'
             configure_preset: windows-msvc-vcpkg
             release_preset: windows-release
             debug_preset: windows-debug
           - linkage: static
-            mpc: 'OFF'
-            configure_preset: windows-msvc-vcpkg-static
-            release_preset: windows-static-release
-            debug_preset: windows-static-debug
-          - linkage: static
-            mpc: 'ON'
             configure_preset: windows-msvc-vcpkg-static
             release_preset: windows-static-release
             debug_preset: windows-static-debug
@@ -117,6 +93,9 @@ jobs:
 
       - name: Check out required submodules
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+
+      - name: Apply Underwater protocol contract
+        run: git -C protocol apply ../protocol-patches/underwater-management.patch
 
       - name: Set up MSVC command line
         uses: ilammy/msvc-dev-cmd@v1
@@ -133,7 +112,6 @@ jobs:
       - name: Configure
         run: >-
           cmake --preset ${{ matrix.configure_preset }}
-          -DBUILD_MPC=${{ matrix.mpc }}
           -DLF_ENABLE_WLC=OFF -DWLC_EXECUTABLE=C:/wlc-must-not-run.exe
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 

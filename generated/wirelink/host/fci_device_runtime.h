@@ -15,8 +15,8 @@
 extern "C" {
 #endif
 
-#define FCI_DEVICE_SCHEMA_IDENTITY UINT64_C(0xC4D48A693E596565)
-#define FCI_DEVICE_BINDING_PROFILE_IDENTITY UINT64_C(0x86107756B707FC65)
+#define FCI_DEVICE_SCHEMA_IDENTITY UINT64_C(0x0DF8DBD11BDBCB26)
+#define FCI_DEVICE_BINDING_PROFILE_IDENTITY UINT64_C(0x9FBEFF639088520E)
 #define FCI_DEVICE_BINDING_PROFILE_VERSION 1U
 #define FCI_DEVICE_IDENTITY_ALGORITHM "fnv1a64-v1"
 
@@ -136,6 +136,13 @@ typedef struct {
   uint32_t generation;
   wl_latest_view_t lease;
 } fci_device_arm_diagnostics_latest_view_t;
+
+/* The typed value remains borrowed until the matching release. */
+typedef struct {
+  const underwater_arm_status_t *value;
+  uint32_t generation;
+  wl_latest_view_t lease;
+} fci_device_underwater_arm_status_latest_view_t;
 
 /* Borrowed input and nested bytes/strings expire when the callback returns.
  * Return zero on success; nonzero is an application error. Do not release RX
@@ -425,6 +432,120 @@ typedef struct {
   get_motor_feedback_response_value_t *response_value;
 #endif
 } fci_device_get_motor_feedback_rpc_t;
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
+} fci_device_get_underwater_default_settings_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_get_underwater_default_settings_rpc_request_handler_fn)(void *user_data,
+    const get_underwater_default_settings_request_t *request, const fci_device_get_underwater_default_settings_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_get_underwater_default_settings_handler_fn)(void *user_data,
+    const get_underwater_default_settings_request_value_t *request, get_underwater_default_settings_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_get_underwater_default_settings_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const get_underwater_default_settings_response_value_t *response);
+#endif
+typedef struct {
+  get_underwater_default_settings_request_t *request_scratch;
+  get_underwater_default_settings_response_t *response_scratch;
+  fci_device_get_underwater_default_settings_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_HAS_VALUE
+  fci_device_get_underwater_default_settings_handler_fn value_handler;
+  void *value_user_data;
+  get_underwater_default_settings_request_value_t *request_value;
+  get_underwater_default_settings_response_value_t *response_value;
+#endif
+} fci_device_get_underwater_default_settings_rpc_t;
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
+} fci_device_get_underwater_settings_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_get_underwater_settings_rpc_request_handler_fn)(void *user_data,
+    const get_underwater_settings_request_t *request, const fci_device_get_underwater_settings_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if GET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_get_underwater_settings_handler_fn)(void *user_data,
+    const get_underwater_settings_request_value_t *request, get_underwater_settings_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_get_underwater_settings_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const get_underwater_settings_response_value_t *response);
+#endif
+typedef struct {
+  get_underwater_settings_request_t *request_scratch;
+  get_underwater_settings_response_t *response_scratch;
+  fci_device_get_underwater_settings_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if GET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+  fci_device_get_underwater_settings_handler_fn value_handler;
+  void *value_user_data;
+  get_underwater_settings_request_value_t *request_value;
+  get_underwater_settings_response_value_t *response_value;
+#endif
+} fci_device_get_underwater_settings_rpc_t;
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
+} fci_device_get_underwater_status_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_get_underwater_status_rpc_request_handler_fn)(void *user_data,
+    const get_underwater_status_request_t *request, const fci_device_get_underwater_status_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if GET_UNDERWATER_STATUS_REQUEST_HAS_VALUE && GET_UNDERWATER_STATUS_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_get_underwater_status_handler_fn)(void *user_data,
+    const get_underwater_status_request_value_t *request, get_underwater_status_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_get_underwater_status_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const get_underwater_status_response_value_t *response);
+#endif
+typedef struct {
+  get_underwater_status_request_t *request_scratch;
+  get_underwater_status_response_t *response_scratch;
+  fci_device_get_underwater_status_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if GET_UNDERWATER_STATUS_REQUEST_HAS_VALUE && GET_UNDERWATER_STATUS_RESPONSE_HAS_VALUE
+  fci_device_get_underwater_status_handler_fn value_handler;
+  void *value_user_data;
+  get_underwater_status_request_value_t *request_value;
+  get_underwater_status_response_value_t *response_value;
+#endif
+} fci_device_get_underwater_status_rpc_t;
 /* Copy the request token for deferred replies. Its private state is not
  * application data; it authorizes only this runtime and execution lifetime. */
 typedef struct {
@@ -863,6 +984,82 @@ typedef struct {
     uint64_t incarnation;
     wl_rpc_server_request_t request;
   } private_state;
+} fci_device_set_underwater_mode_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_set_underwater_mode_rpc_request_handler_fn)(void *user_data,
+    const set_underwater_mode_request_t *request, const fci_device_set_underwater_mode_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if SET_UNDERWATER_MODE_REQUEST_HAS_VALUE && SET_UNDERWATER_MODE_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_set_underwater_mode_handler_fn)(void *user_data,
+    const set_underwater_mode_request_value_t *request, set_underwater_mode_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_set_underwater_mode_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const set_underwater_mode_response_value_t *response);
+#endif
+typedef struct {
+  set_underwater_mode_request_t *request_scratch;
+  set_underwater_mode_response_t *response_scratch;
+  fci_device_set_underwater_mode_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if SET_UNDERWATER_MODE_REQUEST_HAS_VALUE && SET_UNDERWATER_MODE_RESPONSE_HAS_VALUE
+  fci_device_set_underwater_mode_handler_fn value_handler;
+  void *value_user_data;
+  set_underwater_mode_request_value_t *request_value;
+  set_underwater_mode_response_value_t *response_value;
+#endif
+} fci_device_set_underwater_mode_rpc_t;
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
+} fci_device_set_underwater_settings_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_set_underwater_settings_rpc_request_handler_fn)(void *user_data,
+    const set_underwater_settings_request_t *request, const fci_device_set_underwater_settings_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if SET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && SET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_set_underwater_settings_handler_fn)(void *user_data,
+    const set_underwater_settings_request_value_t *request, set_underwater_settings_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_set_underwater_settings_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const set_underwater_settings_response_value_t *response);
+#endif
+typedef struct {
+  set_underwater_settings_request_t *request_scratch;
+  set_underwater_settings_response_t *response_scratch;
+  fci_device_set_underwater_settings_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if SET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && SET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+  fci_device_set_underwater_settings_handler_fn value_handler;
+  void *value_user_data;
+  set_underwater_settings_request_value_t *request_value;
+  set_underwater_settings_response_value_t *response_value;
+#endif
+} fci_device_set_underwater_settings_rpc_t;
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
 } fci_device_set_zero_request_token_t;
 
 /* Request fields are borrowed only for this callback. Nonzero return abandons
@@ -905,6 +1102,44 @@ typedef struct {
   void *user_data;
 } fci_device_start_upgrade_rpc_t;
 
+/* Copy the request token for deferred replies. Its private state is not
+ * application data; it authorizes only this runtime and execution lifetime. */
+typedef struct {
+  struct {
+    const void *owner;
+    uint64_t incarnation;
+    wl_rpc_server_request_t request;
+  } private_state;
+} fci_device_zeroing_request_token_t;
+
+/* Request fields are borrowed only for this callback. Nonzero return abandons
+ * execution locally; send a rejection explicitly to notify the caller. */
+typedef int32_t (*fci_device_zeroing_rpc_request_handler_fn)(void *user_data,
+    const zeroing_request_t *request, const fci_device_zeroing_request_token_t *token,
+    wl_delivery_t delivery);
+
+#if ZEROING_REQUEST_HAS_VALUE && ZEROING_RESPONSE_HAS_VALUE
+/* Ordinary immediate business handler: zero succeeds, nonzero rejects with
+ * that application code. response is initialized before the callback. */
+typedef int32_t (*fci_device_zeroing_handler_fn)(void *user_data,
+    const zeroing_request_value_t *request, zeroing_response_value_t *response);
+/* A response exists only on SUCCESS and lives through this callback. Assign
+ * *response to save an independent value. No call-slot release is required. */
+typedef void (*fci_device_zeroing_completion_fn)(void *user_data,
+    const wl_rpc_completion_t *result, const zeroing_response_value_t *response);
+#endif
+typedef struct {
+  zeroing_request_t *request_scratch;
+  zeroing_response_t *response_scratch;
+  fci_device_zeroing_rpc_request_handler_fn request_handler;
+  void *user_data;
+#if ZEROING_REQUEST_HAS_VALUE && ZEROING_RESPONSE_HAS_VALUE
+  fci_device_zeroing_handler_fn value_handler;
+  void *value_user_data;
+  zeroing_request_value_t *request_value;
+  zeroing_response_value_t *response_value;
+#endif
+} fci_device_zeroing_rpc_t;
 /* Shared by synchronous RPC encoders. Runtime APIs are owner-thread
  * operations and do not retain pointers to this scratch after return. */
 typedef union {
@@ -936,6 +1171,7 @@ typedef struct {
   wl_latest_t *arm_status_latest;
   wl_latest_t *motor_feedback_latest;
   wl_latest_t *arm_diagnostics_latest;
+  wl_latest_t *underwater_arm_status_latest;
   wl_rpc_client_t *rpc_client;
   wl_rpc_server_t *rpc_server;
   wl_rpc_peer_t rpc_peer;
@@ -952,6 +1188,9 @@ typedef struct {
   fci_device_get_device_info_rpc_t get_device_info;
   fci_device_get_device_settings_rpc_t get_device_settings;
   fci_device_get_motor_feedback_rpc_t get_motor_feedback;
+  fci_device_get_underwater_default_settings_rpc_t get_underwater_default_settings;
+  fci_device_get_underwater_settings_rpc_t get_underwater_settings;
+  fci_device_get_underwater_status_rpc_t get_underwater_status;
   fci_device_home_rpc_t home;
   fci_device_motor_register_read_rpc_t motor_register_read;
   fci_device_motor_register_write_rpc_t motor_register_write;
@@ -964,8 +1203,11 @@ typedef struct {
   fci_device_set_device_info_rpc_t set_device_info;
   fci_device_set_device_settings_rpc_t set_device_settings;
   fci_device_set_gripper_control_mode_rpc_t set_gripper_control_mode;
+  fci_device_set_underwater_mode_rpc_t set_underwater_mode;
+  fci_device_set_underwater_settings_rpc_t set_underwater_settings;
   fci_device_set_zero_rpc_t set_zero;
   fci_device_start_upgrade_rpc_t start_upgrade;
+  fci_device_zeroing_rpc_t zeroing;
 } fci_device_runtime_t;
 
 typedef void (*fci_device_runtime_result_fn)(void *user_data, const fci_device_runtime_result_t *result);
@@ -989,6 +1231,7 @@ typedef struct {
   uint32_t arm_status_latest_initial_generation;
   uint32_t motor_feedback_latest_initial_generation;
   uint32_t arm_diagnostics_latest_initial_generation;
+  uint32_t underwater_arm_status_latest_initial_generation;
   uint8_t rpc_client_enabled;
   uint16_t rpc_client_slot_count;
   uint16_t rpc_client_response_capacity;
@@ -1016,6 +1259,12 @@ typedef struct {
   void *get_device_settings_user_data;
   fci_device_get_motor_feedback_rpc_request_handler_fn get_motor_feedback_request_handler;
   void *get_motor_feedback_user_data;
+  fci_device_get_underwater_default_settings_rpc_request_handler_fn get_underwater_default_settings_request_handler;
+  void *get_underwater_default_settings_user_data;
+  fci_device_get_underwater_settings_rpc_request_handler_fn get_underwater_settings_request_handler;
+  void *get_underwater_settings_user_data;
+  fci_device_get_underwater_status_rpc_request_handler_fn get_underwater_status_request_handler;
+  void *get_underwater_status_user_data;
   fci_device_home_rpc_request_handler_fn home_request_handler;
   void *home_user_data;
   fci_device_motor_register_read_rpc_request_handler_fn motor_register_read_request_handler;
@@ -1040,10 +1289,16 @@ typedef struct {
   void *set_device_settings_user_data;
   fci_device_set_gripper_control_mode_rpc_request_handler_fn set_gripper_control_mode_request_handler;
   void *set_gripper_control_mode_user_data;
+  fci_device_set_underwater_mode_rpc_request_handler_fn set_underwater_mode_request_handler;
+  void *set_underwater_mode_user_data;
+  fci_device_set_underwater_settings_rpc_request_handler_fn set_underwater_settings_request_handler;
+  void *set_underwater_settings_user_data;
   fci_device_set_zero_rpc_request_handler_fn set_zero_request_handler;
   void *set_zero_user_data;
   fci_device_start_upgrade_rpc_request_handler_fn start_upgrade_request_handler;
   void *start_upgrade_user_data;
+  fci_device_zeroing_rpc_request_handler_fn zeroing_request_handler;
+  void *zeroing_user_data;
 } fci_device_runtime_config_t;
 
 #define FCI_DEVICE_RUNTIME_HAS_DEFAULT_STORAGE 1
@@ -1052,6 +1307,7 @@ typedef union {
   arm_status_t arm_status_latest;
   motor_feedback_t motor_feedback_latest;
   arm_diagnostics_t arm_diagnostics_latest;
+  underwater_arm_status_t underwater_arm_status_latest;
   wl_rpc_client_slot_t rpc_client_slot;
 } fci_device_runtime_default_storage_alignment_t;
 
@@ -1067,8 +1323,9 @@ typedef union {
    ((FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(arm_status_t) + (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
    ((FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(motor_feedback_t) + (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
    ((FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(arm_diagnostics_t) + (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
+   ((FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + ((sizeof(underwater_arm_status_t) + (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U)) * WL_LATEST_SLOT_COUNT)) + \
    ((FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_ALIGNMENT - 1U) + sizeof(wl_rpc_client_slot_t)) + \
-   226U)
+   623U)
 
 typedef union {
   fci_device_runtime_default_storage_alignment_t alignment;
@@ -1083,6 +1340,9 @@ typedef union { get_boot_status_response_t response; } fci_device_runtime_get_bo
 typedef union { get_device_info_response_t response; } fci_device_runtime_get_device_info_decode_detail_t;
 typedef union { get_device_settings_response_t response; } fci_device_runtime_get_device_settings_decode_detail_t;
 typedef union { get_motor_feedback_response_t response; } fci_device_runtime_get_motor_feedback_decode_detail_t;
+typedef union { get_underwater_default_settings_response_t response; } fci_device_runtime_get_underwater_default_settings_decode_detail_t;
+typedef union { get_underwater_settings_response_t response; } fci_device_runtime_get_underwater_settings_decode_detail_t;
+typedef union { get_underwater_status_response_t response; } fci_device_runtime_get_underwater_status_decode_detail_t;
 typedef union { home_response_t response; } fci_device_runtime_home_decode_detail_t;
 typedef union { motor_register_read_response_t response; } fci_device_runtime_motor_register_read_decode_detail_t;
 typedef union { motor_register_write_response_t response; } fci_device_runtime_motor_register_write_decode_detail_t;
@@ -1095,8 +1355,11 @@ typedef union { set_arm_mode_response_t response; } fci_device_runtime_set_arm_m
 typedef union { set_device_info_response_t response; } fci_device_runtime_set_device_info_decode_detail_t;
 typedef union { set_device_settings_response_t response; } fci_device_runtime_set_device_settings_decode_detail_t;
 typedef union { set_gripper_control_mode_response_t response; } fci_device_runtime_set_gripper_control_mode_decode_detail_t;
+typedef union { set_underwater_mode_response_t response; } fci_device_runtime_set_underwater_mode_decode_detail_t;
+typedef union { set_underwater_settings_response_t response; } fci_device_runtime_set_underwater_settings_decode_detail_t;
 typedef union { set_zero_response_t response; } fci_device_runtime_set_zero_decode_detail_t;
 typedef union { start_upgrade_response_t response; } fci_device_runtime_start_upgrade_decode_detail_t;
+typedef union { zeroing_response_t response; } fci_device_runtime_zeroing_decode_detail_t;
 typedef struct {
   size_t storage_size;
   size_t storage_alignment;
@@ -1112,6 +1375,7 @@ typedef struct {
   wl_latest_t arm_status_latest;
   wl_latest_t motor_feedback_latest;
   wl_latest_t arm_diagnostics_latest;
+  wl_latest_t underwater_arm_status_latest;
   /* One direct callback at a time; no payload is retained. */
   union {
     bulk_status_t bulk_status_direct_scratch;
@@ -1129,6 +1393,9 @@ typedef struct {
     fci_device_runtime_get_device_info_decode_detail_t get_device_info_scratch;
     fci_device_runtime_get_device_settings_decode_detail_t get_device_settings_scratch;
     fci_device_runtime_get_motor_feedback_decode_detail_t get_motor_feedback_scratch;
+    fci_device_runtime_get_underwater_default_settings_decode_detail_t get_underwater_default_settings_scratch;
+    fci_device_runtime_get_underwater_settings_decode_detail_t get_underwater_settings_scratch;
+    fci_device_runtime_get_underwater_status_decode_detail_t get_underwater_status_scratch;
     fci_device_runtime_home_decode_detail_t home_scratch;
     fci_device_runtime_motor_register_read_decode_detail_t motor_register_read_scratch;
     fci_device_runtime_motor_register_write_decode_detail_t motor_register_write_scratch;
@@ -1141,8 +1408,11 @@ typedef struct {
     fci_device_runtime_set_device_info_decode_detail_t set_device_info_scratch;
     fci_device_runtime_set_device_settings_decode_detail_t set_device_settings_scratch;
     fci_device_runtime_set_gripper_control_mode_decode_detail_t set_gripper_control_mode_scratch;
+    fci_device_runtime_set_underwater_mode_decode_detail_t set_underwater_mode_scratch;
+    fci_device_runtime_set_underwater_settings_decode_detail_t set_underwater_settings_scratch;
     fci_device_runtime_set_zero_decode_detail_t set_zero_scratch;
     fci_device_runtime_start_upgrade_decode_detail_t start_upgrade_scratch;
+    fci_device_runtime_zeroing_decode_detail_t zeroing_scratch;
   };
 } fci_device_runtime_instance_t;
 
@@ -1198,6 +1468,9 @@ int fci_device_motor_feedback_latest_release(fci_device_runtime_t *runtime, fci_
 
 int fci_device_arm_diagnostics_latest_acquire(fci_device_runtime_t *runtime, fci_device_arm_diagnostics_latest_view_t *out_view);
 int fci_device_arm_diagnostics_latest_release(fci_device_runtime_t *runtime, fci_device_arm_diagnostics_latest_view_t *view);
+
+int fci_device_underwater_arm_status_latest_acquire(fci_device_runtime_t *runtime, fci_device_underwater_arm_status_latest_view_t *out_view);
+int fci_device_underwater_arm_status_latest_release(fci_device_runtime_t *runtime, fci_device_underwater_arm_status_latest_view_t *view);
 
 /* Observe a nonzero point-to-point peer before non-RPC traffic is handled. */
 wl_rpc_err_t fci_device_runtime_peer_observe(wl_ctx_t *ctx, fci_device_runtime_t *runtime, uint64_t peer_session_id, wl_rpc_peer_observation_t *out_observation);
@@ -1463,6 +1736,102 @@ wl_err_t fci_device_get_motor_feedback_encode_submission(const void *request, ui
     uint8_t *out, size_t capacity, size_t *length);
 fci_device_runtime_result_t fci_device_get_motor_feedback_server_complete_value(fci_device_runtime_t *runtime,
     const fci_device_get_motor_feedback_request_token_t *token, const get_motor_feedback_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_get_underwater_default_settings_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const get_underwater_default_settings_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_get_underwater_default_settings_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_get_underwater_default_settings_client_decode(const wl_rpc_client_result_t *client,
+    get_underwater_default_settings_response_t *response);
+wl_rpc_err_t fci_device_get_underwater_default_settings_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_get_underwater_default_settings_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_default_settings_request_token_t *token, const get_underwater_default_settings_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_get_underwater_default_settings_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_default_settings_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_get_underwater_default_settings_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_default_settings_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_get_underwater_default_settings_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_get_underwater_default_settings_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_default_settings_request_token_t *token, const get_underwater_default_settings_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_get_underwater_settings_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const get_underwater_settings_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_get_underwater_settings_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_get_underwater_settings_client_decode(const wl_rpc_client_result_t *client,
+    get_underwater_settings_response_t *response);
+wl_rpc_err_t fci_device_get_underwater_settings_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_get_underwater_settings_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_settings_request_token_t *token, const get_underwater_settings_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_get_underwater_settings_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_settings_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_get_underwater_settings_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_settings_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if GET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && GET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_get_underwater_settings_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_get_underwater_settings_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_settings_request_token_t *token, const get_underwater_settings_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_get_underwater_status_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const get_underwater_status_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_get_underwater_status_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_get_underwater_status_client_decode(const wl_rpc_client_result_t *client,
+    get_underwater_status_response_t *response);
+wl_rpc_err_t fci_device_get_underwater_status_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_get_underwater_status_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_status_request_token_t *token, const get_underwater_status_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_get_underwater_status_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_status_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_get_underwater_status_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_status_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if GET_UNDERWATER_STATUS_REQUEST_HAS_VALUE && GET_UNDERWATER_STATUS_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_get_underwater_status_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_get_underwater_status_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_get_underwater_status_request_token_t *token, const get_underwater_status_response_value_t *response,
     wl_time_ms_t now_ms);
 #endif
 /* Advanced runtime integration. The default endpoint call API below hides
@@ -1840,6 +2209,70 @@ fci_device_runtime_result_t fci_device_set_gripper_control_mode_server_complete_
 #endif
 /* Advanced runtime integration. The default endpoint call API below hides
  * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_set_underwater_mode_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const set_underwater_mode_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_set_underwater_mode_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_set_underwater_mode_client_decode(const wl_rpc_client_result_t *client,
+    set_underwater_mode_response_t *response);
+wl_rpc_err_t fci_device_set_underwater_mode_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_set_underwater_mode_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_mode_request_token_t *token, const set_underwater_mode_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_set_underwater_mode_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_mode_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_set_underwater_mode_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_mode_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if SET_UNDERWATER_MODE_REQUEST_HAS_VALUE && SET_UNDERWATER_MODE_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_set_underwater_mode_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_set_underwater_mode_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_mode_request_token_t *token, const set_underwater_mode_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_set_underwater_settings_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const set_underwater_settings_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_set_underwater_settings_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_set_underwater_settings_client_decode(const wl_rpc_client_result_t *client,
+    set_underwater_settings_response_t *response);
+wl_rpc_err_t fci_device_set_underwater_settings_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_set_underwater_settings_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_settings_request_token_t *token, const set_underwater_settings_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_set_underwater_settings_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_settings_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_set_underwater_settings_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_settings_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if SET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE && SET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_set_underwater_settings_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_set_underwater_settings_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_set_underwater_settings_request_token_t *token, const set_underwater_settings_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
 fci_device_runtime_result_t fci_device_set_zero_client_start(wl_ctx_t *ctx,
     fci_device_runtime_t *runtime, const set_zero_request_t *request, uint32_t timeout_ms,
     wl_time_ms_t now_ms);
@@ -1891,6 +2324,38 @@ wl_rpc_err_t fci_device_start_upgrade_client_release(fci_device_runtime_t *runti
 fci_device_runtime_result_t fci_device_start_upgrade_server_complete(fci_device_runtime_t *runtime, const wl_rpc_server_request_t *server_request, const start_upgrade_response_t *response, wl_time_ms_t now_ms);
 fci_device_runtime_result_t fci_device_start_upgrade_server_reject(fci_device_runtime_t *runtime, const wl_rpc_server_request_t *server_request, int32_t application_status, const start_upgrade_response_t *response, wl_time_ms_t now_ms);
 
+/* Advanced runtime integration. The default endpoint call API below hides
+ * numeric correlation IDs. Managed metadata uses a separate 20-byte header. */
+fci_device_runtime_result_t fci_device_zeroing_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const zeroing_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms);
+wl_rpc_err_t fci_device_zeroing_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client);
+/* Response fields which borrow bytes remain valid until call release. */
+fci_device_runtime_result_t fci_device_zeroing_client_decode(const wl_rpc_client_result_t *client,
+    zeroing_response_t *response);
+wl_rpc_err_t fci_device_zeroing_client_release(fci_device_runtime_t *runtime, uint32_t operation_id);
+fci_device_runtime_result_t fci_device_zeroing_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_zeroing_request_token_t *token, const zeroing_response_t *response,
+    wl_time_ms_t now_ms);
+/* A nonzero business status is sent without a response body. */
+fci_device_runtime_result_t fci_device_zeroing_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_zeroing_request_token_t *token, int32_t application_status,
+    wl_time_ms_t now_ms);
+
+/* Advanced scheduling/diagnostics: inspect a token from this runtime incarnation.
+ * Not a liveness test: complete/reject still validate the pending reservation.
+ * Does not grant permission to reconstruct tokens or extend their lifetime. */
+wl_rpc_err_t fci_device_zeroing_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_zeroing_request_token_t *token, wl_rpc_server_request_t *out_request);
+#if ZEROING_REQUEST_HAS_VALUE && ZEROING_RESPONSE_HAS_VALUE
+/* Generator-owned snapshot/response helpers. Prefer endpoint operations. */
+wl_err_t fci_device_zeroing_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length);
+fci_device_runtime_result_t fci_device_zeroing_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_zeroing_request_token_t *token, const zeroing_response_value_t *response,
+    wl_time_ms_t now_ms);
+#endif
 /* Default endpoint assembly. Members named private_state are not application
  * API. Zero-initialize once, keep at a stable address, close before reuse.
  * All profile-selected messages must have finite one-frame bounds. */
@@ -1910,8 +2375,8 @@ fci_device_runtime_result_t fci_device_start_upgrade_server_reject(fci_device_ru
 #if FCI_DEVICE_ENDPOINT_RPC_CAPACITY < 1 || FCI_DEVICE_ENDPOINT_RPC_CAPACITY > 65535
 #error "endpoint RPC capacity must be 1..65535"
 #endif
-#define FCI_DEVICE_ENDPOINT_REQUEST_CAPACITY 226U
-#define FCI_DEVICE_ENDPOINT_RUNTIME_CAPACITY (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_CAPACITY + (FCI_DEVICE_ENDPOINT_RPC_CAPACITY - 1U) * (sizeof(wl_rpc_client_slot_t) + 226U))
+#define FCI_DEVICE_ENDPOINT_REQUEST_CAPACITY 500U
+#define FCI_DEVICE_ENDPOINT_RUNTIME_CAPACITY (FCI_DEVICE_RUNTIME_DEFAULT_STORAGE_CAPACITY + (FCI_DEVICE_ENDPOINT_RPC_CAPACITY - 1U) * (sizeof(wl_rpc_client_slot_t) + 623U))
 
 typedef struct {
   wl_config_t link;
@@ -1961,6 +2426,9 @@ typedef struct {
       struct { get_device_info_response_value_t response; } get_device_info;
       struct { get_device_settings_response_value_t response; } get_device_settings;
       struct { get_motor_feedback_response_value_t response; } get_motor_feedback;
+      struct { get_underwater_default_settings_response_value_t response; } get_underwater_default_settings;
+      struct { get_underwater_settings_response_value_t response; } get_underwater_settings;
+      struct { get_underwater_status_response_value_t response; } get_underwater_status;
       struct { home_response_value_t response; } home;
       struct { motor_register_read_response_value_t response; } motor_register_read;
       struct { motor_register_write_response_value_t response; } motor_register_write;
@@ -1972,7 +2440,10 @@ typedef struct {
       struct { set_device_info_response_value_t response; } set_device_info;
       struct { set_device_settings_response_value_t response; } set_device_settings;
       struct { set_gripper_control_mode_response_value_t response; } set_gripper_control_mode;
+      struct { set_underwater_mode_response_value_t response; } set_underwater_mode;
+      struct { set_underwater_settings_response_value_t response; } set_underwater_settings;
       struct { set_zero_response_value_t response; } set_zero;
+      struct { zeroing_response_value_t response; } zeroing;
     } values;
     uint8_t tx_payload[FCI_DEVICE_ENDPOINT_MAX_PAYLOAD];
     uint8_t tx_unit[FCI_DEVICE_ENDPOINT_UNIT_CAPACITY];
@@ -2086,6 +2557,9 @@ static inline wl_err_t fci_device_endpoint_init_config(
   if (runtime_config.get_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.get_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.get_motor_feedback_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_underwater_default_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_underwater_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.get_underwater_status_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.home_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.motor_register_read_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.motor_register_write_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
@@ -2098,8 +2572,11 @@ static inline wl_err_t fci_device_endpoint_init_config(
   if (runtime_config.set_device_info_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.set_device_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.set_gripper_control_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_underwater_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.set_underwater_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (runtime_config.start_upgrade_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (runtime_config.zeroing_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (endpoint->private_state.closing) return WL_ERR_REENTRANT;
   if ((runtime_config.rpc_client_enabled && runtime_config.rpc_client_slot_count > FCI_DEVICE_ENDPOINT_RPC_CAPACITY) ||
       (runtime_config.rpc_server_enabled && (runtime_config.rpc_server_pending_slot_count > FCI_DEVICE_ENDPOINT_RPC_CAPACITY ||
@@ -2337,6 +2814,25 @@ static inline wl_err_t fci_device_endpoint_read_arm_diagnostics(fci_device_endpo
 }
 
 /* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_device_send_result_t fci_device_endpoint_send_underwater_arm_status(fci_device_endpoint_t *endpoint, const underwater_arm_status_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_device_underwater_arm_status_send(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
+}
+
+/* Copy an owned value and release its lease internally. NO_DATA leaves out unchanged. */
+static inline wl_err_t fci_device_endpoint_read_underwater_arm_status(fci_device_endpoint_t *endpoint, underwater_arm_status_t *out) {
+  fci_device_underwater_arm_status_latest_view_t view;
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  int result;
+  if (out == NULL) return WL_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_ERR_NOT_INITIALIZED;
+  result = fci_device_underwater_arm_status_latest_acquire(runtime, &view);
+  if (result != WL_OK) return result;
+  *out = *view.value;
+  return fci_device_underwater_arm_status_latest_release(runtime, &view);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
 static inline fci_device_send_result_t fci_device_endpoint_send_joint_mit_command(fci_device_endpoint_t *endpoint, const joint_mit_command_t *message) {
   wl_time_ms_t now_ms = 0U;
   return fci_device_joint_mit_command_send(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
@@ -2421,6 +2917,12 @@ static inline fci_device_send_result_t fci_device_endpoint_send_bulk_abort(fci_d
   wl_time_ms_t now_ms = 0U;
   (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
   return fci_device_bulk_abort_send(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), message, WL_DELIVERY_RELIABLE, now_ms);
+}
+
+/* Delivery follows this binding. Use codec sends to override explicitly. */
+static inline fci_device_send_result_t fci_device_endpoint_send_underwater_arm_command(fci_device_endpoint_t *endpoint, const underwater_arm_command_t *message) {
+  wl_time_ms_t now_ms = 0U;
+  return fci_device_underwater_arm_command_send(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), message, WL_DELIVERY_UNRELIABLE, now_ms);
 }
 
 /* Generator internals: all services reuse one bounded completion scratch. */
@@ -3585,6 +4087,507 @@ static inline wl_rpc_completion_t fci_device_endpoint_get_motor_feedback_sync(fc
   endpoint->private_state.sync_waiting = true;
   error = fci_device_endpoint_get_motor_feedback_async(endpoint, request, timeout_ms,
       fci_device_endpoint_get_motor_feedback_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
+/* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_get_underwater_default_settings_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = get_underwater_default_settings_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.get_underwater_default_settings.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_get_underwater_default_settings_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_get_underwater_default_settings_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.get_underwater_default_settings.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_get_underwater_default_settings_submit_at(fci_device_endpoint_t *endpoint,
+    const get_underwater_default_settings_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_get_underwater_default_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_get_underwater_default_settings_prepare;
+  observer.notify = fci_device_endpoint_get_underwater_default_settings_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29992U, 29993U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_get_underwater_default_settings_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_default_settings_async(fci_device_endpoint_t *endpoint,
+    const get_underwater_default_settings_request_value_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_default_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_get_underwater_default_settings_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  get_underwater_default_settings_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const get_underwater_default_settings_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_get_underwater_default_settings_sync_state_t;
+
+static inline void fci_device_endpoint_get_underwater_default_settings_sync_done(void *context,
+    const wl_rpc_completion_t *result, const get_underwater_default_settings_response_value_t *response) {
+  fci_device_get_underwater_default_settings_sync_state_t *state = (fci_device_get_underwater_default_settings_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_default_settings_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_get_underwater_default_settings_sync_state_t *state = (fci_device_get_underwater_default_settings_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_get_underwater_default_settings_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_get_underwater_default_settings_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_get_underwater_default_settings_sync(fci_device_endpoint_t *endpoint,
+    const get_underwater_default_settings_request_value_t *request, get_underwater_default_settings_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_get_underwater_default_settings_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_get_underwater_default_settings_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_get_underwater_default_settings_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_get_underwater_default_settings_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
+/* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_get_underwater_settings_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = get_underwater_settings_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.get_underwater_settings.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_get_underwater_settings_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_get_underwater_settings_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.get_underwater_settings.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_get_underwater_settings_submit_at(fci_device_endpoint_t *endpoint,
+    const get_underwater_settings_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_get_underwater_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_get_underwater_settings_prepare;
+  observer.notify = fci_device_endpoint_get_underwater_settings_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29988U, 29989U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_get_underwater_settings_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_settings_async(fci_device_endpoint_t *endpoint,
+    const get_underwater_settings_request_value_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_get_underwater_settings_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  get_underwater_settings_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const get_underwater_settings_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_get_underwater_settings_sync_state_t;
+
+static inline void fci_device_endpoint_get_underwater_settings_sync_done(void *context,
+    const wl_rpc_completion_t *result, const get_underwater_settings_response_value_t *response) {
+  fci_device_get_underwater_settings_sync_state_t *state = (fci_device_get_underwater_settings_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_settings_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_get_underwater_settings_sync_state_t *state = (fci_device_get_underwater_settings_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_get_underwater_settings_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_get_underwater_settings_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_get_underwater_settings_sync(fci_device_endpoint_t *endpoint,
+    const get_underwater_settings_request_value_t *request, get_underwater_settings_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_get_underwater_settings_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_get_underwater_settings_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_get_underwater_settings_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_get_underwater_settings_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
+/* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_get_underwater_status_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = get_underwater_status_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.get_underwater_status.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_get_underwater_status_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_get_underwater_status_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.get_underwater_status.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_get_underwater_status_submit_at(fci_device_endpoint_t *endpoint,
+    const get_underwater_status_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_get_underwater_status_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_get_underwater_status_prepare;
+  observer.notify = fci_device_endpoint_get_underwater_status_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29984U, 29985U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_get_underwater_status_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_status_async(fci_device_endpoint_t *endpoint,
+    const get_underwater_status_request_value_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_status_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_get_underwater_status_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  get_underwater_status_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const get_underwater_status_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_get_underwater_status_sync_state_t;
+
+static inline void fci_device_endpoint_get_underwater_status_sync_done(void *context,
+    const wl_rpc_completion_t *result, const get_underwater_status_response_value_t *response) {
+  fci_device_get_underwater_status_sync_state_t *state = (fci_device_get_underwater_status_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_get_underwater_status_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_get_underwater_status_sync_state_t *state = (fci_device_get_underwater_status_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_get_underwater_status_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_get_underwater_status_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_get_underwater_status_sync(fci_device_endpoint_t *endpoint,
+    const get_underwater_status_request_value_t *request, get_underwater_status_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_get_underwater_status_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_get_underwater_status_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_get_underwater_status_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_get_underwater_status_sync_done, &state, &call);
   if (error == WL_OK) {
     while (!state.done) {
       wl_poll_hint_t hint;
@@ -5470,6 +6473,340 @@ static inline wl_rpc_completion_t fci_device_endpoint_set_gripper_control_mode_s
   return state.result;
 }
 /* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_set_underwater_mode_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = set_underwater_mode_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.set_underwater_mode.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_set_underwater_mode_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_set_underwater_mode_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.set_underwater_mode.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_set_underwater_mode_submit_at(fci_device_endpoint_t *endpoint,
+    const set_underwater_mode_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_set_underwater_mode_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_set_underwater_mode_prepare;
+  observer.notify = fci_device_endpoint_set_underwater_mode_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29986U, 29987U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_set_underwater_mode_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_set_underwater_mode_async(fci_device_endpoint_t *endpoint,
+    const set_underwater_mode_request_value_t *request, uint32_t timeout_ms,
+    fci_device_set_underwater_mode_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_set_underwater_mode_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  set_underwater_mode_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const set_underwater_mode_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_set_underwater_mode_sync_state_t;
+
+static inline void fci_device_endpoint_set_underwater_mode_sync_done(void *context,
+    const wl_rpc_completion_t *result, const set_underwater_mode_response_value_t *response) {
+  fci_device_set_underwater_mode_sync_state_t *state = (fci_device_set_underwater_mode_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_set_underwater_mode_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_set_underwater_mode_sync_state_t *state = (fci_device_set_underwater_mode_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_set_underwater_mode_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_set_underwater_mode_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_set_underwater_mode_sync(fci_device_endpoint_t *endpoint,
+    const set_underwater_mode_request_value_t *request, set_underwater_mode_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_set_underwater_mode_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_set_underwater_mode_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_set_underwater_mode_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_set_underwater_mode_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
+/* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_set_underwater_settings_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = set_underwater_settings_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.set_underwater_settings.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_set_underwater_settings_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_set_underwater_settings_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.set_underwater_settings.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_set_underwater_settings_submit_at(fci_device_endpoint_t *endpoint,
+    const set_underwater_settings_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_set_underwater_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_set_underwater_settings_prepare;
+  observer.notify = fci_device_endpoint_set_underwater_settings_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29990U, 29991U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_set_underwater_settings_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_set_underwater_settings_async(fci_device_endpoint_t *endpoint,
+    const set_underwater_settings_request_value_t *request, uint32_t timeout_ms,
+    fci_device_set_underwater_settings_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_set_underwater_settings_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  set_underwater_settings_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const set_underwater_settings_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_set_underwater_settings_sync_state_t;
+
+static inline void fci_device_endpoint_set_underwater_settings_sync_done(void *context,
+    const wl_rpc_completion_t *result, const set_underwater_settings_response_value_t *response) {
+  fci_device_set_underwater_settings_sync_state_t *state = (fci_device_set_underwater_settings_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_set_underwater_settings_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_set_underwater_settings_sync_state_t *state = (fci_device_set_underwater_settings_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_set_underwater_settings_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_set_underwater_settings_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_set_underwater_settings_sync(fci_device_endpoint_t *endpoint,
+    const set_underwater_settings_request_value_t *request, set_underwater_settings_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_set_underwater_settings_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_set_underwater_settings_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_set_underwater_settings_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_set_underwater_settings_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
+/* Generator internals: all services reuse one bounded completion scratch. */
 static inline void fci_device_endpoint_set_zero_prepare(void *context,
     const wl_rpc_client_result_t *client) {
   fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
@@ -5656,6 +6993,173 @@ static inline fci_device_runtime_result_t fci_device_endpoint_start_upgrade_comp
   return fci_device_start_upgrade_server_complete(fci_device_endpoint_runtime(endpoint), request, response, now_ms);
 }
 
+/* Generator internals: all services reuse one bounded completion scratch. */
+static inline void fci_device_endpoint_zeroing_prepare(void *context,
+    const wl_rpc_client_result_t *client) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  wl_rpc_completion_t *result = &endpoint->private_state.completion;
+  wl_rpc_async_completion(client, result);
+  if (result->status == WL_RPC_SUCCESS) {
+    if (client->response_length < 20U) {
+      result->status = WL_RPC_FAILED;
+      result->runtime_error = WL_RPC_ERR_MALFORMED_METADATA;
+      return;
+    }
+    result->codec_error = zeroing_response_value_decode(client->response_data + 20U,
+        client->response_length - 20U, &endpoint->private_state.values.zeroing.response);
+    if (result->codec_error != WL_CODEC_OK) result->status = WL_RPC_FAILED;
+  }
+}
+static inline void fci_device_endpoint_zeroing_notify(void *context,
+    wl_rpc_callback_t callback, void *user_data) {
+  fci_device_endpoint_t *endpoint = (fci_device_endpoint_t *)context;
+  ((fci_device_zeroing_completion_fn)callback)(user_data, &endpoint->private_state.completion,
+      endpoint->private_state.completion.status == WL_RPC_SUCCESS
+          ? &endpoint->private_state.values.zeroing.response : NULL);
+}
+
+/* Snapshot and accept a call; callback is delivered by step or orderly close.
+ * out_call is optional cancellation authority. Successful completion owns its
+ * fields; copy *response during the callback to save it. Never release a slot.
+ * No callback on failed admission; BUSY means local bounded capacity is full. */
+static inline wl_err_t fci_device_endpoint_zeroing_submit_at(fci_device_endpoint_t *endpoint,
+    const zeroing_request_value_t *request, uint32_t timeout_ms, wl_time_ms_t now_ms,
+    fci_device_zeroing_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_rpc_async_observer_t observer;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  observer.prepare = fci_device_endpoint_zeroing_prepare;
+  observer.notify = fci_device_endpoint_zeroing_notify;
+  observer.context = endpoint;
+  observer.callback = (wl_rpc_callback_t)callback;
+  observer.user_data = user_data;
+  return wl_rpc_async_submit(&endpoint->private_state.async, 29994U, 29995U,
+      WL_DELIVERY_RELIABLE, timeout_ms, now_ms, fci_device_zeroing_encode_submission, request,
+      &observer, out_call);
+}
+
+static inline wl_err_t fci_device_endpoint_zeroing_async(fci_device_endpoint_t *endpoint,
+    const zeroing_request_value_t *request, uint32_t timeout_ms,
+    fci_device_zeroing_completion_fn callback, void *user_data, wl_rpc_call_t *out_call) {
+  wl_time_ms_t now_ms;
+  int error;
+  if (endpoint == NULL || request == NULL || callback == NULL) return WL_ERR_INVALID_ARG;
+  if (endpoint->private_state.closing) return WL_ERR_NOT_INITIALIZED;
+  error = wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  return fci_device_endpoint_zeroing_submit_at(endpoint, request, timeout_ms, now_ms,
+      callback, user_data, out_call);
+}
+
+/* Internal stack completion; no large response temporary or borrowed fields. */
+typedef struct {
+  bool done;
+  wl_rpc_completion_t result;
+  zeroing_response_value_t *response;
+  fci_device_endpoint_t *endpoint;
+  const zeroing_request_value_t *request;
+  wl_rpc_sync_notify_fn notify;
+  void *notify_context;
+} fci_device_zeroing_sync_state_t;
+
+static inline void fci_device_endpoint_zeroing_sync_done(void *context,
+    const wl_rpc_completion_t *result, const zeroing_response_value_t *response) {
+  fci_device_zeroing_sync_state_t *state = (fci_device_zeroing_sync_state_t *)context;
+  state->result = *result;
+  if (response != NULL) *state->response = *response;
+  state->done = true;
+  if (state->notify != NULL) state->notify(state->notify_context, &state->result);
+}
+
+static inline wl_err_t fci_device_endpoint_zeroing_proxy_submit(void *context,
+    wl_time_ms_t deadline, wl_rpc_sync_notify_fn notify, void *notify_context,
+    wl_rpc_call_t *call) {
+  fci_device_zeroing_sync_state_t *state = (fci_device_zeroing_sync_state_t *)context;
+  wl_time_ms_t now_ms;
+  int error = wl_endpoint_now(fci_device_endpoint_handle(state->endpoint), &now_ms);
+  if (error != WL_OK) return error;
+  const uint32_t remaining = deadline - now_ms;
+  if (remaining == 0U || remaining > INT32_MAX) return WL_ERR_TIMEOUT;
+  state->notify = notify;
+  state->notify_context = notify_context;
+  return fci_device_endpoint_zeroing_submit_at(state->endpoint, state->request, remaining, now_ms,
+      fci_device_endpoint_zeroing_sync_done, state, call);
+}
+
+/* Platform call: use the installed waiter on the owner thread, or the bound
+ * executor's proxy from business threads. Reuses async deadlines/completion;
+ * never call from the same owner's callbacks. Response changes only on SUCCESS. Admission
+ * and platform failures use local_error, not business rejection/transport_error.
+ * On return there is no remaining callback referring to this function's stack. */
+static inline wl_rpc_completion_t fci_device_endpoint_zeroing_sync(fci_device_endpoint_t *endpoint,
+    const zeroing_request_value_t *request, zeroing_response_value_t *response, uint32_t timeout_ms) {
+  fci_device_zeroing_sync_state_t state;
+  wl_rpc_call_t call;
+  wl_waiter_t waiter;
+  const wl_waiter_t *platform;
+  const wl_rpc_executor_t *executor;
+  wl_err_t error;
+  memset(&state, 0, sizeof(state));
+  state.result.status = WL_RPC_FAILED;
+  state.response = response;
+  state.endpoint = endpoint;
+  state.request = request;
+  if (endpoint == NULL || request == NULL || response == NULL) {
+    state.result.local_error = WL_ERR_INVALID_ARG;
+    return state.result;
+  }
+  /* The binding is immutable while callers run. Do not inspect mutable owner
+   * state on a proxy caller thread, including during executor shutdown. */
+  executor = wl_endpoint_rpc_executor(fci_device_endpoint_handle(endpoint));
+  if (executor != NULL) {
+    const wl_rpc_sync_call_t proxy = {&state, fci_device_endpoint_zeroing_proxy_submit};
+    return executor->invoke(executor->context, &proxy, timeout_ms);
+  }
+  if (endpoint->private_state.stepping || endpoint->private_state.closing ||
+      endpoint->private_state.sync_waiting) {
+    state.result.local_error = WL_ERR_REENTRANT;
+    return state.result;
+  }
+  if (wl_endpoint_link(fci_device_endpoint_handle(endpoint)) == NULL) {
+    state.result.local_error = WL_ERR_NOT_INITIALIZED;
+    return state.result;
+  }
+  platform = wl_endpoint_waiter(fci_device_endpoint_handle(endpoint));
+  if (platform == NULL) {
+    state.result.local_error = WL_ERR_NOT_SUPPORTED;
+    return state.result;
+  }
+  waiter = *platform;
+  endpoint->private_state.sync_waiting = true;
+  error = fci_device_endpoint_zeroing_async(endpoint, request, timeout_ms,
+      fci_device_endpoint_zeroing_sync_done, &state, &call);
+  if (error == WL_OK) {
+    while (!state.done) {
+      wl_poll_hint_t hint;
+      error = fci_device_endpoint_step(endpoint);
+      if (state.done || error != WL_OK) break;
+      error = wl_endpoint_get_hint(fci_device_endpoint_handle(endpoint), &hint);
+      if (error != WL_OK) break;
+      if (hint.work_pending || hint.next_deadline_ms == 0U) continue;
+      error = waiter.wait(waiter.user_data, hint.next_deadline_ms);
+      if (error == WL_ERR_NO_DATA) error = WL_OK;
+      if (error != WL_OK) break;
+    }
+    if (!state.done) {
+      /* The accepted handle is still live. Shared notification machinery
+       * detaches this stack context without closing unrelated calls. */
+      endpoint->private_state.stepping = true;
+      (void)wl_rpc_async_cancel_complete(&endpoint->private_state.async, &call);
+      endpoint->private_state.stepping = false;
+      state.result.status = error == WL_ERR_CANCELLED ? WL_RPC_CANCELLED : WL_RPC_FAILED;
+      state.result.local_error = error;
+    }
+  } else {
+    state.result.local_error = error;
+  }
+  endpoint->private_state.sync_waiting = false;
+  return state.result;
+}
 #ifdef __cplusplus
 }
 #endif

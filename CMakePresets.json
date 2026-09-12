@@ -16,7 +16,6 @@
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "BUILD_TESTS": "ON",
         "BUILD_EXAMPLES": "ON",
-        "BUILD_MPC": "OFF",
         "ASTRIAL_IO_URING": "OFF"
       }
     },

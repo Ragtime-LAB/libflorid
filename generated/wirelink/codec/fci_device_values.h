@@ -159,6 +159,38 @@ typedef int32_t upgrade_bulk_status_code_t;
 #define UPGRADE_BULK_STATUS_ABORTED INT32_C(7)
 #define UPGRADE_BULK_STATUS_TIMED_OUT INT32_C(8)
 
+typedef int32_t underwater_mode_t;
+#define UNDERWATER_MODE_DAMP INT32_C(0)
+#define UNDERWATER_MODE_GRAVITY INT32_C(1)
+#define UNDERWATER_MODE_TELEOP INT32_C(2)
+#define UNDERWATER_MODE_CONTROL INT32_C(3)
+#define UNDERWATER_MODE_ZEROING INT32_C(4)
+#define UNDERWATER_MODE_RETRACT INT32_C(5)
+
+typedef int32_t underwater_result_t;
+#define UNDERWATER_RESULT_OK INT32_C(0)
+#define UNDERWATER_RESULT_INVALID_MODE INT32_C(1)
+#define UNDERWATER_RESULT_INVALID_STATE INT32_C(2)
+#define UNDERWATER_RESULT_BUSY INT32_C(3)
+#define UNDERWATER_RESULT_REJECTED INT32_C(4)
+#define UNDERWATER_RESULT_INTERNAL_ERROR INT32_C(5)
+
+typedef int32_t underwater_settings_result_t;
+#define UNDERWATER_SETTINGS_OK INT32_C(0)
+#define UNDERWATER_SETTINGS_BUSY INT32_C(1)
+#define UNDERWATER_SETTINGS_STORAGE_FAILED INT32_C(2)
+#define UNDERWATER_SETTINGS_INTERNAL_ERROR INT32_C(3)
+
+typedef int32_t underwater_settings_source_t;
+#define UNDERWATER_SETTINGS_SOURCE_DEFAULTS INT32_C(0)
+#define UNDERWATER_SETTINGS_SOURCE_STORED INT32_C(1)
+#define UNDERWATER_SETTINGS_SOURCE_CORRUPT INT32_C(2)
+#define UNDERWATER_SETTINGS_SOURCE_STORAGE_ERROR INT32_C(3)
+
+typedef int32_t underwater_control_kind_t;
+#define UNDERWATER_CONTROL_MIT INT32_C(1)
+#define UNDERWATER_CONTROL_MIT_WITH_GRAVITY INT32_C(2)
+
 /* Self-owning business values. Assignment copies all data; no destroy is needed.
  * String lengths are bytes (embedded NUL is allowed); data[length] is a
  * convenience terminator after clear/decode/from_view, not part of the wire.
@@ -1190,6 +1222,333 @@ size_t reboot_response_value_encoded_size(const reboot_response_value_t *value);
 wl_codec_status_t reboot_response_value_encode(const reboot_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
 wl_codec_status_t reboot_response_value_decode(const uint8_t *input, size_t length, reboot_response_value_t *out);
 
+#define UNDERWATER_STATUS_HAS_VALUE 1
+typedef struct {
+  bool has_mode;
+  underwater_mode_t mode;
+  bool has_uptime_ms;
+  uint32_t uptime_ms;
+  bool has_enabling_arms;
+  uint8_t enabling_arms;
+  bool has_gravity_arms;
+  uint8_t gravity_arms;
+  bool has_master_available_mask;
+  uint8_t master_available_mask;
+  bool has_slave_available_mask;
+  uint8_t slave_available_mask;
+  bool has_master_enabled_mask;
+  uint8_t master_enabled_mask;
+  bool has_slave_enabled_mask;
+  uint8_t slave_enabled_mask;
+  bool has_master_disable_pending_mask;
+  uint8_t master_disable_pending_mask;
+  bool has_slave_disable_pending_mask;
+  uint8_t slave_disable_pending_mask;
+  bool has_upgrading;
+  bool upgrading;
+  bool has_reason;
+  struct { size_t length; char data[96]; } reason;
+  bool has_master_disabled_mask;
+  uint8_t master_disabled_mask;
+  bool has_slave_disabled_mask;
+  uint8_t slave_disabled_mask;
+  bool has_control_session;
+  uint64_t control_session;
+} underwater_status_value_t;
+#define UNDERWATER_STATUS_VALUE_SIZE (sizeof(underwater_status_value_t))
+void underwater_status_value_clear(underwater_status_value_t *value);
+size_t underwater_status_value_encoded_size(const underwater_status_value_t *value);
+wl_codec_status_t underwater_status_value_encode(const underwater_status_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t underwater_status_value_decode(const uint8_t *input, size_t length, underwater_status_value_t *out);
+
+#define UNDERWATER_SETTINGS_HAS_VALUE 1
+typedef struct {
+  bool has_angle_scale;
+  float angle_scale[5];
+  bool has_angle_offset_rad;
+  float angle_offset_rad[5];
+  bool has_kp;
+  float kp[5];
+  bool has_kd;
+  float kd[5];
+  bool has_gravity_scale;
+  float gravity_scale[8];
+  bool has_friction_coulomb_positive_nm;
+  float friction_coulomb_positive_nm[10];
+  bool has_friction_coulomb_negative_nm;
+  float friction_coulomb_negative_nm[10];
+  bool has_friction_viscous_nm_per_rad_s;
+  float friction_viscous_nm_per_rad_s[10];
+  bool has_friction_deadband_rad_s;
+  float friction_deadband_rad_s[10];
+  bool has_friction_transition_rad_s;
+  float friction_transition_rad_s[10];
+  bool has_friction_filter_time_constant_s;
+  float friction_filter_time_constant_s[10];
+  bool has_force_gain;
+  float force_gain[5];
+  bool has_force_low_gain;
+  float force_low_gain[5];
+  bool has_force_low_load_nm;
+  float force_low_load_nm;
+  bool has_force_high_load_nm;
+  float force_high_load_nm;
+  bool has_force_velocity_filter_s;
+  float force_velocity_filter_s[5];
+  bool has_force_load_filter_s;
+  float force_load_filter_s[5];
+  bool has_buzzer_alarm_enabled;
+  bool buzzer_alarm_enabled;
+} underwater_settings_value_t;
+#define UNDERWATER_SETTINGS_VALUE_SIZE (sizeof(underwater_settings_value_t))
+void underwater_settings_value_clear(underwater_settings_value_t *value);
+size_t underwater_settings_value_encoded_size(const underwater_settings_value_t *value);
+wl_codec_status_t underwater_settings_value_encode(const underwater_settings_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t underwater_settings_value_decode(const uint8_t *input, size_t length, underwater_settings_value_t *out);
+
+#define UNDERWATER_SETTINGS_SNAPSHOT_HAS_VALUE 1
+typedef struct {
+  bool has_settings;
+  underwater_settings_value_t settings;
+  bool has_revision;
+  uint32_t revision;
+  bool has_source;
+  underwater_settings_source_t source;
+  bool has_storage_error;
+  int32_t storage_error;
+} underwater_settings_snapshot_value_t;
+#define UNDERWATER_SETTINGS_SNAPSHOT_VALUE_SIZE (sizeof(underwater_settings_snapshot_value_t))
+void underwater_settings_snapshot_value_clear(underwater_settings_snapshot_value_t *value);
+size_t underwater_settings_snapshot_value_encoded_size(const underwater_settings_snapshot_value_t *value);
+wl_codec_status_t underwater_settings_snapshot_value_encode(const underwater_settings_snapshot_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t underwater_settings_snapshot_value_decode(const uint8_t *input, size_t length, underwater_settings_snapshot_value_t *out);
+
+#define UNDERWATER_ARM_STATUS_HAS_VALUE 1
+typedef struct {
+  bool has_q;
+  float q[10];
+  bool has_dq;
+  float dq[10];
+  bool has_tau;
+  float tau[10];
+  bool has_motor_info;
+  uint32_t motor_info[10];
+  bool has_feedback_age_ms;
+  uint32_t feedback_age_ms[10];
+  bool has_fresh_mask;
+  uint16_t fresh_mask;
+  bool has_enabled_mask;
+  uint16_t enabled_mask;
+  bool has_available_mask;
+  uint16_t available_mask;
+  bool has_mode;
+  underwater_mode_t mode;
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_timestamp_us;
+  uint64_t timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+  bool has_applied_command_sequence;
+  uint32_t applied_command_sequence;
+  bool has_last_sdk_timestamp_us;
+  uint64_t last_sdk_timestamp_us;
+  bool has_applied_mask;
+  uint16_t applied_mask;
+  bool has_command_received;
+  bool command_received;
+  bool has_control_stop_reason;
+  uint8_t control_stop_reason;
+  bool has_commands_received;
+  uint32_t commands_received;
+  bool has_commands_overwritten;
+  uint32_t commands_overwritten;
+  bool has_commands_rejected;
+  uint32_t commands_rejected;
+  bool has_command_reject_reason;
+  uint8_t command_reject_reason;
+} underwater_arm_status_value_t;
+#define UNDERWATER_ARM_STATUS_VALUE_SIZE (sizeof(underwater_arm_status_value_t))
+void underwater_arm_status_value_clear(underwater_arm_status_value_t *value);
+size_t underwater_arm_status_value_encoded_size(const underwater_arm_status_value_t *value);
+wl_codec_status_t underwater_arm_status_value_encode(const underwater_arm_status_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t underwater_arm_status_value_decode(const uint8_t *input, size_t length, underwater_arm_status_value_t *out);
+
+#define UNDERWATER_ARM_COMMAND_HAS_VALUE 1
+typedef struct {
+  bool has_q;
+  float q[10];
+  bool has_dq;
+  float dq[10];
+  bool has_kp;
+  float kp[10];
+  bool has_kd;
+  float kd[10];
+  bool has_tau;
+  float tau[10];
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_sdk_timestamp_us;
+  uint64_t sdk_timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+} underwater_arm_command_value_t;
+#define UNDERWATER_ARM_COMMAND_VALUE_SIZE (sizeof(underwater_arm_command_value_t))
+void underwater_arm_command_value_clear(underwater_arm_command_value_t *value);
+size_t underwater_arm_command_value_encoded_size(const underwater_arm_command_value_t *value);
+wl_codec_status_t underwater_arm_command_value_encode(const underwater_arm_command_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t underwater_arm_command_value_decode(const uint8_t *input, size_t length, underwater_arm_command_value_t *out);
+
+#define GET_UNDERWATER_STATUS_REQUEST_HAS_VALUE 1
+typedef struct {
+  uint8_t _empty;
+} get_underwater_status_request_value_t;
+#define GET_UNDERWATER_STATUS_REQUEST_VALUE_SIZE (sizeof(get_underwater_status_request_value_t))
+void get_underwater_status_request_value_clear(get_underwater_status_request_value_t *value);
+size_t get_underwater_status_request_value_encoded_size(const get_underwater_status_request_value_t *value);
+wl_codec_status_t get_underwater_status_request_value_encode(const get_underwater_status_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_status_request_value_decode(const uint8_t *input, size_t length, get_underwater_status_request_value_t *out);
+
+#define GET_UNDERWATER_STATUS_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_value_t info;
+} get_underwater_status_response_value_t;
+#define GET_UNDERWATER_STATUS_RESPONSE_VALUE_SIZE (sizeof(get_underwater_status_response_value_t))
+void get_underwater_status_response_value_clear(get_underwater_status_response_value_t *value);
+size_t get_underwater_status_response_value_encoded_size(const get_underwater_status_response_value_t *value);
+wl_codec_status_t get_underwater_status_response_value_encode(const get_underwater_status_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_status_response_value_decode(const uint8_t *input, size_t length, get_underwater_status_response_value_t *out);
+
+#define SET_UNDERWATER_MODE_REQUEST_HAS_VALUE 1
+typedef struct {
+  bool has_mode;
+  underwater_mode_t mode;
+} set_underwater_mode_request_value_t;
+#define SET_UNDERWATER_MODE_REQUEST_VALUE_SIZE (sizeof(set_underwater_mode_request_value_t))
+void set_underwater_mode_request_value_clear(set_underwater_mode_request_value_t *value);
+size_t set_underwater_mode_request_value_encoded_size(const set_underwater_mode_request_value_t *value);
+wl_codec_status_t set_underwater_mode_request_value_encode(const set_underwater_mode_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t set_underwater_mode_request_value_decode(const uint8_t *input, size_t length, set_underwater_mode_request_value_t *out);
+
+#define SET_UNDERWATER_MODE_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_value_t info;
+} set_underwater_mode_response_value_t;
+#define SET_UNDERWATER_MODE_RESPONSE_VALUE_SIZE (sizeof(set_underwater_mode_response_value_t))
+void set_underwater_mode_response_value_clear(set_underwater_mode_response_value_t *value);
+size_t set_underwater_mode_response_value_encoded_size(const set_underwater_mode_response_value_t *value);
+wl_codec_status_t set_underwater_mode_response_value_encode(const set_underwater_mode_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t set_underwater_mode_response_value_decode(const uint8_t *input, size_t length, set_underwater_mode_response_value_t *out);
+
+#define GET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE 1
+typedef struct {
+  uint8_t _empty;
+} get_underwater_settings_request_value_t;
+#define GET_UNDERWATER_SETTINGS_REQUEST_VALUE_SIZE (sizeof(get_underwater_settings_request_value_t))
+void get_underwater_settings_request_value_clear(get_underwater_settings_request_value_t *value);
+size_t get_underwater_settings_request_value_encoded_size(const get_underwater_settings_request_value_t *value);
+wl_codec_status_t get_underwater_settings_request_value_encode(const get_underwater_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_settings_request_value_decode(const uint8_t *input, size_t length, get_underwater_settings_request_value_t *out);
+
+#define GET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_value_t snapshot;
+  bool has_reason;
+  struct { size_t length; char data[96]; } reason;
+} get_underwater_settings_response_value_t;
+#define GET_UNDERWATER_SETTINGS_RESPONSE_VALUE_SIZE (sizeof(get_underwater_settings_response_value_t))
+void get_underwater_settings_response_value_clear(get_underwater_settings_response_value_t *value);
+size_t get_underwater_settings_response_value_encoded_size(const get_underwater_settings_response_value_t *value);
+wl_codec_status_t get_underwater_settings_response_value_encode(const get_underwater_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_settings_response_value_decode(const uint8_t *input, size_t length, get_underwater_settings_response_value_t *out);
+
+#define SET_UNDERWATER_SETTINGS_REQUEST_HAS_VALUE 1
+typedef struct {
+  bool has_settings;
+  underwater_settings_value_t settings;
+} set_underwater_settings_request_value_t;
+#define SET_UNDERWATER_SETTINGS_REQUEST_VALUE_SIZE (sizeof(set_underwater_settings_request_value_t))
+void set_underwater_settings_request_value_clear(set_underwater_settings_request_value_t *value);
+size_t set_underwater_settings_request_value_encoded_size(const set_underwater_settings_request_value_t *value);
+wl_codec_status_t set_underwater_settings_request_value_encode(const set_underwater_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t set_underwater_settings_request_value_decode(const uint8_t *input, size_t length, set_underwater_settings_request_value_t *out);
+
+#define SET_UNDERWATER_SETTINGS_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_value_t snapshot;
+  bool has_reason;
+  struct { size_t length; char data[96]; } reason;
+} set_underwater_settings_response_value_t;
+#define SET_UNDERWATER_SETTINGS_RESPONSE_VALUE_SIZE (sizeof(set_underwater_settings_response_value_t))
+void set_underwater_settings_response_value_clear(set_underwater_settings_response_value_t *value);
+size_t set_underwater_settings_response_value_encoded_size(const set_underwater_settings_response_value_t *value);
+wl_codec_status_t set_underwater_settings_response_value_encode(const set_underwater_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t set_underwater_settings_response_value_decode(const uint8_t *input, size_t length, set_underwater_settings_response_value_t *out);
+
+#define GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_HAS_VALUE 1
+typedef struct {
+  uint8_t _empty;
+} get_underwater_default_settings_request_value_t;
+#define GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_VALUE_SIZE (sizeof(get_underwater_default_settings_request_value_t))
+void get_underwater_default_settings_request_value_clear(get_underwater_default_settings_request_value_t *value);
+size_t get_underwater_default_settings_request_value_encoded_size(const get_underwater_default_settings_request_value_t *value);
+wl_codec_status_t get_underwater_default_settings_request_value_encode(const get_underwater_default_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_default_settings_request_value_decode(const uint8_t *input, size_t length, get_underwater_default_settings_request_value_t *out);
+
+#define GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_settings_result_t result;
+  bool has_snapshot;
+  underwater_settings_snapshot_value_t snapshot;
+  bool has_reason;
+  struct { size_t length; char data[96]; } reason;
+} get_underwater_default_settings_response_value_t;
+#define GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_VALUE_SIZE (sizeof(get_underwater_default_settings_response_value_t))
+void get_underwater_default_settings_response_value_clear(get_underwater_default_settings_response_value_t *value);
+size_t get_underwater_default_settings_response_value_encoded_size(const get_underwater_default_settings_response_value_t *value);
+wl_codec_status_t get_underwater_default_settings_response_value_encode(const get_underwater_default_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t get_underwater_default_settings_response_value_decode(const uint8_t *input, size_t length, get_underwater_default_settings_response_value_t *out);
+
+#define ZEROING_REQUEST_HAS_VALUE 1
+typedef struct {
+  uint8_t _empty;
+} zeroing_request_value_t;
+#define ZEROING_REQUEST_VALUE_SIZE (sizeof(zeroing_request_value_t))
+void zeroing_request_value_clear(zeroing_request_value_t *value);
+size_t zeroing_request_value_encoded_size(const zeroing_request_value_t *value);
+wl_codec_status_t zeroing_request_value_encode(const zeroing_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t zeroing_request_value_decode(const uint8_t *input, size_t length, zeroing_request_value_t *out);
+
+#define ZEROING_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  underwater_result_t result;
+  bool has_info;
+  underwater_status_value_t info;
+} zeroing_response_value_t;
+#define ZEROING_RESPONSE_VALUE_SIZE (sizeof(zeroing_response_value_t))
+void zeroing_response_value_clear(zeroing_response_value_t *value);
+size_t zeroing_response_value_encoded_size(const zeroing_response_value_t *value);
+wl_codec_status_t zeroing_response_value_encode(const zeroing_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t zeroing_response_value_decode(const uint8_t *input, size_t length, zeroing_response_value_t *out);
+
 #define SEMANTIC_VERSION_MESSAGE_ID 20737U
 #define SEMANTIC_VERSION_HAS_MAX_ENCODED_SIZE 1
 #define SEMANTIC_VERSION_MAX_ENCODED_SIZE UINT64_C(18)
@@ -1391,6 +1750,57 @@ wl_codec_status_t reboot_response_value_decode(const uint8_t *input, size_t leng
 #define REBOOT_RESPONSE_MESSAGE_ID 28933U
 #define REBOOT_RESPONSE_HAS_MAX_ENCODED_SIZE 1
 #define REBOOT_RESPONSE_MAX_ENCODED_SIZE UINT64_C(18)
+#define UNDERWATER_STATUS_MESSAGE_ID 29968U
+#define UNDERWATER_STATUS_HAS_MAX_ENCODED_SIZE 1
+#define UNDERWATER_STATUS_MAX_ENCODED_SIZE UINT64_C(149)
+#define UNDERWATER_SETTINGS_MESSAGE_ID 29969U
+#define UNDERWATER_SETTINGS_HAS_MAX_ENCODED_SIZE 1
+#define UNDERWATER_SETTINGS_MAX_ENCODED_SIZE UINT64_C(477)
+#define UNDERWATER_SETTINGS_SNAPSHOT_MESSAGE_ID 29970U
+#define UNDERWATER_SETTINGS_SNAPSHOT_HAS_MAX_ENCODED_SIZE 1
+#define UNDERWATER_SETTINGS_SNAPSHOT_MAX_ENCODED_SIZE UINT64_C(497)
+#define UNDERWATER_ARM_STATUS_MESSAGE_ID 29971U
+#define UNDERWATER_ARM_STATUS_HAS_MAX_ENCODED_SIZE 1
+#define UNDERWATER_ARM_STATUS_MAX_ENCODED_SIZE UINT64_C(306)
+#define UNDERWATER_ARM_COMMAND_MESSAGE_ID 29972U
+#define UNDERWATER_ARM_COMMAND_HAS_MAX_ENCODED_SIZE 1
+#define UNDERWATER_ARM_COMMAND_MAX_ENCODED_SIZE UINT64_C(239)
+#define GET_UNDERWATER_STATUS_REQUEST_MESSAGE_ID 29984U
+#define GET_UNDERWATER_STATUS_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_STATUS_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
+#define GET_UNDERWATER_STATUS_RESPONSE_MESSAGE_ID 29985U
+#define GET_UNDERWATER_STATUS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_STATUS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(158)
+#define SET_UNDERWATER_MODE_REQUEST_MESSAGE_ID 29986U
+#define SET_UNDERWATER_MODE_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define SET_UNDERWATER_MODE_REQUEST_MAX_ENCODED_SIZE UINT64_C(6)
+#define SET_UNDERWATER_MODE_RESPONSE_MESSAGE_ID 29987U
+#define SET_UNDERWATER_MODE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define SET_UNDERWATER_MODE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(158)
+#define GET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID 29988U
+#define GET_UNDERWATER_SETTINGS_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
+#define GET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID 29989U
+#define GET_UNDERWATER_SETTINGS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(603)
+#define SET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID 29990U
+#define SET_UNDERWATER_SETTINGS_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define SET_UNDERWATER_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(480)
+#define SET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID 29991U
+#define SET_UNDERWATER_SETTINGS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define SET_UNDERWATER_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(603)
+#define GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_MESSAGE_ID 29992U
+#define GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
+#define GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_MESSAGE_ID 29993U
+#define GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_MAX_ENCODED_SIZE UINT64_C(603)
+#define ZEROING_REQUEST_MESSAGE_ID 29994U
+#define ZEROING_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define ZEROING_REQUEST_MAX_ENCODED_SIZE UINT64_C(0)
+#define ZEROING_RESPONSE_MESSAGE_ID 29995U
+#define ZEROING_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define ZEROING_RESPONSE_MAX_ENCODED_SIZE UINT64_C(158)
 #ifdef __cplusplus
 }
 #endif

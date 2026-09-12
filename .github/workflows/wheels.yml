@@ -23,6 +23,9 @@ jobs:
       - name: Check out binding dependencies
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
 
+      - name: Apply Underwater protocol contract
+        run: git -C protocol apply ../protocol-patches/underwater-management.patch
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -62,6 +65,9 @@ jobs:
 
       - name: Check out binding dependencies
         run: git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
+
+      - name: Apply Underwater protocol contract
+        run: git -C protocol apply ../protocol-patches/underwater-management.patch
 
       - name: Set up Python
         uses: actions/setup-python@v5

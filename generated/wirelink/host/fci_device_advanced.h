@@ -999,6 +999,432 @@ static inline wl_rpc_err_t fci_device_endpoint_get_motor_feedback_reject(fci_dev
 }
 #endif
 /* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_get_underwater_default_settings_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  get_underwater_default_settings_response_t response;
+} fci_device_get_underwater_default_settings_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_call(fci_device_endpoint_t *endpoint,
+    const get_underwater_default_settings_request_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_default_settings_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_default_settings_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_get_underwater_default_settings_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29992U && result->response_message_id == 29993U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_call_t *call, fci_device_get_underwater_default_settings_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_get_underwater_default_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_get_underwater_default_settings_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_release(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_default_settings_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_default_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_request_token_t *token, const get_underwater_default_settings_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_default_settings_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_get_underwater_default_settings_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_default_settings_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_default_settings_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_default_settings_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_get_underwater_default_settings_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_get_underwater_settings_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  get_underwater_settings_response_t response;
+} fci_device_get_underwater_settings_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_call(fci_device_endpoint_t *endpoint,
+    const get_underwater_settings_request_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_settings_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_settings_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_get_underwater_settings_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29988U && result->response_message_id == 29989U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_call_t *call, fci_device_get_underwater_settings_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_get_underwater_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_get_underwater_settings_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_release(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_settings_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_request_token_t *token, const get_underwater_settings_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_settings_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_get_underwater_settings_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_settings_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_settings_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_settings_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_get_underwater_settings_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_get_underwater_status_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  get_underwater_status_response_t response;
+} fci_device_get_underwater_status_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_call(fci_device_endpoint_t *endpoint,
+    const get_underwater_status_request_t *request, uint32_t timeout_ms,
+    fci_device_get_underwater_status_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_status_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_get_underwater_status_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29984U && result->response_message_id == 29985U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_call_t *call, fci_device_get_underwater_status_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_get_underwater_status_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_get_underwater_status_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_release(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_status_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_get_underwater_status_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_request_token_t *token, const get_underwater_status_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_status_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_get_underwater_status_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_get_underwater_status_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_get_underwater_status_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_get_underwater_status_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_get_underwater_status_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
 static inline wl_rpc_err_t fci_device_endpoint_home_record_result(fci_device_endpoint_t *endpoint,
     const fci_device_runtime_result_t *result) {
   if (!endpoint->private_state.stepping ||
@@ -2561,6 +2987,290 @@ static inline wl_rpc_err_t fci_device_endpoint_set_gripper_control_mode_reject(f
 }
 #endif
 /* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_set_underwater_mode_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  set_underwater_mode_response_t response;
+} fci_device_set_underwater_mode_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_call(fci_device_endpoint_t *endpoint,
+    const set_underwater_mode_request_t *request, uint32_t timeout_ms,
+    fci_device_set_underwater_mode_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_mode_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_set_underwater_mode_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29986U && result->response_message_id == 29987U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_call_t *call, fci_device_set_underwater_mode_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_set_underwater_mode_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_set_underwater_mode_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_release(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_set_underwater_mode_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_set_underwater_mode_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_request_token_t *token, const set_underwater_mode_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_mode_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_set_underwater_mode_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_mode_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_mode_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_mode_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_set_underwater_mode_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_set_underwater_settings_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  set_underwater_settings_response_t response;
+} fci_device_set_underwater_settings_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_call(fci_device_endpoint_t *endpoint,
+    const set_underwater_settings_request_t *request, uint32_t timeout_ms,
+    fci_device_set_underwater_settings_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_settings_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_set_underwater_settings_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29990U && result->response_message_id == 29991U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_call_t *call, fci_device_set_underwater_settings_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_set_underwater_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_set_underwater_settings_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_release(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_set_underwater_settings_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_set_underwater_settings_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_request_token_t *token, const set_underwater_settings_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_settings_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_set_underwater_settings_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_set_underwater_settings_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_set_underwater_settings_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_set_underwater_settings_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_set_underwater_settings_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
 static inline wl_rpc_err_t fci_device_endpoint_set_zero_record_result(fci_device_endpoint_t *endpoint,
     const fci_device_runtime_result_t *result) {
   if (!endpoint->private_state.stepping ||
@@ -2700,6 +3410,148 @@ static inline wl_rpc_err_t fci_device_endpoint_set_zero_reject(fci_device_endpoi
   (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
   result = fci_device_set_zero_server_reject(runtime, token, application_status, now_ms);
   return fci_device_endpoint_set_zero_record_result(endpoint, &result);
+}
+#endif
+/* Internal result bridge; detailed codec/link errors remain in endpoint_result. */
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_record_result(fci_device_endpoint_t *endpoint,
+    const fci_device_runtime_result_t *result) {
+  if (!endpoint->private_state.stepping ||
+      fci_device_runtime_result_ok(&endpoint->private_state.result))
+    endpoint->private_state.result = *result;
+  if (fci_device_runtime_result_ok(result)) return WL_RPC_OK;
+  return result->detail.rpc.rpc_result != WL_RPC_OK ? result->detail.rpc.rpc_result :
+      (result->domain == FCI_DEVICE_RUNTIME_INVALID_ARGUMENT ? WL_RPC_ERR_INVALID_ARG : WL_RPC_ERR_INVALID_STATE);
+}
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+/* A copyable call handle, not a wire ID. Do not inspect private_state. Calls
+ * belong to one endpoint incarnation; release only after a terminal result. */
+typedef struct {
+  struct {
+    const fci_device_endpoint_t *owner;
+    uint64_t incarnation;
+    wl_rpc_client_handle_t handle;
+  } private_state;
+} fci_device_zeroing_call_t;
+
+typedef struct {
+  wl_rpc_client_state_t state;
+  int32_t application_status;
+  int32_t link_result;
+  wl_rpc_err_t runtime_error;
+  bool response_valid;
+  /* Borrowed fields, if present in the schema, live until call release. */
+  zeroing_response_t response;
+} fci_device_zeroing_result_t;
+
+/* On success out_call identifies this invocation. On failure it is cleared;
+ * endpoint_result retains detailed codec/link diagnostics. */
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_call(fci_device_endpoint_t *endpoint,
+    const zeroing_request_t *request, uint32_t timeout_ms,
+    fci_device_zeroing_call_t *out_call) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_rpc_err_t error;
+  wl_time_ms_t now_ms;
+  if (out_call == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_call, 0, sizeof(*out_call));
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_zeroing_client_start(wl_endpoint_link(fci_device_endpoint_handle(endpoint)),
+      runtime, request, timeout_ms, now_ms);
+  error = fci_device_endpoint_zeroing_record_result(endpoint, &result);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_get_handle(runtime->rpc_client,
+      result.detail.rpc.operation_id, &out_call->private_state.handle);
+  if (error != WL_RPC_OK) return error;
+  out_call->private_state.owner = endpoint;
+  out_call->private_state.incarnation = endpoint->private_state.incarnation;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_call_get(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_call_t *call, wl_rpc_client_result_t *result) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  wl_rpc_err_t error;
+  if (call == NULL || result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  if (call->private_state.owner != endpoint ||
+      call->private_state.incarnation != endpoint->private_state.incarnation)
+    return WL_RPC_ERR_NOT_FOUND;
+  error = wl_rpc_client_get_by_handle(runtime->rpc_client, &call->private_state.handle, result);
+  if (error != WL_RPC_OK) return error;
+  return result->request_message_id == 29994U && result->response_message_id == 29995U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+/* Pending and terminal states both return RPC_OK. A rejection has a nonzero
+ * application_status and no response body; it is not a decode failure. */
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_inspect(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_call_t *call, fci_device_zeroing_result_t *out_result) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error;
+  fci_device_runtime_result_t decoded;
+  if (out_result == NULL) return WL_RPC_ERR_INVALID_ARG;
+  memset(out_result, 0, sizeof(*out_result));
+  error = fci_device_endpoint_zeroing_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  out_result->state = client.state;
+  out_result->application_status = client.application_status;
+  out_result->link_result = client.link_result;
+  out_result->runtime_error = client.runtime_error;
+  if (client.state != WL_RPC_CLIENT_COMPLETED) return WL_RPC_OK;
+  decoded = fci_device_zeroing_client_decode(&client, &out_result->response);
+  if (!fci_device_runtime_result_ok(&decoded)) {
+    endpoint->private_state.result = decoded;
+    return decoded.detail.rpc.rpc_result != WL_RPC_OK ? decoded.detail.rpc.rpc_result : WL_RPC_ERR_INVALID_STATE;
+  }
+  out_result->response_valid = true;
+  return WL_RPC_OK;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_release(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_zeroing_call_get(endpoint, call, &client);
+  return error == WL_RPC_OK ? wl_rpc_client_release_handle(
+      fci_device_endpoint_runtime(endpoint)->rpc_client, &call->private_state.handle) : error;
+}
+
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_cancel(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_call_t *call) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t error = fci_device_endpoint_zeroing_call_get(endpoint, call, &client);
+  if (error != WL_RPC_OK) return error;
+  error = wl_rpc_client_cancel_handle(fci_device_endpoint_runtime(endpoint)->rpc_client,
+      &call->private_state.handle);
+  if (error == WL_RPC_OK && client.tx_handle != 0U)
+    (void)wl_tx_cancel(wl_endpoint_link(fci_device_endpoint_handle(endpoint)), client.tx_handle);
+  return error;
+}
+
+#endif
+
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+/* Reply submission returns an RPC error code, not a generic runtime result. */
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_complete(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_request_token_t *token, const zeroing_response_t *response) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_zeroing_server_complete(runtime, token, response, now_ms);
+  return fci_device_endpoint_zeroing_record_result(endpoint, &result);
+}
+static inline wl_rpc_err_t fci_device_endpoint_zeroing_reject(fci_device_endpoint_t *endpoint,
+    const fci_device_zeroing_request_token_t *token, int32_t application_status) {
+  fci_device_runtime_t *runtime = fci_device_endpoint_runtime(endpoint);
+  fci_device_runtime_result_t result;
+  wl_time_ms_t now_ms;
+  if (runtime == NULL) return WL_RPC_ERR_NOT_INITIALIZED;
+  (void)wl_endpoint_now(fci_device_endpoint_handle(endpoint), &now_ms);
+  result = fci_device_zeroing_server_reject(runtime, token, application_status, now_ms);
+  return fci_device_endpoint_zeroing_record_result(endpoint, &result);
 }
 #endif
 #endif

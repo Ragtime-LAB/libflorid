@@ -4,6 +4,7 @@
 #include "florid/ArmState.hpp"
 #include "florid/ControlTypes.hpp"
 #include "florid/DeviceTypes.hpp"
+#include "florid/UnderwaterTypes.hpp"
 #include "florid/detail/WirelinkExecutor.hpp"
 #include "florid/detail/Transport.hpp"
 #include "florid/detail/FciUpgradeClient.hpp"
@@ -170,6 +171,14 @@ public:
     FciSubmitResult releaseControlLease(
         std::uint32_t s_rpc_timeout_ms) noexcept;
     FciSubmitResult getDeviceInfo(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult getUnderwaterStatus(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult zeroing(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setUnderwaterMode(UnderwaterMode s_mode,
+                                     std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult getUnderwaterSettings(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult getUnderwaterDefaultSettings(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult setUnderwaterSettings(const UnderwaterSettings& s_settings,
+                                         std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult setDeviceInfo(std::string_view s_custom_name,
                                   std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult getDeviceSettings(std::uint32_t s_timeout_ms) noexcept;
@@ -214,6 +223,14 @@ public:
     FciEndpointStatus takeDeviceInfo(std::uint64_t s_request_id,
                                      FciOperationResult& s_result,
                                      DeviceInfo& s_info) noexcept;
+    // A business rejection still carries the actual control-loop snapshot.
+    FciEndpointStatus takeUnderwaterStatus(std::uint64_t s_request_id,
+                                          FciOperationResult& s_result,
+                                          UnderwaterStatus& s_info,
+                                          bool& s_has_info);
+    FciEndpointStatus takeUnderwaterSettings(std::uint64_t s_request_id,
+                                            FciOperationResult& s_result,
+                                            UnderwaterSettingsRpcResult& s_reply);
     // Consumes the authoritative settings returned by either Get or Set.
     FciEndpointStatus takeDeviceSettings(std::uint64_t s_request_id,
                                          FciOperationResult& s_result,
@@ -222,6 +239,9 @@ public:
                                         FciOperationResult& s_result,
                                         float& s_value) noexcept;
 
+    std::optional<UnderwaterArmStatus> underwaterArmStatus() const;
+    FciEndpointStatus sendUnderwaterArmCommand(const UnderwaterArmCommand& s_command,
+        std::uint64_t s_session, std::uint32_t& s_sequence) noexcept;
     FciControlLeaseSnapshot controlLease() const noexcept;
 
     FciEndpointStatus sendJointMit(const JointMIT& s_command,
@@ -266,6 +286,12 @@ private:
         kAcquireLease,
         kReleaseLease,
         kGetDeviceInfo,
+        kGetUnderwaterStatus,
+        kZeroing,
+        kSetUnderwaterMode,
+        kGetUnderwaterSettings,
+        kSetUnderwaterSettings,
+        kGetUnderwaterDefaultSettings,
         kSetDeviceInfo,
         kGetDeviceSettings,
         kSetDeviceSettings,
@@ -285,6 +311,7 @@ private:
 
     struct OperationRequest {
         DeviceSettings m_device_settings{};
+        UnderwaterSettings m_underwater_settings{};
         std::array<char, s_kMaximumDeviceNameBytes + 1> m_custom_name{};
         std::uint8_t m_custom_name_size{};
         std::uint64_t m_lease_token{};
@@ -292,6 +319,7 @@ private:
         std::uint8_t m_joint_id{};
         std::uint8_t m_register_id{};
         FciArmMode m_arm_mode{FciArmMode::kPc};
+        UnderwaterMode m_underwater_mode{UnderwaterMode::kDamp};
         FciMotorControlMode m_control_mode{FciMotorControlMode::kMit};
         float m_value{};
     };
@@ -324,6 +352,12 @@ private:
         std::int32_t m_link_status{};
         FixedDeviceInfo m_device_info{};
         DeviceSettings m_device_settings{};
+        underwater_status_value_t m_underwater_status{};
+        bool m_underwater_status_valid{};
+        underwater_settings_snapshot_value_t m_underwater_settings_snapshot{};
+        std::array<char, 96> m_underwater_settings_reason{};
+        std::uint8_t m_underwater_settings_reason_size{};
+        bool m_underwater_settings_valid{};
         float m_motor_register_value{};
         bool m_device_settings_valid{};
         bool m_motor_register_valid{};
@@ -399,6 +433,7 @@ private:
     std::array<OperationSlot, s_kOperationCapacity> m_operations{};
     std::size_t m_active_operation{s_kOperationCapacity};
     std::uint64_t m_next_request_id{1};
+    std::optional<UnderwaterArmStatus> m_underwater_arm_status;
     FciControlLeaseSnapshot m_lease{};
     wl_time_ms_t m_lease_renew_at_ms{};
     wl_time_ms_t m_lease_expire_at_ms{};

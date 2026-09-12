@@ -812,6 +812,23 @@ static const wlc_desc_t start_upgrade_request_desc;
 static const wlc_desc_t start_upgrade_response_desc;
 static const wlc_desc_t reboot_request_desc;
 static const wlc_desc_t reboot_response_desc;
+static const wlc_desc_t underwater_status_desc;
+static const wlc_desc_t underwater_settings_desc;
+static const wlc_desc_t underwater_settings_snapshot_desc;
+static const wlc_desc_t underwater_arm_status_desc;
+static const wlc_desc_t underwater_arm_command_desc;
+static const wlc_desc_t get_underwater_status_request_desc;
+static const wlc_desc_t get_underwater_status_response_desc;
+static const wlc_desc_t set_underwater_mode_request_desc;
+static const wlc_desc_t set_underwater_mode_response_desc;
+static const wlc_desc_t get_underwater_settings_request_desc;
+static const wlc_desc_t get_underwater_settings_response_desc;
+static const wlc_desc_t set_underwater_settings_request_desc;
+static const wlc_desc_t set_underwater_settings_response_desc;
+static const wlc_desc_t get_underwater_default_settings_request_desc;
+static const wlc_desc_t get_underwater_default_settings_response_desc;
+static const wlc_desc_t zeroing_request_desc;
+static const wlc_desc_t zeroing_response_desc;
 
 static const wlc_field_t semantic_version_fields[] = {
   { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(semantic_version_t, major), offsetof(semantic_version_t, has_major), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
@@ -1244,6 +1261,151 @@ static const wlc_field_t reboot_response_fields[] = {
   { 3U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(reboot_response_t, mode), offsetof(reboot_response_t, has_mode), 0, 0, sizeof(reboot_mode_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
 };
 static const wlc_desc_t reboot_response_desc = { reboot_response_fields, sizeof(reboot_response_fields) / sizeof(reboot_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t underwater_status_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(underwater_status_t, mode), offsetof(underwater_status_t, has_mode), 0, 0, sizeof(underwater_mode_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(underwater_status_t, uptime_ms), offsetof(underwater_status_t, has_uptime_ms), 0, 0, sizeof(uint32_t), 0U, 0U, { 21U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, enabling_arms), offsetof(underwater_status_t, has_enabling_arms), 0, 0, sizeof(uint8_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, gravity_arms), offsetof(underwater_status_t, has_gravity_arms), 0, 0, sizeof(uint8_t), 0U, 0U, { 32U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 5U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, master_available_mask), offsetof(underwater_status_t, has_master_available_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 40U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, slave_available_mask), offsetof(underwater_status_t, has_slave_available_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 48U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, master_enabled_mask), offsetof(underwater_status_t, has_master_enabled_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 56U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, slave_enabled_mask), offsetof(underwater_status_t, has_slave_enabled_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 64U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, master_disable_pending_mask), offsetof(underwater_status_t, has_master_disable_pending_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 72U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 10U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(underwater_status_t, slave_disable_pending_mask), offsetof(underwater_status_t, has_slave_disable_pending_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 80U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 11U, WLC_OPTIONAL, WLC_BOOL, 1, 0U, 1U, offsetof(underwater_status_t, upgrading), offsetof(underwater_status_t, has_upgrading), 0, 0, sizeof(bool), 0U, 0U, { 88U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 12U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(underwater_status_t, reason), offsetof(underwater_status_t, has_reason), 0, 0, sizeof(wl_codec_string_t), 0U, 95U, { 98U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 13U, WLC_OPTIONAL, WLC_U8, 0, 0U, 1U, offsetof(underwater_status_t, master_disabled_mask), offsetof(underwater_status_t, has_master_disabled_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 104U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 14U, WLC_OPTIONAL, WLC_U8, 0, 0U, 1U, offsetof(underwater_status_t, slave_disabled_mask), offsetof(underwater_status_t, has_slave_disabled_mask), 0, 0, sizeof(uint8_t), 0U, 0U, { 112U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 15U, WLC_OPTIONAL, WLC_F64, 0, 1U, 1U, offsetof(underwater_status_t, control_session), offsetof(underwater_status_t, has_control_session), 0, 0, sizeof(uint64_t), 0U, 0U, { 121U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t underwater_status_desc = { underwater_status_fields, sizeof(underwater_status_fields) / sizeof(underwater_status_fields[0]), WLC_LOOKUP_DENSE };
+
+static const wlc_field_t underwater_settings_fields[] = {
+  { 1U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, angle_scale), offsetof(underwater_settings_t, has_angle_scale), 0, 0, sizeof(float), 5U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, angle_offset_rad), offsetof(underwater_settings_t, has_angle_offset_rad), 0, 0, sizeof(float), 5U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, kp), offsetof(underwater_settings_t, has_kp), 0, 0, sizeof(float), 5U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, kd), offsetof(underwater_settings_t, has_kd), 0, 0, sizeof(float), 5U, 0U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 5U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, gravity_scale), offsetof(underwater_settings_t, has_gravity_scale), 0, 0, sizeof(float), 8U, 0U, { 42U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_coulomb_positive_nm), offsetof(underwater_settings_t, has_friction_coulomb_positive_nm), 0, 0, sizeof(float), 10U, 0U, { 50U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_coulomb_negative_nm), offsetof(underwater_settings_t, has_friction_coulomb_negative_nm), 0, 0, sizeof(float), 10U, 0U, { 58U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_viscous_nm_per_rad_s), offsetof(underwater_settings_t, has_friction_viscous_nm_per_rad_s), 0, 0, sizeof(float), 10U, 0U, { 66U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_deadband_rad_s), offsetof(underwater_settings_t, has_friction_deadband_rad_s), 0, 0, sizeof(float), 10U, 0U, { 74U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 10U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_transition_rad_s), offsetof(underwater_settings_t, has_friction_transition_rad_s), 0, 0, sizeof(float), 10U, 0U, { 82U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 11U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, friction_filter_time_constant_s), offsetof(underwater_settings_t, has_friction_filter_time_constant_s), 0, 0, sizeof(float), 10U, 0U, { 90U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 12U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, force_gain), offsetof(underwater_settings_t, has_force_gain), 0, 0, sizeof(float), 5U, 0U, { 98U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 13U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_settings_t, force_low_gain), offsetof(underwater_settings_t, has_force_low_gain), 0, 0, sizeof(float), 5U, 0U, { 106U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 14U, WLC_OPTIONAL, WLC_FLOAT32, 1, 5U, 1U, offsetof(underwater_settings_t, force_low_load_nm), offsetof(underwater_settings_t, has_force_low_load_nm), 0, 0, sizeof(float), 0U, 0U, { 117U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 15U, WLC_OPTIONAL, WLC_FLOAT32, 1, 5U, 1U, offsetof(underwater_settings_t, force_high_load_nm), offsetof(underwater_settings_t, has_force_high_load_nm), 0, 0, sizeof(float), 0U, 0U, { 125U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 16U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 2U, offsetof(underwater_settings_t, force_velocity_filter_s), offsetof(underwater_settings_t, has_force_velocity_filter_s), 0, 0, sizeof(float), 5U, 0U, { 130U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 17U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 2U, offsetof(underwater_settings_t, force_load_filter_s), offsetof(underwater_settings_t, has_force_load_filter_s), 0, 0, sizeof(float), 5U, 0U, { 138U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 18U, WLC_OPTIONAL, WLC_BOOL, 0, 0U, 2U, offsetof(underwater_settings_t, buzzer_alarm_enabled), offsetof(underwater_settings_t, has_buzzer_alarm_enabled), 0, 0, sizeof(bool), 0U, 0U, { 144U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t underwater_settings_desc = { underwater_settings_fields, sizeof(underwater_settings_fields) / sizeof(underwater_settings_fields[0]), WLC_LOOKUP_DENSE };
+
+static const wlc_field_t underwater_settings_snapshot_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(underwater_settings_snapshot_t, settings), offsetof(underwater_settings_snapshot_t, has_settings), 0, 0, sizeof(underwater_settings_t), 0U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, &underwater_settings_desc },
+  { 2U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(underwater_settings_snapshot_t, revision), offsetof(underwater_settings_snapshot_t, has_revision), 0, 0, sizeof(uint32_t), 0U, 0U, { 21U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(underwater_settings_snapshot_t, source), offsetof(underwater_settings_snapshot_t, has_source), 0, 0, sizeof(underwater_settings_source_t), 0U, 0U, { 24U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_OPTIONAL, WLC_I32, 1, 0U, 1U, offsetof(underwater_settings_snapshot_t, storage_error), offsetof(underwater_settings_snapshot_t, has_storage_error), 0, 0, sizeof(int32_t), 0U, 0U, { 32U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t underwater_settings_snapshot_desc = { underwater_settings_snapshot_fields, sizeof(underwater_settings_snapshot_fields) / sizeof(underwater_settings_snapshot_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t underwater_arm_status_fields[] = {
+  { 1U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_status_t, q), offsetof(underwater_arm_status_t, has_q), 0, 0, sizeof(float), 10U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_status_t, dq), offsetof(underwater_arm_status_t, has_dq), 0, 0, sizeof(float), 10U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_status_t, tau), offsetof(underwater_arm_status_t, has_tau), 0, 0, sizeof(float), 10U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_PACKED, WLC_F32, 1, 2U, 1U, offsetof(underwater_arm_status_t, motor_info), offsetof(underwater_arm_status_t, has_motor_info), 0, 0, sizeof(uint32_t), 10U, 0U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_PACKED, WLC_F32, 1, 2U, 1U, offsetof(underwater_arm_status_t, feedback_age_ms), offsetof(underwater_arm_status_t, has_feedback_age_ms), 0, 0, sizeof(uint32_t), 10U, 0U, { 50U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(underwater_arm_status_t, fresh_mask), offsetof(underwater_arm_status_t, has_fresh_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 56U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(underwater_arm_status_t, enabled_mask), offsetof(underwater_arm_status_t, has_enabled_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 64U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(underwater_arm_status_t, available_mask), offsetof(underwater_arm_status_t, has_available_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 72U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 10U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(underwater_arm_status_t, mode), offsetof(underwater_arm_status_t, has_mode), 0, 0, sizeof(underwater_mode_t), 0U, 0U, { 80U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 11U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(underwater_arm_status_t, kind), offsetof(underwater_arm_status_t, has_kind), 0, 0, sizeof(underwater_control_kind_t), 0U, 0U, { 88U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 12U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(underwater_arm_status_t, sequence), offsetof(underwater_arm_status_t, has_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 101U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 13U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(underwater_arm_status_t, timestamp_us), offsetof(underwater_arm_status_t, has_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 105U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 14U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(underwater_arm_status_t, control_session), offsetof(underwater_arm_status_t, has_control_session), 0, 0, sizeof(uint64_t), 0U, 0U, { 113U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 15U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(underwater_arm_status_t, applied_command_sequence), offsetof(underwater_arm_status_t, has_applied_command_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 125U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 16U, WLC_OPTIONAL, WLC_F64, 1, 1U, 2U, offsetof(underwater_arm_status_t, last_sdk_timestamp_us), offsetof(underwater_arm_status_t, has_last_sdk_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 129U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 17U, WLC_OPTIONAL, WLC_U16, 1, 0U, 2U, offsetof(underwater_arm_status_t, applied_mask), offsetof(underwater_arm_status_t, has_applied_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 136U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 18U, WLC_OPTIONAL, WLC_BOOL, 1, 0U, 2U, offsetof(underwater_arm_status_t, command_received), offsetof(underwater_arm_status_t, has_command_received), 0, 0, sizeof(bool), 0U, 0U, { 144U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 19U, WLC_OPTIONAL, WLC_U8, 1, 0U, 2U, offsetof(underwater_arm_status_t, control_stop_reason), offsetof(underwater_arm_status_t, has_control_stop_reason), 0, 0, sizeof(uint8_t), 0U, 0U, { 152U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 20U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(underwater_arm_status_t, commands_received), offsetof(underwater_arm_status_t, has_commands_received), 0, 0, sizeof(uint32_t), 0U, 0U, { 165U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 21U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(underwater_arm_status_t, commands_overwritten), offsetof(underwater_arm_status_t, has_commands_overwritten), 0, 0, sizeof(uint32_t), 0U, 0U, { 173U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 22U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(underwater_arm_status_t, commands_rejected), offsetof(underwater_arm_status_t, has_commands_rejected), 0, 0, sizeof(uint32_t), 0U, 0U, { 181U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 23U, WLC_OPTIONAL, WLC_U8, 1, 0U, 2U, offsetof(underwater_arm_status_t, command_reject_reason), offsetof(underwater_arm_status_t, has_command_reject_reason), 0, 0, sizeof(uint8_t), 0U, 0U, { 184U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t underwater_arm_status_desc = { underwater_arm_status_fields, sizeof(underwater_arm_status_fields) / sizeof(underwater_arm_status_fields[0]), WLC_LOOKUP_BINARY };
+
+static const wlc_field_t underwater_arm_command_fields[] = {
+  { 1U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_command_t, q), offsetof(underwater_arm_command_t, has_q), 0, 0, sizeof(float), 10U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_command_t, dq), offsetof(underwater_arm_command_t, has_dq), 0, 0, sizeof(float), 10U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_command_t, kp), offsetof(underwater_arm_command_t, has_kp), 0, 0, sizeof(float), 10U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_command_t, kd), offsetof(underwater_arm_command_t, has_kd), 0, 0, sizeof(float), 10U, 0U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 5U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(underwater_arm_command_t, tau), offsetof(underwater_arm_command_t, has_tau), 0, 0, sizeof(float), 10U, 0U, { 42U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(underwater_arm_command_t, kind), offsetof(underwater_arm_command_t, has_kind), 0, 0, sizeof(underwater_control_kind_t), 0U, 0U, { 48U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(underwater_arm_command_t, sequence), offsetof(underwater_arm_command_t, has_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 61U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(underwater_arm_command_t, sdk_timestamp_us), offsetof(underwater_arm_command_t, has_sdk_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 65U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(underwater_arm_command_t, control_session), offsetof(underwater_arm_command_t, has_control_session), 0, 0, sizeof(uint64_t), 0U, 0U, { 73U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t underwater_arm_command_desc = { underwater_arm_command_fields, sizeof(underwater_arm_command_fields) / sizeof(underwater_arm_command_fields[0]), WLC_LOOKUP_DENSE };
+
+static const wlc_desc_t get_underwater_status_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t get_underwater_status_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_underwater_status_response_t, result), offsetof(get_underwater_status_response_t, has_result), 0, 0, sizeof(underwater_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(get_underwater_status_response_t, info), offsetof(get_underwater_status_response_t, has_info), 0, 0, sizeof(underwater_status_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_status_desc },
+};
+static const wlc_desc_t get_underwater_status_response_desc = { get_underwater_status_response_fields, sizeof(get_underwater_status_response_fields) / sizeof(get_underwater_status_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t set_underwater_mode_request_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_underwater_mode_request_t, mode), offsetof(set_underwater_mode_request_t, has_mode), 0, 0, sizeof(underwater_mode_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t set_underwater_mode_request_desc = { set_underwater_mode_request_fields, sizeof(set_underwater_mode_request_fields) / sizeof(set_underwater_mode_request_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t set_underwater_mode_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_underwater_mode_response_t, result), offsetof(set_underwater_mode_response_t, has_result), 0, 0, sizeof(underwater_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(set_underwater_mode_response_t, info), offsetof(set_underwater_mode_response_t, has_info), 0, 0, sizeof(underwater_status_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_status_desc },
+};
+static const wlc_desc_t set_underwater_mode_response_desc = { set_underwater_mode_response_fields, sizeof(set_underwater_mode_response_fields) / sizeof(set_underwater_mode_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_desc_t get_underwater_settings_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t get_underwater_settings_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_underwater_settings_response_t, result), offsetof(get_underwater_settings_response_t, has_result), 0, 0, sizeof(underwater_settings_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(get_underwater_settings_response_t, snapshot), offsetof(get_underwater_settings_response_t, has_snapshot), 0, 0, sizeof(underwater_settings_snapshot_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_settings_snapshot_desc },
+  { 3U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(get_underwater_settings_response_t, reason), offsetof(get_underwater_settings_response_t, has_reason), 0, 0, sizeof(wl_codec_string_t), 0U, 95U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t get_underwater_settings_response_desc = { get_underwater_settings_response_fields, sizeof(get_underwater_settings_response_fields) / sizeof(get_underwater_settings_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t set_underwater_settings_request_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(set_underwater_settings_request_t, settings), offsetof(set_underwater_settings_request_t, has_settings), 0, 0, sizeof(underwater_settings_t), 0U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, &underwater_settings_desc },
+};
+static const wlc_desc_t set_underwater_settings_request_desc = { set_underwater_settings_request_fields, sizeof(set_underwater_settings_request_fields) / sizeof(set_underwater_settings_request_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t set_underwater_settings_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(set_underwater_settings_response_t, result), offsetof(set_underwater_settings_response_t, has_result), 0, 0, sizeof(underwater_settings_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(set_underwater_settings_response_t, snapshot), offsetof(set_underwater_settings_response_t, has_snapshot), 0, 0, sizeof(underwater_settings_snapshot_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_settings_snapshot_desc },
+  { 3U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(set_underwater_settings_response_t, reason), offsetof(set_underwater_settings_response_t, has_reason), 0, 0, sizeof(wl_codec_string_t), 0U, 95U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t set_underwater_settings_response_desc = { set_underwater_settings_response_fields, sizeof(set_underwater_settings_response_fields) / sizeof(set_underwater_settings_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_desc_t get_underwater_default_settings_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t get_underwater_default_settings_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(get_underwater_default_settings_response_t, result), offsetof(get_underwater_default_settings_response_t, has_result), 0, 0, sizeof(underwater_settings_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(get_underwater_default_settings_response_t, snapshot), offsetof(get_underwater_default_settings_response_t, has_snapshot), 0, 0, sizeof(underwater_settings_snapshot_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_settings_snapshot_desc },
+  { 3U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(get_underwater_default_settings_response_t, reason), offsetof(get_underwater_default_settings_response_t, has_reason), 0, 0, sizeof(wl_codec_string_t), 0U, 95U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t get_underwater_default_settings_response_desc = { get_underwater_default_settings_response_fields, sizeof(get_underwater_default_settings_response_fields) / sizeof(get_underwater_default_settings_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_desc_t zeroing_request_desc = { NULL, 0U, WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t zeroing_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(zeroing_response_t, result), offsetof(zeroing_response_t, has_result), 0, 0, sizeof(underwater_result_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(zeroing_response_t, info), offsetof(zeroing_response_t, has_info), 0, 0, sizeof(underwater_status_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_status_desc },
+};
+static const wlc_desc_t zeroing_response_desc = { zeroing_response_fields, sizeof(zeroing_response_fields) / sizeof(zeroing_response_fields[0]), WLC_LOOKUP_LINEAR };
 
 void semantic_version_clear(semantic_version_t *value) { if (value != NULL) wlc_clear(&semantic_version_desc, value); }
 size_t semantic_version_encoded_size(const semantic_version_t *value) { size_t size; return wlc_measure(&semantic_version_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
@@ -2377,6 +2539,295 @@ wl_codec_status_t reboot_response_decode(const uint8_t *input, size_t length, re
 wl_codec_status_t reboot_response_wlc_detail_fingerprint(const reboot_response_t *value, uint64_t *hash, size_t *length) {
   wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
   wl_codec_status_t status = wlc_hash_emit_fields(&reboot_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void underwater_status_clear(underwater_status_t *value) { if (value != NULL) wlc_clear(&underwater_status_desc, value); }
+size_t underwater_status_encoded_size(const underwater_status_t *value) { size_t size; return wlc_measure(&underwater_status_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t underwater_status_encode(const underwater_status_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&underwater_status_desc, value, out, cap, length); }
+wl_codec_status_t underwater_status_decode(const uint8_t *input, size_t length, underwater_status_t *out) { return wlc_decode(&underwater_status_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t underwater_status_wlc_detail_fingerprint(const underwater_status_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&underwater_status_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void underwater_settings_clear(underwater_settings_t *value) { if (value != NULL) wlc_clear(&underwater_settings_desc, value); }
+size_t underwater_settings_encoded_size(const underwater_settings_t *value) { size_t size; return wlc_measure(&underwater_settings_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t underwater_settings_encode(const underwater_settings_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&underwater_settings_desc, value, out, cap, length); }
+wl_codec_status_t underwater_settings_decode(const uint8_t *input, size_t length, underwater_settings_t *out) { return wlc_decode(&underwater_settings_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t underwater_settings_wlc_detail_fingerprint(const underwater_settings_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&underwater_settings_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void underwater_settings_snapshot_clear(underwater_settings_snapshot_t *value) { if (value != NULL) wlc_clear(&underwater_settings_snapshot_desc, value); }
+size_t underwater_settings_snapshot_encoded_size(const underwater_settings_snapshot_t *value) { size_t size; return wlc_measure(&underwater_settings_snapshot_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t underwater_settings_snapshot_encode(const underwater_settings_snapshot_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&underwater_settings_snapshot_desc, value, out, cap, length); }
+wl_codec_status_t underwater_settings_snapshot_decode(const uint8_t *input, size_t length, underwater_settings_snapshot_t *out) { return wlc_decode(&underwater_settings_snapshot_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t underwater_settings_snapshot_wlc_detail_fingerprint(const underwater_settings_snapshot_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&underwater_settings_snapshot_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void underwater_arm_status_clear(underwater_arm_status_t *value) { if (value != NULL) wlc_clear(&underwater_arm_status_desc, value); }
+size_t underwater_arm_status_encoded_size(const underwater_arm_status_t *value) { size_t size; return wlc_measure(&underwater_arm_status_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t underwater_arm_status_encode(const underwater_arm_status_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&underwater_arm_status_desc, value, out, cap, length); }
+wl_codec_status_t underwater_arm_status_decode(const uint8_t *input, size_t length, underwater_arm_status_t *out) { return wlc_decode(&underwater_arm_status_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t underwater_arm_status_wlc_detail_fingerprint(const underwater_arm_status_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&underwater_arm_status_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void underwater_arm_command_clear(underwater_arm_command_t *value) { if (value != NULL) wlc_clear(&underwater_arm_command_desc, value); }
+size_t underwater_arm_command_encoded_size(const underwater_arm_command_t *value) { size_t size; return wlc_measure(&underwater_arm_command_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t underwater_arm_command_encode(const underwater_arm_command_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&underwater_arm_command_desc, value, out, cap, length); }
+wl_codec_status_t underwater_arm_command_decode(const uint8_t *input, size_t length, underwater_arm_command_t *out) { return wlc_decode(&underwater_arm_command_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t underwater_arm_command_wlc_detail_fingerprint(const underwater_arm_command_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&underwater_arm_command_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_status_request_clear(get_underwater_status_request_t *value) { if (value != NULL) wlc_clear(&get_underwater_status_request_desc, value); }
+size_t get_underwater_status_request_encoded_size(const get_underwater_status_request_t *value) { size_t size; return wlc_measure(&get_underwater_status_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_status_request_encode(const get_underwater_status_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_status_request_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_status_request_decode(const uint8_t *input, size_t length, get_underwater_status_request_t *out) { return wlc_decode(&get_underwater_status_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_status_request_wlc_detail_fingerprint(const get_underwater_status_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_status_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_status_response_clear(get_underwater_status_response_t *value) { if (value != NULL) wlc_clear(&get_underwater_status_response_desc, value); }
+size_t get_underwater_status_response_encoded_size(const get_underwater_status_response_t *value) { size_t size; return wlc_measure(&get_underwater_status_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_status_response_encode(const get_underwater_status_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_status_response_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_status_response_decode(const uint8_t *input, size_t length, get_underwater_status_response_t *out) { return wlc_decode(&get_underwater_status_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_status_response_wlc_detail_fingerprint(const get_underwater_status_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_status_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void set_underwater_mode_request_clear(set_underwater_mode_request_t *value) { if (value != NULL) wlc_clear(&set_underwater_mode_request_desc, value); }
+size_t set_underwater_mode_request_encoded_size(const set_underwater_mode_request_t *value) { size_t size; return wlc_measure(&set_underwater_mode_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t set_underwater_mode_request_encode(const set_underwater_mode_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&set_underwater_mode_request_desc, value, out, cap, length); }
+wl_codec_status_t set_underwater_mode_request_decode(const uint8_t *input, size_t length, set_underwater_mode_request_t *out) { return wlc_decode(&set_underwater_mode_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t set_underwater_mode_request_wlc_detail_fingerprint(const set_underwater_mode_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&set_underwater_mode_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void set_underwater_mode_response_clear(set_underwater_mode_response_t *value) { if (value != NULL) wlc_clear(&set_underwater_mode_response_desc, value); }
+size_t set_underwater_mode_response_encoded_size(const set_underwater_mode_response_t *value) { size_t size; return wlc_measure(&set_underwater_mode_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t set_underwater_mode_response_encode(const set_underwater_mode_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&set_underwater_mode_response_desc, value, out, cap, length); }
+wl_codec_status_t set_underwater_mode_response_decode(const uint8_t *input, size_t length, set_underwater_mode_response_t *out) { return wlc_decode(&set_underwater_mode_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t set_underwater_mode_response_wlc_detail_fingerprint(const set_underwater_mode_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&set_underwater_mode_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_settings_request_clear(get_underwater_settings_request_t *value) { if (value != NULL) wlc_clear(&get_underwater_settings_request_desc, value); }
+size_t get_underwater_settings_request_encoded_size(const get_underwater_settings_request_t *value) { size_t size; return wlc_measure(&get_underwater_settings_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_settings_request_encode(const get_underwater_settings_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_settings_request_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_settings_request_decode(const uint8_t *input, size_t length, get_underwater_settings_request_t *out) { return wlc_decode(&get_underwater_settings_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_settings_request_wlc_detail_fingerprint(const get_underwater_settings_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_settings_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_settings_response_clear(get_underwater_settings_response_t *value) { if (value != NULL) wlc_clear(&get_underwater_settings_response_desc, value); }
+size_t get_underwater_settings_response_encoded_size(const get_underwater_settings_response_t *value) { size_t size; return wlc_measure(&get_underwater_settings_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_settings_response_encode(const get_underwater_settings_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_settings_response_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_settings_response_decode(const uint8_t *input, size_t length, get_underwater_settings_response_t *out) { return wlc_decode(&get_underwater_settings_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_settings_response_wlc_detail_fingerprint(const get_underwater_settings_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_settings_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void set_underwater_settings_request_clear(set_underwater_settings_request_t *value) { if (value != NULL) wlc_clear(&set_underwater_settings_request_desc, value); }
+size_t set_underwater_settings_request_encoded_size(const set_underwater_settings_request_t *value) { size_t size; return wlc_measure(&set_underwater_settings_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t set_underwater_settings_request_encode(const set_underwater_settings_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&set_underwater_settings_request_desc, value, out, cap, length); }
+wl_codec_status_t set_underwater_settings_request_decode(const uint8_t *input, size_t length, set_underwater_settings_request_t *out) { return wlc_decode(&set_underwater_settings_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t set_underwater_settings_request_wlc_detail_fingerprint(const set_underwater_settings_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&set_underwater_settings_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void set_underwater_settings_response_clear(set_underwater_settings_response_t *value) { if (value != NULL) wlc_clear(&set_underwater_settings_response_desc, value); }
+size_t set_underwater_settings_response_encoded_size(const set_underwater_settings_response_t *value) { size_t size; return wlc_measure(&set_underwater_settings_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t set_underwater_settings_response_encode(const set_underwater_settings_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&set_underwater_settings_response_desc, value, out, cap, length); }
+wl_codec_status_t set_underwater_settings_response_decode(const uint8_t *input, size_t length, set_underwater_settings_response_t *out) { return wlc_decode(&set_underwater_settings_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t set_underwater_settings_response_wlc_detail_fingerprint(const set_underwater_settings_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&set_underwater_settings_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_default_settings_request_clear(get_underwater_default_settings_request_t *value) { if (value != NULL) wlc_clear(&get_underwater_default_settings_request_desc, value); }
+size_t get_underwater_default_settings_request_encoded_size(const get_underwater_default_settings_request_t *value) { size_t size; return wlc_measure(&get_underwater_default_settings_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_default_settings_request_encode(const get_underwater_default_settings_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_default_settings_request_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_default_settings_request_decode(const uint8_t *input, size_t length, get_underwater_default_settings_request_t *out) { return wlc_decode(&get_underwater_default_settings_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_default_settings_request_wlc_detail_fingerprint(const get_underwater_default_settings_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_default_settings_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void get_underwater_default_settings_response_clear(get_underwater_default_settings_response_t *value) { if (value != NULL) wlc_clear(&get_underwater_default_settings_response_desc, value); }
+size_t get_underwater_default_settings_response_encoded_size(const get_underwater_default_settings_response_t *value) { size_t size; return wlc_measure(&get_underwater_default_settings_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t get_underwater_default_settings_response_encode(const get_underwater_default_settings_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&get_underwater_default_settings_response_desc, value, out, cap, length); }
+wl_codec_status_t get_underwater_default_settings_response_decode(const uint8_t *input, size_t length, get_underwater_default_settings_response_t *out) { return wlc_decode(&get_underwater_default_settings_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t get_underwater_default_settings_response_wlc_detail_fingerprint(const get_underwater_default_settings_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&get_underwater_default_settings_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void zeroing_request_clear(zeroing_request_t *value) { if (value != NULL) wlc_clear(&zeroing_request_desc, value); }
+size_t zeroing_request_encoded_size(const zeroing_request_t *value) { size_t size; return wlc_measure(&zeroing_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t zeroing_request_encode(const zeroing_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&zeroing_request_desc, value, out, cap, length); }
+wl_codec_status_t zeroing_request_decode(const uint8_t *input, size_t length, zeroing_request_t *out) { return wlc_decode(&zeroing_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t zeroing_request_wlc_detail_fingerprint(const zeroing_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&zeroing_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void zeroing_response_clear(zeroing_response_t *value) { if (value != NULL) wlc_clear(&zeroing_response_desc, value); }
+size_t zeroing_response_encoded_size(const zeroing_response_t *value) { size_t size; return wlc_measure(&zeroing_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t zeroing_response_encode(const zeroing_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&zeroing_response_desc, value, out, cap, length); }
+wl_codec_status_t zeroing_response_decode(const uint8_t *input, size_t length, zeroing_response_t *out) { return wlc_decode(&zeroing_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t zeroing_response_wlc_detail_fingerprint(const zeroing_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&zeroing_response_desc, value, &state);
   if (status != WL_CODEC_OK) return status;
   if (state.status != WL_CODEC_OK) return state.status;
   *hash = state.hash;
@@ -8598,6 +9049,1827 @@ wl_codec_status_t reboot_response_value_decode(const uint8_t *input, size_t leng
   status = reboot_response_decode(input, length, &view);
   if (status != WL_CODEC_OK) return status;
   reboot_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void underwater_status_value_defaults(underwater_status_value_t *out) {
+  (void)out;
+  out->mode = 0;
+  out->uptime_ms = UINT32_C(0);
+  out->enabling_arms = 0;
+  out->gravity_arms = 0;
+  out->master_available_mask = 0;
+  out->slave_available_mask = 0;
+  out->master_enabled_mask = 0;
+  out->slave_enabled_mask = 0;
+  out->master_disable_pending_mask = 0;
+  out->slave_disable_pending_mask = 0;
+  out->upgrading = 0;
+  out->master_disabled_mask = 0;
+  out->slave_disabled_mask = 0;
+  out->control_session = UINT64_C(0);
+}
+
+static void underwater_status_value_copy_fields(const underwater_status_t *view, underwater_status_value_t *out) {
+  out->has_mode = view->has_mode;
+  out->mode = view->has_mode ? view->mode : 0;
+  out->has_uptime_ms = view->has_uptime_ms;
+  out->uptime_ms = view->has_uptime_ms ? view->uptime_ms : UINT32_C(0);
+  out->has_enabling_arms = view->has_enabling_arms;
+  out->enabling_arms = view->has_enabling_arms ? view->enabling_arms : 0;
+  out->has_gravity_arms = view->has_gravity_arms;
+  out->gravity_arms = view->has_gravity_arms ? view->gravity_arms : 0;
+  out->has_master_available_mask = view->has_master_available_mask;
+  out->master_available_mask = view->has_master_available_mask ? view->master_available_mask : 0;
+  out->has_slave_available_mask = view->has_slave_available_mask;
+  out->slave_available_mask = view->has_slave_available_mask ? view->slave_available_mask : 0;
+  out->has_master_enabled_mask = view->has_master_enabled_mask;
+  out->master_enabled_mask = view->has_master_enabled_mask ? view->master_enabled_mask : 0;
+  out->has_slave_enabled_mask = view->has_slave_enabled_mask;
+  out->slave_enabled_mask = view->has_slave_enabled_mask ? view->slave_enabled_mask : 0;
+  out->has_master_disable_pending_mask = view->has_master_disable_pending_mask;
+  out->master_disable_pending_mask = view->has_master_disable_pending_mask ? view->master_disable_pending_mask : 0;
+  out->has_slave_disable_pending_mask = view->has_slave_disable_pending_mask;
+  out->slave_disable_pending_mask = view->has_slave_disable_pending_mask ? view->slave_disable_pending_mask : 0;
+  out->has_upgrading = view->has_upgrading;
+  out->upgrading = view->has_upgrading ? view->upgrading : 0;
+  out->has_reason = view->has_reason;
+  if (view->has_reason) {
+    out->reason.length = view->reason.length;
+    if (view->reason.length != 0U) memcpy(out->reason.data, view->reason.data, view->reason.length);
+  } else {
+  }
+  out->has_master_disabled_mask = view->has_master_disabled_mask;
+  out->master_disabled_mask = view->has_master_disabled_mask ? view->master_disabled_mask : 0;
+  out->has_slave_disabled_mask = view->has_slave_disabled_mask;
+  out->slave_disabled_mask = view->has_slave_disabled_mask ? view->slave_disabled_mask : 0;
+  out->has_control_session = view->has_control_session;
+  out->control_session = view->has_control_session ? view->control_session : UINT64_C(0);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void underwater_status_wlc_detail_value_copy(const underwater_status_t *view, underwater_status_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  underwater_status_value_copy_fields(view, out);
+}
+
+void underwater_status_value_clear(underwater_status_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  underwater_status_value_defaults(value);
+}
+
+wl_codec_status_t underwater_status_value_from_view(const underwater_status_t *view, underwater_status_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&underwater_status_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  underwater_status_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t underwater_status_value_borrow(const underwater_status_value_t *value, underwater_status_t *out) {
+  underwater_status_clear(out);
+  out->has_mode = value->has_mode;
+  if (value->has_mode) {
+    out->mode = value->mode;
+  }
+  out->has_uptime_ms = value->has_uptime_ms;
+  if (value->has_uptime_ms) {
+    out->uptime_ms = value->uptime_ms;
+  }
+  out->has_enabling_arms = value->has_enabling_arms;
+  if (value->has_enabling_arms) {
+    out->enabling_arms = value->enabling_arms;
+  }
+  out->has_gravity_arms = value->has_gravity_arms;
+  if (value->has_gravity_arms) {
+    out->gravity_arms = value->gravity_arms;
+  }
+  out->has_master_available_mask = value->has_master_available_mask;
+  if (value->has_master_available_mask) {
+    out->master_available_mask = value->master_available_mask;
+  }
+  out->has_slave_available_mask = value->has_slave_available_mask;
+  if (value->has_slave_available_mask) {
+    out->slave_available_mask = value->slave_available_mask;
+  }
+  out->has_master_enabled_mask = value->has_master_enabled_mask;
+  if (value->has_master_enabled_mask) {
+    out->master_enabled_mask = value->master_enabled_mask;
+  }
+  out->has_slave_enabled_mask = value->has_slave_enabled_mask;
+  if (value->has_slave_enabled_mask) {
+    out->slave_enabled_mask = value->slave_enabled_mask;
+  }
+  out->has_master_disable_pending_mask = value->has_master_disable_pending_mask;
+  if (value->has_master_disable_pending_mask) {
+    out->master_disable_pending_mask = value->master_disable_pending_mask;
+  }
+  out->has_slave_disable_pending_mask = value->has_slave_disable_pending_mask;
+  if (value->has_slave_disable_pending_mask) {
+    out->slave_disable_pending_mask = value->slave_disable_pending_mask;
+  }
+  out->has_upgrading = value->has_upgrading;
+  if (value->has_upgrading) {
+    out->upgrading = value->upgrading;
+  }
+  out->has_reason = value->has_reason;
+  if (value->has_reason) {
+    if (value->reason.length > 95U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->reason.length = value->reason.length;
+    out->reason.data = value->reason.data;
+  }
+  out->has_master_disabled_mask = value->has_master_disabled_mask;
+  if (value->has_master_disabled_mask) {
+    out->master_disabled_mask = value->master_disabled_mask;
+  }
+  out->has_slave_disabled_mask = value->has_slave_disabled_mask;
+  if (value->has_slave_disabled_mask) {
+    out->slave_disabled_mask = value->slave_disabled_mask;
+  }
+  out->has_control_session = value->has_control_session;
+  if (value->has_control_session) {
+    out->control_session = value->control_session;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t underwater_status_value_to_view(const underwater_status_value_t *value, underwater_status_t *out) {
+  underwater_status_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_status_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&underwater_status_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t underwater_status_value_encoded_size(const underwater_status_value_t *value) {
+  underwater_status_t view;
+  if (value == NULL || underwater_status_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return underwater_status_encoded_size(&view);
+}
+
+wl_codec_status_t underwater_status_value_encode(const underwater_status_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  underwater_status_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_status_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? underwater_status_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t underwater_status_value_decode(const uint8_t *input, size_t length, underwater_status_value_t *out) {
+  underwater_status_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_status_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  underwater_status_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void underwater_settings_value_defaults(underwater_settings_value_t *out) {
+  (void)out;
+  out->force_low_load_nm = 0;
+  out->force_high_load_nm = 0;
+  out->buzzer_alarm_enabled = 0;
+}
+
+static void underwater_settings_value_copy_fields(const underwater_settings_t *view, underwater_settings_value_t *out) {
+  out->has_angle_scale = view->has_angle_scale;
+  if (view->has_angle_scale) memcpy(out->angle_scale, view->angle_scale, sizeof(out->angle_scale));
+  out->has_angle_offset_rad = view->has_angle_offset_rad;
+  if (view->has_angle_offset_rad) memcpy(out->angle_offset_rad, view->angle_offset_rad, sizeof(out->angle_offset_rad));
+  out->has_kp = view->has_kp;
+  if (view->has_kp) memcpy(out->kp, view->kp, sizeof(out->kp));
+  out->has_kd = view->has_kd;
+  if (view->has_kd) memcpy(out->kd, view->kd, sizeof(out->kd));
+  out->has_gravity_scale = view->has_gravity_scale;
+  if (view->has_gravity_scale) memcpy(out->gravity_scale, view->gravity_scale, sizeof(out->gravity_scale));
+  out->has_friction_coulomb_positive_nm = view->has_friction_coulomb_positive_nm;
+  if (view->has_friction_coulomb_positive_nm) memcpy(out->friction_coulomb_positive_nm, view->friction_coulomb_positive_nm, sizeof(out->friction_coulomb_positive_nm));
+  out->has_friction_coulomb_negative_nm = view->has_friction_coulomb_negative_nm;
+  if (view->has_friction_coulomb_negative_nm) memcpy(out->friction_coulomb_negative_nm, view->friction_coulomb_negative_nm, sizeof(out->friction_coulomb_negative_nm));
+  out->has_friction_viscous_nm_per_rad_s = view->has_friction_viscous_nm_per_rad_s;
+  if (view->has_friction_viscous_nm_per_rad_s) memcpy(out->friction_viscous_nm_per_rad_s, view->friction_viscous_nm_per_rad_s, sizeof(out->friction_viscous_nm_per_rad_s));
+  out->has_friction_deadband_rad_s = view->has_friction_deadband_rad_s;
+  if (view->has_friction_deadband_rad_s) memcpy(out->friction_deadband_rad_s, view->friction_deadband_rad_s, sizeof(out->friction_deadband_rad_s));
+  out->has_friction_transition_rad_s = view->has_friction_transition_rad_s;
+  if (view->has_friction_transition_rad_s) memcpy(out->friction_transition_rad_s, view->friction_transition_rad_s, sizeof(out->friction_transition_rad_s));
+  out->has_friction_filter_time_constant_s = view->has_friction_filter_time_constant_s;
+  if (view->has_friction_filter_time_constant_s) memcpy(out->friction_filter_time_constant_s, view->friction_filter_time_constant_s, sizeof(out->friction_filter_time_constant_s));
+  out->has_force_gain = view->has_force_gain;
+  if (view->has_force_gain) memcpy(out->force_gain, view->force_gain, sizeof(out->force_gain));
+  out->has_force_low_gain = view->has_force_low_gain;
+  if (view->has_force_low_gain) memcpy(out->force_low_gain, view->force_low_gain, sizeof(out->force_low_gain));
+  out->has_force_low_load_nm = view->has_force_low_load_nm;
+  out->force_low_load_nm = view->has_force_low_load_nm ? view->force_low_load_nm : 0;
+  out->has_force_high_load_nm = view->has_force_high_load_nm;
+  out->force_high_load_nm = view->has_force_high_load_nm ? view->force_high_load_nm : 0;
+  out->has_force_velocity_filter_s = view->has_force_velocity_filter_s;
+  if (view->has_force_velocity_filter_s) memcpy(out->force_velocity_filter_s, view->force_velocity_filter_s, sizeof(out->force_velocity_filter_s));
+  out->has_force_load_filter_s = view->has_force_load_filter_s;
+  if (view->has_force_load_filter_s) memcpy(out->force_load_filter_s, view->force_load_filter_s, sizeof(out->force_load_filter_s));
+  out->has_buzzer_alarm_enabled = view->has_buzzer_alarm_enabled;
+  out->buzzer_alarm_enabled = view->has_buzzer_alarm_enabled ? view->buzzer_alarm_enabled : 0;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void underwater_settings_wlc_detail_value_copy(const underwater_settings_t *view, underwater_settings_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  underwater_settings_value_copy_fields(view, out);
+}
+
+void underwater_settings_value_clear(underwater_settings_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  underwater_settings_value_defaults(value);
+}
+
+wl_codec_status_t underwater_settings_value_from_view(const underwater_settings_t *view, underwater_settings_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&underwater_settings_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  underwater_settings_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t underwater_settings_value_borrow(const underwater_settings_value_t *value, underwater_settings_t *out) {
+  underwater_settings_clear(out);
+  out->has_angle_scale = value->has_angle_scale;
+  if (value->has_angle_scale) {
+    memcpy(out->angle_scale, value->angle_scale, sizeof(out->angle_scale));
+  }
+  out->has_angle_offset_rad = value->has_angle_offset_rad;
+  if (value->has_angle_offset_rad) {
+    memcpy(out->angle_offset_rad, value->angle_offset_rad, sizeof(out->angle_offset_rad));
+  }
+  out->has_kp = value->has_kp;
+  if (value->has_kp) {
+    memcpy(out->kp, value->kp, sizeof(out->kp));
+  }
+  out->has_kd = value->has_kd;
+  if (value->has_kd) {
+    memcpy(out->kd, value->kd, sizeof(out->kd));
+  }
+  out->has_gravity_scale = value->has_gravity_scale;
+  if (value->has_gravity_scale) {
+    memcpy(out->gravity_scale, value->gravity_scale, sizeof(out->gravity_scale));
+  }
+  out->has_friction_coulomb_positive_nm = value->has_friction_coulomb_positive_nm;
+  if (value->has_friction_coulomb_positive_nm) {
+    memcpy(out->friction_coulomb_positive_nm, value->friction_coulomb_positive_nm, sizeof(out->friction_coulomb_positive_nm));
+  }
+  out->has_friction_coulomb_negative_nm = value->has_friction_coulomb_negative_nm;
+  if (value->has_friction_coulomb_negative_nm) {
+    memcpy(out->friction_coulomb_negative_nm, value->friction_coulomb_negative_nm, sizeof(out->friction_coulomb_negative_nm));
+  }
+  out->has_friction_viscous_nm_per_rad_s = value->has_friction_viscous_nm_per_rad_s;
+  if (value->has_friction_viscous_nm_per_rad_s) {
+    memcpy(out->friction_viscous_nm_per_rad_s, value->friction_viscous_nm_per_rad_s, sizeof(out->friction_viscous_nm_per_rad_s));
+  }
+  out->has_friction_deadband_rad_s = value->has_friction_deadband_rad_s;
+  if (value->has_friction_deadband_rad_s) {
+    memcpy(out->friction_deadband_rad_s, value->friction_deadband_rad_s, sizeof(out->friction_deadband_rad_s));
+  }
+  out->has_friction_transition_rad_s = value->has_friction_transition_rad_s;
+  if (value->has_friction_transition_rad_s) {
+    memcpy(out->friction_transition_rad_s, value->friction_transition_rad_s, sizeof(out->friction_transition_rad_s));
+  }
+  out->has_friction_filter_time_constant_s = value->has_friction_filter_time_constant_s;
+  if (value->has_friction_filter_time_constant_s) {
+    memcpy(out->friction_filter_time_constant_s, value->friction_filter_time_constant_s, sizeof(out->friction_filter_time_constant_s));
+  }
+  out->has_force_gain = value->has_force_gain;
+  if (value->has_force_gain) {
+    memcpy(out->force_gain, value->force_gain, sizeof(out->force_gain));
+  }
+  out->has_force_low_gain = value->has_force_low_gain;
+  if (value->has_force_low_gain) {
+    memcpy(out->force_low_gain, value->force_low_gain, sizeof(out->force_low_gain));
+  }
+  out->has_force_low_load_nm = value->has_force_low_load_nm;
+  if (value->has_force_low_load_nm) {
+    out->force_low_load_nm = value->force_low_load_nm;
+  }
+  out->has_force_high_load_nm = value->has_force_high_load_nm;
+  if (value->has_force_high_load_nm) {
+    out->force_high_load_nm = value->force_high_load_nm;
+  }
+  out->has_force_velocity_filter_s = value->has_force_velocity_filter_s;
+  if (value->has_force_velocity_filter_s) {
+    memcpy(out->force_velocity_filter_s, value->force_velocity_filter_s, sizeof(out->force_velocity_filter_s));
+  }
+  out->has_force_load_filter_s = value->has_force_load_filter_s;
+  if (value->has_force_load_filter_s) {
+    memcpy(out->force_load_filter_s, value->force_load_filter_s, sizeof(out->force_load_filter_s));
+  }
+  out->has_buzzer_alarm_enabled = value->has_buzzer_alarm_enabled;
+  if (value->has_buzzer_alarm_enabled) {
+    out->buzzer_alarm_enabled = value->buzzer_alarm_enabled;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t underwater_settings_value_to_view(const underwater_settings_value_t *value, underwater_settings_t *out) {
+  underwater_settings_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&underwater_settings_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t underwater_settings_value_encoded_size(const underwater_settings_value_t *value) {
+  underwater_settings_t view;
+  if (value == NULL || underwater_settings_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return underwater_settings_encoded_size(&view);
+}
+
+wl_codec_status_t underwater_settings_value_encode(const underwater_settings_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  underwater_settings_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? underwater_settings_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t underwater_settings_value_decode(const uint8_t *input, size_t length, underwater_settings_value_t *out) {
+  underwater_settings_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  underwater_settings_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void underwater_settings_snapshot_value_defaults(underwater_settings_snapshot_value_t *out) {
+  (void)out;
+  underwater_settings_value_defaults(&out->settings);
+  out->revision = UINT32_C(0);
+  out->source = 0;
+  out->storage_error = 0;
+}
+
+static void underwater_settings_snapshot_value_copy_fields(const underwater_settings_snapshot_t *view, underwater_settings_snapshot_value_t *out) {
+  out->has_settings = view->has_settings;
+  if (view->has_settings) underwater_settings_value_copy_fields(&view->settings, &out->settings);
+  else underwater_settings_value_defaults(&out->settings);
+  out->has_revision = view->has_revision;
+  out->revision = view->has_revision ? view->revision : UINT32_C(0);
+  out->has_source = view->has_source;
+  out->source = view->has_source ? view->source : 0;
+  out->has_storage_error = view->has_storage_error;
+  out->storage_error = view->has_storage_error ? view->storage_error : 0;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void underwater_settings_snapshot_wlc_detail_value_copy(const underwater_settings_snapshot_t *view, underwater_settings_snapshot_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  underwater_settings_snapshot_value_copy_fields(view, out);
+}
+
+void underwater_settings_snapshot_value_clear(underwater_settings_snapshot_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  underwater_settings_snapshot_value_defaults(value);
+}
+
+wl_codec_status_t underwater_settings_snapshot_value_from_view(const underwater_settings_snapshot_t *view, underwater_settings_snapshot_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&underwater_settings_snapshot_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  underwater_settings_snapshot_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t underwater_settings_snapshot_value_borrow(const underwater_settings_snapshot_value_t *value, underwater_settings_snapshot_t *out) {
+  underwater_settings_snapshot_clear(out);
+  out->has_settings = value->has_settings;
+  if (value->has_settings) {
+    wl_codec_status_t status = underwater_settings_value_borrow(&value->settings, &out->settings);
+    if (status != WL_CODEC_OK) return status;
+  }
+  out->has_revision = value->has_revision;
+  if (value->has_revision) {
+    out->revision = value->revision;
+  }
+  out->has_source = value->has_source;
+  if (value->has_source) {
+    out->source = value->source;
+  }
+  out->has_storage_error = value->has_storage_error;
+  if (value->has_storage_error) {
+    out->storage_error = value->storage_error;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t underwater_settings_snapshot_value_to_view(const underwater_settings_snapshot_value_t *value, underwater_settings_snapshot_t *out) {
+  underwater_settings_snapshot_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_snapshot_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&underwater_settings_snapshot_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t underwater_settings_snapshot_value_encoded_size(const underwater_settings_snapshot_value_t *value) {
+  underwater_settings_snapshot_t view;
+  if (value == NULL || underwater_settings_snapshot_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return underwater_settings_snapshot_encoded_size(&view);
+}
+
+wl_codec_status_t underwater_settings_snapshot_value_encode(const underwater_settings_snapshot_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  underwater_settings_snapshot_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_snapshot_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? underwater_settings_snapshot_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t underwater_settings_snapshot_value_decode(const uint8_t *input, size_t length, underwater_settings_snapshot_value_t *out) {
+  underwater_settings_snapshot_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_settings_snapshot_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  underwater_settings_snapshot_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void underwater_arm_status_value_defaults(underwater_arm_status_value_t *out) {
+  (void)out;
+  out->fresh_mask = 0;
+  out->enabled_mask = 0;
+  out->available_mask = 0;
+  out->mode = 0;
+  out->kind = 0;
+  out->sequence = UINT32_C(0);
+  out->timestamp_us = UINT64_C(0);
+  out->control_session = UINT64_C(0);
+  out->applied_command_sequence = UINT32_C(0);
+  out->last_sdk_timestamp_us = UINT64_C(0);
+  out->applied_mask = 0;
+  out->command_received = 0;
+  out->control_stop_reason = 0;
+  out->commands_received = UINT32_C(0);
+  out->commands_overwritten = UINT32_C(0);
+  out->commands_rejected = UINT32_C(0);
+  out->command_reject_reason = 0;
+}
+
+static void underwater_arm_status_value_copy_fields(const underwater_arm_status_t *view, underwater_arm_status_value_t *out) {
+  out->has_q = view->has_q;
+  if (view->has_q) memcpy(out->q, view->q, sizeof(out->q));
+  out->has_dq = view->has_dq;
+  if (view->has_dq) memcpy(out->dq, view->dq, sizeof(out->dq));
+  out->has_tau = view->has_tau;
+  if (view->has_tau) memcpy(out->tau, view->tau, sizeof(out->tau));
+  out->has_motor_info = view->has_motor_info;
+  if (view->has_motor_info) memcpy(out->motor_info, view->motor_info, sizeof(out->motor_info));
+  out->has_feedback_age_ms = view->has_feedback_age_ms;
+  if (view->has_feedback_age_ms) memcpy(out->feedback_age_ms, view->feedback_age_ms, sizeof(out->feedback_age_ms));
+  out->has_fresh_mask = view->has_fresh_mask;
+  out->fresh_mask = view->has_fresh_mask ? view->fresh_mask : 0;
+  out->has_enabled_mask = view->has_enabled_mask;
+  out->enabled_mask = view->has_enabled_mask ? view->enabled_mask : 0;
+  out->has_available_mask = view->has_available_mask;
+  out->available_mask = view->has_available_mask ? view->available_mask : 0;
+  out->has_mode = view->has_mode;
+  out->mode = view->has_mode ? view->mode : 0;
+  out->has_kind = view->has_kind;
+  out->kind = view->has_kind ? view->kind : 0;
+  out->has_sequence = view->has_sequence;
+  out->sequence = view->has_sequence ? view->sequence : UINT32_C(0);
+  out->has_timestamp_us = view->has_timestamp_us;
+  out->timestamp_us = view->has_timestamp_us ? view->timestamp_us : UINT64_C(0);
+  out->has_control_session = view->has_control_session;
+  out->control_session = view->has_control_session ? view->control_session : UINT64_C(0);
+  out->has_applied_command_sequence = view->has_applied_command_sequence;
+  out->applied_command_sequence = view->has_applied_command_sequence ? view->applied_command_sequence : UINT32_C(0);
+  out->has_last_sdk_timestamp_us = view->has_last_sdk_timestamp_us;
+  out->last_sdk_timestamp_us = view->has_last_sdk_timestamp_us ? view->last_sdk_timestamp_us : UINT64_C(0);
+  out->has_applied_mask = view->has_applied_mask;
+  out->applied_mask = view->has_applied_mask ? view->applied_mask : 0;
+  out->has_command_received = view->has_command_received;
+  out->command_received = view->has_command_received ? view->command_received : 0;
+  out->has_control_stop_reason = view->has_control_stop_reason;
+  out->control_stop_reason = view->has_control_stop_reason ? view->control_stop_reason : 0;
+  out->has_commands_received = view->has_commands_received;
+  out->commands_received = view->has_commands_received ? view->commands_received : UINT32_C(0);
+  out->has_commands_overwritten = view->has_commands_overwritten;
+  out->commands_overwritten = view->has_commands_overwritten ? view->commands_overwritten : UINT32_C(0);
+  out->has_commands_rejected = view->has_commands_rejected;
+  out->commands_rejected = view->has_commands_rejected ? view->commands_rejected : UINT32_C(0);
+  out->has_command_reject_reason = view->has_command_reject_reason;
+  out->command_reject_reason = view->has_command_reject_reason ? view->command_reject_reason : 0;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void underwater_arm_status_wlc_detail_value_copy(const underwater_arm_status_t *view, underwater_arm_status_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  underwater_arm_status_value_copy_fields(view, out);
+}
+
+void underwater_arm_status_value_clear(underwater_arm_status_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  underwater_arm_status_value_defaults(value);
+}
+
+wl_codec_status_t underwater_arm_status_value_from_view(const underwater_arm_status_t *view, underwater_arm_status_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&underwater_arm_status_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  underwater_arm_status_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t underwater_arm_status_value_borrow(const underwater_arm_status_value_t *value, underwater_arm_status_t *out) {
+  underwater_arm_status_clear(out);
+  out->has_q = value->has_q;
+  if (value->has_q) {
+    memcpy(out->q, value->q, sizeof(out->q));
+  }
+  out->has_dq = value->has_dq;
+  if (value->has_dq) {
+    memcpy(out->dq, value->dq, sizeof(out->dq));
+  }
+  out->has_tau = value->has_tau;
+  if (value->has_tau) {
+    memcpy(out->tau, value->tau, sizeof(out->tau));
+  }
+  out->has_motor_info = value->has_motor_info;
+  if (value->has_motor_info) {
+    memcpy(out->motor_info, value->motor_info, sizeof(out->motor_info));
+  }
+  out->has_feedback_age_ms = value->has_feedback_age_ms;
+  if (value->has_feedback_age_ms) {
+    memcpy(out->feedback_age_ms, value->feedback_age_ms, sizeof(out->feedback_age_ms));
+  }
+  out->has_fresh_mask = value->has_fresh_mask;
+  if (value->has_fresh_mask) {
+    out->fresh_mask = value->fresh_mask;
+  }
+  out->has_enabled_mask = value->has_enabled_mask;
+  if (value->has_enabled_mask) {
+    out->enabled_mask = value->enabled_mask;
+  }
+  out->has_available_mask = value->has_available_mask;
+  if (value->has_available_mask) {
+    out->available_mask = value->available_mask;
+  }
+  out->has_mode = value->has_mode;
+  if (value->has_mode) {
+    out->mode = value->mode;
+  }
+  out->has_kind = value->has_kind;
+  if (value->has_kind) {
+    out->kind = value->kind;
+  }
+  out->has_sequence = value->has_sequence;
+  if (value->has_sequence) {
+    out->sequence = value->sequence;
+  }
+  out->has_timestamp_us = value->has_timestamp_us;
+  if (value->has_timestamp_us) {
+    out->timestamp_us = value->timestamp_us;
+  }
+  out->has_control_session = value->has_control_session;
+  if (value->has_control_session) {
+    out->control_session = value->control_session;
+  }
+  out->has_applied_command_sequence = value->has_applied_command_sequence;
+  if (value->has_applied_command_sequence) {
+    out->applied_command_sequence = value->applied_command_sequence;
+  }
+  out->has_last_sdk_timestamp_us = value->has_last_sdk_timestamp_us;
+  if (value->has_last_sdk_timestamp_us) {
+    out->last_sdk_timestamp_us = value->last_sdk_timestamp_us;
+  }
+  out->has_applied_mask = value->has_applied_mask;
+  if (value->has_applied_mask) {
+    out->applied_mask = value->applied_mask;
+  }
+  out->has_command_received = value->has_command_received;
+  if (value->has_command_received) {
+    out->command_received = value->command_received;
+  }
+  out->has_control_stop_reason = value->has_control_stop_reason;
+  if (value->has_control_stop_reason) {
+    out->control_stop_reason = value->control_stop_reason;
+  }
+  out->has_commands_received = value->has_commands_received;
+  if (value->has_commands_received) {
+    out->commands_received = value->commands_received;
+  }
+  out->has_commands_overwritten = value->has_commands_overwritten;
+  if (value->has_commands_overwritten) {
+    out->commands_overwritten = value->commands_overwritten;
+  }
+  out->has_commands_rejected = value->has_commands_rejected;
+  if (value->has_commands_rejected) {
+    out->commands_rejected = value->commands_rejected;
+  }
+  out->has_command_reject_reason = value->has_command_reject_reason;
+  if (value->has_command_reject_reason) {
+    out->command_reject_reason = value->command_reject_reason;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t underwater_arm_status_value_to_view(const underwater_arm_status_value_t *value, underwater_arm_status_t *out) {
+  underwater_arm_status_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_status_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&underwater_arm_status_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t underwater_arm_status_value_encoded_size(const underwater_arm_status_value_t *value) {
+  underwater_arm_status_t view;
+  if (value == NULL || underwater_arm_status_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return underwater_arm_status_encoded_size(&view);
+}
+
+wl_codec_status_t underwater_arm_status_value_encode(const underwater_arm_status_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  underwater_arm_status_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_status_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? underwater_arm_status_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t underwater_arm_status_value_decode(const uint8_t *input, size_t length, underwater_arm_status_value_t *out) {
+  underwater_arm_status_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_status_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  underwater_arm_status_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void underwater_arm_command_value_defaults(underwater_arm_command_value_t *out) {
+  (void)out;
+  out->kind = 0;
+  out->sequence = UINT32_C(0);
+  out->sdk_timestamp_us = UINT64_C(0);
+  out->control_session = UINT64_C(0);
+}
+
+static void underwater_arm_command_value_copy_fields(const underwater_arm_command_t *view, underwater_arm_command_value_t *out) {
+  out->has_q = view->has_q;
+  if (view->has_q) memcpy(out->q, view->q, sizeof(out->q));
+  out->has_dq = view->has_dq;
+  if (view->has_dq) memcpy(out->dq, view->dq, sizeof(out->dq));
+  out->has_kp = view->has_kp;
+  if (view->has_kp) memcpy(out->kp, view->kp, sizeof(out->kp));
+  out->has_kd = view->has_kd;
+  if (view->has_kd) memcpy(out->kd, view->kd, sizeof(out->kd));
+  out->has_tau = view->has_tau;
+  if (view->has_tau) memcpy(out->tau, view->tau, sizeof(out->tau));
+  out->has_kind = view->has_kind;
+  out->kind = view->has_kind ? view->kind : 0;
+  out->has_sequence = view->has_sequence;
+  out->sequence = view->has_sequence ? view->sequence : UINT32_C(0);
+  out->has_sdk_timestamp_us = view->has_sdk_timestamp_us;
+  out->sdk_timestamp_us = view->has_sdk_timestamp_us ? view->sdk_timestamp_us : UINT64_C(0);
+  out->has_control_session = view->has_control_session;
+  out->control_session = view->has_control_session ? view->control_session : UINT64_C(0);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void underwater_arm_command_wlc_detail_value_copy(const underwater_arm_command_t *view, underwater_arm_command_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  underwater_arm_command_value_copy_fields(view, out);
+}
+
+void underwater_arm_command_value_clear(underwater_arm_command_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  underwater_arm_command_value_defaults(value);
+}
+
+wl_codec_status_t underwater_arm_command_value_from_view(const underwater_arm_command_t *view, underwater_arm_command_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&underwater_arm_command_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  underwater_arm_command_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t underwater_arm_command_value_borrow(const underwater_arm_command_value_t *value, underwater_arm_command_t *out) {
+  underwater_arm_command_clear(out);
+  out->has_q = value->has_q;
+  if (value->has_q) {
+    memcpy(out->q, value->q, sizeof(out->q));
+  }
+  out->has_dq = value->has_dq;
+  if (value->has_dq) {
+    memcpy(out->dq, value->dq, sizeof(out->dq));
+  }
+  out->has_kp = value->has_kp;
+  if (value->has_kp) {
+    memcpy(out->kp, value->kp, sizeof(out->kp));
+  }
+  out->has_kd = value->has_kd;
+  if (value->has_kd) {
+    memcpy(out->kd, value->kd, sizeof(out->kd));
+  }
+  out->has_tau = value->has_tau;
+  if (value->has_tau) {
+    memcpy(out->tau, value->tau, sizeof(out->tau));
+  }
+  out->has_kind = value->has_kind;
+  if (value->has_kind) {
+    out->kind = value->kind;
+  }
+  out->has_sequence = value->has_sequence;
+  if (value->has_sequence) {
+    out->sequence = value->sequence;
+  }
+  out->has_sdk_timestamp_us = value->has_sdk_timestamp_us;
+  if (value->has_sdk_timestamp_us) {
+    out->sdk_timestamp_us = value->sdk_timestamp_us;
+  }
+  out->has_control_session = value->has_control_session;
+  if (value->has_control_session) {
+    out->control_session = value->control_session;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t underwater_arm_command_value_to_view(const underwater_arm_command_value_t *value, underwater_arm_command_t *out) {
+  underwater_arm_command_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_command_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&underwater_arm_command_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t underwater_arm_command_value_encoded_size(const underwater_arm_command_value_t *value) {
+  underwater_arm_command_t view;
+  if (value == NULL || underwater_arm_command_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return underwater_arm_command_encoded_size(&view);
+}
+
+wl_codec_status_t underwater_arm_command_value_encode(const underwater_arm_command_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  underwater_arm_command_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_command_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? underwater_arm_command_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t underwater_arm_command_value_decode(const uint8_t *input, size_t length, underwater_arm_command_value_t *out) {
+  underwater_arm_command_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = underwater_arm_command_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  underwater_arm_command_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_status_request_value_defaults(get_underwater_status_request_value_t *out) {
+  (void)out;
+}
+
+static void get_underwater_status_request_value_copy_fields(const get_underwater_status_request_t *view, get_underwater_status_request_value_t *out) {
+  (void)view; (void)out;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_status_request_wlc_detail_value_copy(const get_underwater_status_request_t *view, get_underwater_status_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_status_request_value_copy_fields(view, out);
+}
+
+void get_underwater_status_request_value_clear(get_underwater_status_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_status_request_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_status_request_value_from_view(const get_underwater_status_request_t *view, get_underwater_status_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_status_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_status_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_status_request_value_borrow(const get_underwater_status_request_value_t *value, get_underwater_status_request_t *out) {
+  get_underwater_status_request_clear(out);
+  (void)value;
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_status_request_value_to_view(const get_underwater_status_request_value_t *value, get_underwater_status_request_t *out) {
+  get_underwater_status_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_status_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_status_request_value_encoded_size(const get_underwater_status_request_value_t *value) {
+  get_underwater_status_request_t view;
+  if (value == NULL || get_underwater_status_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_status_request_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_status_request_value_encode(const get_underwater_status_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_status_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_status_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_status_request_value_decode(const uint8_t *input, size_t length, get_underwater_status_request_value_t *out) {
+  get_underwater_status_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_status_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_status_response_value_defaults(get_underwater_status_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_status_value_defaults(&out->info);
+}
+
+static void get_underwater_status_response_value_copy_fields(const get_underwater_status_response_t *view, get_underwater_status_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_info = view->has_info;
+  if (view->has_info) underwater_status_value_copy_fields(&view->info, &out->info);
+  else underwater_status_value_defaults(&out->info);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_status_response_wlc_detail_value_copy(const get_underwater_status_response_t *view, get_underwater_status_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_status_response_value_copy_fields(view, out);
+}
+
+void get_underwater_status_response_value_clear(get_underwater_status_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_status_response_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_status_response_value_from_view(const get_underwater_status_response_t *view, get_underwater_status_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_status_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_status_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_status_response_value_borrow(const get_underwater_status_response_value_t *value, get_underwater_status_response_t *out) {
+  get_underwater_status_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_info = value->has_info;
+  if (value->has_info) {
+    wl_codec_status_t status = underwater_status_value_borrow(&value->info, &out->info);
+    if (status != WL_CODEC_OK) return status;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_status_response_value_to_view(const get_underwater_status_response_value_t *value, get_underwater_status_response_t *out) {
+  get_underwater_status_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_status_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_status_response_value_encoded_size(const get_underwater_status_response_value_t *value) {
+  get_underwater_status_response_t view;
+  if (value == NULL || get_underwater_status_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_status_response_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_status_response_value_encode(const get_underwater_status_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_status_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_status_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_status_response_value_decode(const uint8_t *input, size_t length, get_underwater_status_response_value_t *out) {
+  get_underwater_status_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_status_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_status_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void set_underwater_mode_request_value_defaults(set_underwater_mode_request_value_t *out) {
+  (void)out;
+  out->mode = 0;
+}
+
+static void set_underwater_mode_request_value_copy_fields(const set_underwater_mode_request_t *view, set_underwater_mode_request_value_t *out) {
+  out->has_mode = view->has_mode;
+  out->mode = view->has_mode ? view->mode : 0;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void set_underwater_mode_request_wlc_detail_value_copy(const set_underwater_mode_request_t *view, set_underwater_mode_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  set_underwater_mode_request_value_copy_fields(view, out);
+}
+
+void set_underwater_mode_request_value_clear(set_underwater_mode_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  set_underwater_mode_request_value_defaults(value);
+}
+
+wl_codec_status_t set_underwater_mode_request_value_from_view(const set_underwater_mode_request_t *view, set_underwater_mode_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&set_underwater_mode_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_mode_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t set_underwater_mode_request_value_borrow(const set_underwater_mode_request_value_t *value, set_underwater_mode_request_t *out) {
+  set_underwater_mode_request_clear(out);
+  out->has_mode = value->has_mode;
+  if (value->has_mode) {
+    out->mode = value->mode;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t set_underwater_mode_request_value_to_view(const set_underwater_mode_request_value_t *value, set_underwater_mode_request_t *out) {
+  set_underwater_mode_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&set_underwater_mode_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t set_underwater_mode_request_value_encoded_size(const set_underwater_mode_request_value_t *value) {
+  set_underwater_mode_request_t view;
+  if (value == NULL || set_underwater_mode_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return set_underwater_mode_request_encoded_size(&view);
+}
+
+wl_codec_status_t set_underwater_mode_request_value_encode(const set_underwater_mode_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  set_underwater_mode_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? set_underwater_mode_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t set_underwater_mode_request_value_decode(const uint8_t *input, size_t length, set_underwater_mode_request_value_t *out) {
+  set_underwater_mode_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_mode_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void set_underwater_mode_response_value_defaults(set_underwater_mode_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_status_value_defaults(&out->info);
+}
+
+static void set_underwater_mode_response_value_copy_fields(const set_underwater_mode_response_t *view, set_underwater_mode_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_info = view->has_info;
+  if (view->has_info) underwater_status_value_copy_fields(&view->info, &out->info);
+  else underwater_status_value_defaults(&out->info);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void set_underwater_mode_response_wlc_detail_value_copy(const set_underwater_mode_response_t *view, set_underwater_mode_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  set_underwater_mode_response_value_copy_fields(view, out);
+}
+
+void set_underwater_mode_response_value_clear(set_underwater_mode_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  set_underwater_mode_response_value_defaults(value);
+}
+
+wl_codec_status_t set_underwater_mode_response_value_from_view(const set_underwater_mode_response_t *view, set_underwater_mode_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&set_underwater_mode_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_mode_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t set_underwater_mode_response_value_borrow(const set_underwater_mode_response_value_t *value, set_underwater_mode_response_t *out) {
+  set_underwater_mode_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_info = value->has_info;
+  if (value->has_info) {
+    wl_codec_status_t status = underwater_status_value_borrow(&value->info, &out->info);
+    if (status != WL_CODEC_OK) return status;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t set_underwater_mode_response_value_to_view(const set_underwater_mode_response_value_t *value, set_underwater_mode_response_t *out) {
+  set_underwater_mode_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&set_underwater_mode_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t set_underwater_mode_response_value_encoded_size(const set_underwater_mode_response_value_t *value) {
+  set_underwater_mode_response_t view;
+  if (value == NULL || set_underwater_mode_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return set_underwater_mode_response_encoded_size(&view);
+}
+
+wl_codec_status_t set_underwater_mode_response_value_encode(const set_underwater_mode_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  set_underwater_mode_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? set_underwater_mode_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t set_underwater_mode_response_value_decode(const uint8_t *input, size_t length, set_underwater_mode_response_value_t *out) {
+  set_underwater_mode_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_mode_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_mode_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_settings_request_value_defaults(get_underwater_settings_request_value_t *out) {
+  (void)out;
+}
+
+static void get_underwater_settings_request_value_copy_fields(const get_underwater_settings_request_t *view, get_underwater_settings_request_value_t *out) {
+  (void)view; (void)out;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_settings_request_wlc_detail_value_copy(const get_underwater_settings_request_t *view, get_underwater_settings_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_settings_request_value_copy_fields(view, out);
+}
+
+void get_underwater_settings_request_value_clear(get_underwater_settings_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_settings_request_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_settings_request_value_from_view(const get_underwater_settings_request_t *view, get_underwater_settings_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_settings_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_settings_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_settings_request_value_borrow(const get_underwater_settings_request_value_t *value, get_underwater_settings_request_t *out) {
+  get_underwater_settings_request_clear(out);
+  (void)value;
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_settings_request_value_to_view(const get_underwater_settings_request_value_t *value, get_underwater_settings_request_t *out) {
+  get_underwater_settings_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_settings_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_settings_request_value_encoded_size(const get_underwater_settings_request_value_t *value) {
+  get_underwater_settings_request_t view;
+  if (value == NULL || get_underwater_settings_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_settings_request_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_settings_request_value_encode(const get_underwater_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_settings_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_settings_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_settings_request_value_decode(const uint8_t *input, size_t length, get_underwater_settings_request_value_t *out) {
+  get_underwater_settings_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_settings_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_settings_response_value_defaults(get_underwater_settings_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_settings_snapshot_value_defaults(&out->snapshot);
+}
+
+static void get_underwater_settings_response_value_copy_fields(const get_underwater_settings_response_t *view, get_underwater_settings_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_snapshot = view->has_snapshot;
+  if (view->has_snapshot) underwater_settings_snapshot_value_copy_fields(&view->snapshot, &out->snapshot);
+  else underwater_settings_snapshot_value_defaults(&out->snapshot);
+  out->has_reason = view->has_reason;
+  if (view->has_reason) {
+    out->reason.length = view->reason.length;
+    if (view->reason.length != 0U) memcpy(out->reason.data, view->reason.data, view->reason.length);
+  } else {
+  }
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_settings_response_wlc_detail_value_copy(const get_underwater_settings_response_t *view, get_underwater_settings_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_settings_response_value_copy_fields(view, out);
+}
+
+void get_underwater_settings_response_value_clear(get_underwater_settings_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_settings_response_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_settings_response_value_from_view(const get_underwater_settings_response_t *view, get_underwater_settings_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_settings_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_settings_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_settings_response_value_borrow(const get_underwater_settings_response_value_t *value, get_underwater_settings_response_t *out) {
+  get_underwater_settings_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_snapshot = value->has_snapshot;
+  if (value->has_snapshot) {
+    wl_codec_status_t status = underwater_settings_snapshot_value_borrow(&value->snapshot, &out->snapshot);
+    if (status != WL_CODEC_OK) return status;
+  }
+  out->has_reason = value->has_reason;
+  if (value->has_reason) {
+    if (value->reason.length > 95U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->reason.length = value->reason.length;
+    out->reason.data = value->reason.data;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_settings_response_value_to_view(const get_underwater_settings_response_value_t *value, get_underwater_settings_response_t *out) {
+  get_underwater_settings_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_settings_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_settings_response_value_encoded_size(const get_underwater_settings_response_value_t *value) {
+  get_underwater_settings_response_t view;
+  if (value == NULL || get_underwater_settings_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_settings_response_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_settings_response_value_encode(const get_underwater_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_settings_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_settings_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_settings_response_value_decode(const uint8_t *input, size_t length, get_underwater_settings_response_value_t *out) {
+  get_underwater_settings_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_settings_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_settings_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void set_underwater_settings_request_value_defaults(set_underwater_settings_request_value_t *out) {
+  (void)out;
+  underwater_settings_value_defaults(&out->settings);
+}
+
+static void set_underwater_settings_request_value_copy_fields(const set_underwater_settings_request_t *view, set_underwater_settings_request_value_t *out) {
+  out->has_settings = view->has_settings;
+  if (view->has_settings) underwater_settings_value_copy_fields(&view->settings, &out->settings);
+  else underwater_settings_value_defaults(&out->settings);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void set_underwater_settings_request_wlc_detail_value_copy(const set_underwater_settings_request_t *view, set_underwater_settings_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  set_underwater_settings_request_value_copy_fields(view, out);
+}
+
+void set_underwater_settings_request_value_clear(set_underwater_settings_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  set_underwater_settings_request_value_defaults(value);
+}
+
+wl_codec_status_t set_underwater_settings_request_value_from_view(const set_underwater_settings_request_t *view, set_underwater_settings_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&set_underwater_settings_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_settings_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t set_underwater_settings_request_value_borrow(const set_underwater_settings_request_value_t *value, set_underwater_settings_request_t *out) {
+  set_underwater_settings_request_clear(out);
+  out->has_settings = value->has_settings;
+  if (value->has_settings) {
+    wl_codec_status_t status = underwater_settings_value_borrow(&value->settings, &out->settings);
+    if (status != WL_CODEC_OK) return status;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t set_underwater_settings_request_value_to_view(const set_underwater_settings_request_value_t *value, set_underwater_settings_request_t *out) {
+  set_underwater_settings_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&set_underwater_settings_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t set_underwater_settings_request_value_encoded_size(const set_underwater_settings_request_value_t *value) {
+  set_underwater_settings_request_t view;
+  if (value == NULL || set_underwater_settings_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return set_underwater_settings_request_encoded_size(&view);
+}
+
+wl_codec_status_t set_underwater_settings_request_value_encode(const set_underwater_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  set_underwater_settings_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? set_underwater_settings_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t set_underwater_settings_request_value_decode(const uint8_t *input, size_t length, set_underwater_settings_request_value_t *out) {
+  set_underwater_settings_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_settings_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void set_underwater_settings_response_value_defaults(set_underwater_settings_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_settings_snapshot_value_defaults(&out->snapshot);
+}
+
+static void set_underwater_settings_response_value_copy_fields(const set_underwater_settings_response_t *view, set_underwater_settings_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_snapshot = view->has_snapshot;
+  if (view->has_snapshot) underwater_settings_snapshot_value_copy_fields(&view->snapshot, &out->snapshot);
+  else underwater_settings_snapshot_value_defaults(&out->snapshot);
+  out->has_reason = view->has_reason;
+  if (view->has_reason) {
+    out->reason.length = view->reason.length;
+    if (view->reason.length != 0U) memcpy(out->reason.data, view->reason.data, view->reason.length);
+  } else {
+  }
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void set_underwater_settings_response_wlc_detail_value_copy(const set_underwater_settings_response_t *view, set_underwater_settings_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  set_underwater_settings_response_value_copy_fields(view, out);
+}
+
+void set_underwater_settings_response_value_clear(set_underwater_settings_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  set_underwater_settings_response_value_defaults(value);
+}
+
+wl_codec_status_t set_underwater_settings_response_value_from_view(const set_underwater_settings_response_t *view, set_underwater_settings_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&set_underwater_settings_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_settings_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t set_underwater_settings_response_value_borrow(const set_underwater_settings_response_value_t *value, set_underwater_settings_response_t *out) {
+  set_underwater_settings_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_snapshot = value->has_snapshot;
+  if (value->has_snapshot) {
+    wl_codec_status_t status = underwater_settings_snapshot_value_borrow(&value->snapshot, &out->snapshot);
+    if (status != WL_CODEC_OK) return status;
+  }
+  out->has_reason = value->has_reason;
+  if (value->has_reason) {
+    if (value->reason.length > 95U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->reason.length = value->reason.length;
+    out->reason.data = value->reason.data;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t set_underwater_settings_response_value_to_view(const set_underwater_settings_response_value_t *value, set_underwater_settings_response_t *out) {
+  set_underwater_settings_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&set_underwater_settings_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t set_underwater_settings_response_value_encoded_size(const set_underwater_settings_response_value_t *value) {
+  set_underwater_settings_response_t view;
+  if (value == NULL || set_underwater_settings_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return set_underwater_settings_response_encoded_size(&view);
+}
+
+wl_codec_status_t set_underwater_settings_response_value_encode(const set_underwater_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  set_underwater_settings_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? set_underwater_settings_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t set_underwater_settings_response_value_decode(const uint8_t *input, size_t length, set_underwater_settings_response_value_t *out) {
+  set_underwater_settings_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = set_underwater_settings_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  set_underwater_settings_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_default_settings_request_value_defaults(get_underwater_default_settings_request_value_t *out) {
+  (void)out;
+}
+
+static void get_underwater_default_settings_request_value_copy_fields(const get_underwater_default_settings_request_t *view, get_underwater_default_settings_request_value_t *out) {
+  (void)view; (void)out;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_default_settings_request_wlc_detail_value_copy(const get_underwater_default_settings_request_t *view, get_underwater_default_settings_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_default_settings_request_value_copy_fields(view, out);
+}
+
+void get_underwater_default_settings_request_value_clear(get_underwater_default_settings_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_default_settings_request_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_default_settings_request_value_from_view(const get_underwater_default_settings_request_t *view, get_underwater_default_settings_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_default_settings_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_default_settings_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_default_settings_request_value_borrow(const get_underwater_default_settings_request_value_t *value, get_underwater_default_settings_request_t *out) {
+  get_underwater_default_settings_request_clear(out);
+  (void)value;
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_default_settings_request_value_to_view(const get_underwater_default_settings_request_value_t *value, get_underwater_default_settings_request_t *out) {
+  get_underwater_default_settings_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_default_settings_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_default_settings_request_value_encoded_size(const get_underwater_default_settings_request_value_t *value) {
+  get_underwater_default_settings_request_t view;
+  if (value == NULL || get_underwater_default_settings_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_default_settings_request_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_default_settings_request_value_encode(const get_underwater_default_settings_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_default_settings_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_default_settings_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_default_settings_request_value_decode(const uint8_t *input, size_t length, get_underwater_default_settings_request_value_t *out) {
+  get_underwater_default_settings_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_default_settings_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void get_underwater_default_settings_response_value_defaults(get_underwater_default_settings_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_settings_snapshot_value_defaults(&out->snapshot);
+}
+
+static void get_underwater_default_settings_response_value_copy_fields(const get_underwater_default_settings_response_t *view, get_underwater_default_settings_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_snapshot = view->has_snapshot;
+  if (view->has_snapshot) underwater_settings_snapshot_value_copy_fields(&view->snapshot, &out->snapshot);
+  else underwater_settings_snapshot_value_defaults(&out->snapshot);
+  out->has_reason = view->has_reason;
+  if (view->has_reason) {
+    out->reason.length = view->reason.length;
+    if (view->reason.length != 0U) memcpy(out->reason.data, view->reason.data, view->reason.length);
+  } else {
+  }
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void get_underwater_default_settings_response_wlc_detail_value_copy(const get_underwater_default_settings_response_t *view, get_underwater_default_settings_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  get_underwater_default_settings_response_value_copy_fields(view, out);
+}
+
+void get_underwater_default_settings_response_value_clear(get_underwater_default_settings_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  get_underwater_default_settings_response_value_defaults(value);
+}
+
+wl_codec_status_t get_underwater_default_settings_response_value_from_view(const get_underwater_default_settings_response_t *view, get_underwater_default_settings_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&get_underwater_default_settings_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_default_settings_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t get_underwater_default_settings_response_value_borrow(const get_underwater_default_settings_response_value_t *value, get_underwater_default_settings_response_t *out) {
+  get_underwater_default_settings_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_snapshot = value->has_snapshot;
+  if (value->has_snapshot) {
+    wl_codec_status_t status = underwater_settings_snapshot_value_borrow(&value->snapshot, &out->snapshot);
+    if (status != WL_CODEC_OK) return status;
+  }
+  out->has_reason = value->has_reason;
+  if (value->has_reason) {
+    if (value->reason.length > 95U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->reason.length = value->reason.length;
+    out->reason.data = value->reason.data;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t get_underwater_default_settings_response_value_to_view(const get_underwater_default_settings_response_value_t *value, get_underwater_default_settings_response_t *out) {
+  get_underwater_default_settings_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&get_underwater_default_settings_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t get_underwater_default_settings_response_value_encoded_size(const get_underwater_default_settings_response_value_t *value) {
+  get_underwater_default_settings_response_t view;
+  if (value == NULL || get_underwater_default_settings_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return get_underwater_default_settings_response_encoded_size(&view);
+}
+
+wl_codec_status_t get_underwater_default_settings_response_value_encode(const get_underwater_default_settings_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  get_underwater_default_settings_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? get_underwater_default_settings_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t get_underwater_default_settings_response_value_decode(const uint8_t *input, size_t length, get_underwater_default_settings_response_value_t *out) {
+  get_underwater_default_settings_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = get_underwater_default_settings_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  get_underwater_default_settings_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void zeroing_request_value_defaults(zeroing_request_value_t *out) {
+  (void)out;
+}
+
+static void zeroing_request_value_copy_fields(const zeroing_request_t *view, zeroing_request_value_t *out) {
+  (void)view; (void)out;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void zeroing_request_wlc_detail_value_copy(const zeroing_request_t *view, zeroing_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  zeroing_request_value_copy_fields(view, out);
+}
+
+void zeroing_request_value_clear(zeroing_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  zeroing_request_value_defaults(value);
+}
+
+wl_codec_status_t zeroing_request_value_from_view(const zeroing_request_t *view, zeroing_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&zeroing_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  zeroing_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t zeroing_request_value_borrow(const zeroing_request_value_t *value, zeroing_request_t *out) {
+  zeroing_request_clear(out);
+  (void)value;
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t zeroing_request_value_to_view(const zeroing_request_value_t *value, zeroing_request_t *out) {
+  zeroing_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&zeroing_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t zeroing_request_value_encoded_size(const zeroing_request_value_t *value) {
+  zeroing_request_t view;
+  if (value == NULL || zeroing_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return zeroing_request_encoded_size(&view);
+}
+
+wl_codec_status_t zeroing_request_value_encode(const zeroing_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  zeroing_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? zeroing_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t zeroing_request_value_decode(const uint8_t *input, size_t length, zeroing_request_value_t *out) {
+  zeroing_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  zeroing_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void zeroing_response_value_defaults(zeroing_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  underwater_status_value_defaults(&out->info);
+}
+
+static void zeroing_response_value_copy_fields(const zeroing_response_t *view, zeroing_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_info = view->has_info;
+  if (view->has_info) underwater_status_value_copy_fields(&view->info, &out->info);
+  else underwater_status_value_defaults(&out->info);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void zeroing_response_wlc_detail_value_copy(const zeroing_response_t *view, zeroing_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  zeroing_response_value_copy_fields(view, out);
+}
+
+void zeroing_response_value_clear(zeroing_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  zeroing_response_value_defaults(value);
+}
+
+wl_codec_status_t zeroing_response_value_from_view(const zeroing_response_t *view, zeroing_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&zeroing_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  zeroing_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t zeroing_response_value_borrow(const zeroing_response_value_t *value, zeroing_response_t *out) {
+  zeroing_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_info = value->has_info;
+  if (value->has_info) {
+    wl_codec_status_t status = underwater_status_value_borrow(&value->info, &out->info);
+    if (status != WL_CODEC_OK) return status;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t zeroing_response_value_to_view(const zeroing_response_value_t *value, zeroing_response_t *out) {
+  zeroing_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&zeroing_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t zeroing_response_value_encoded_size(const zeroing_response_value_t *value) {
+  zeroing_response_t view;
+  if (value == NULL || zeroing_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return zeroing_response_encoded_size(&view);
+}
+
+wl_codec_status_t zeroing_response_value_encode(const zeroing_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  zeroing_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? zeroing_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t zeroing_response_value_decode(const uint8_t *input, size_t length, zeroing_response_value_t *out) {
+  zeroing_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = zeroing_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  zeroing_response_wlc_detail_value_copy(&view, out);
   return WL_CODEC_OK;
 }
 

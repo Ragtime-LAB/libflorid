@@ -1760,6 +1760,448 @@ fci_device_dispatch_result_t fci_device_dispatch_event(wl_ctx_t *ctx, const wl_e
       result.domain = FCI_DEVICE_DISPATCH_OK;
       fci_device_count(&router->counters.delivered);
       break;
+    case UNDERWATER_STATUS_MESSAGE_ID:
+      if (router == NULL || router->underwater_status.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->underwater_status.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = underwater_status_decode(event->payload, event->payload_len, router->underwater_status.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->underwater_status.handler(router->underwater_status.user_data, router->underwater_status.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case UNDERWATER_SETTINGS_MESSAGE_ID:
+      if (router == NULL || router->underwater_settings.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->underwater_settings.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = underwater_settings_decode(event->payload, event->payload_len, router->underwater_settings.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->underwater_settings.handler(router->underwater_settings.user_data, router->underwater_settings.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case UNDERWATER_SETTINGS_SNAPSHOT_MESSAGE_ID:
+      if (router == NULL || router->underwater_settings_snapshot.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->underwater_settings_snapshot.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = underwater_settings_snapshot_decode(event->payload, event->payload_len, router->underwater_settings_snapshot.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->underwater_settings_snapshot.handler(router->underwater_settings_snapshot.user_data, router->underwater_settings_snapshot.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case UNDERWATER_ARM_STATUS_MESSAGE_ID:
+      if (router == NULL || router->underwater_arm_status.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->underwater_arm_status.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = underwater_arm_status_decode(event->payload, event->payload_len, router->underwater_arm_status.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->underwater_arm_status.handler(router->underwater_arm_status.user_data, router->underwater_arm_status.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case UNDERWATER_ARM_COMMAND_MESSAGE_ID:
+      if (router == NULL || router->underwater_arm_command.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->underwater_arm_command.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = underwater_arm_command_decode(event->payload, event->payload_len, router->underwater_arm_command.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->underwater_arm_command.handler(router->underwater_arm_command.user_data, router->underwater_arm_command.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_STATUS_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_status_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_status_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_status_request_decode(event->payload, event->payload_len, router->get_underwater_status_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_status_request.handler(router->get_underwater_status_request.user_data, router->get_underwater_status_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_STATUS_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_status_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_status_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_status_response_decode(event->payload, event->payload_len, router->get_underwater_status_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_status_response.handler(router->get_underwater_status_response.user_data, router->get_underwater_status_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SET_UNDERWATER_MODE_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->set_underwater_mode_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->set_underwater_mode_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = set_underwater_mode_request_decode(event->payload, event->payload_len, router->set_underwater_mode_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->set_underwater_mode_request.handler(router->set_underwater_mode_request.user_data, router->set_underwater_mode_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SET_UNDERWATER_MODE_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->set_underwater_mode_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->set_underwater_mode_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = set_underwater_mode_response_decode(event->payload, event->payload_len, router->set_underwater_mode_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->set_underwater_mode_response.handler(router->set_underwater_mode_response.user_data, router->set_underwater_mode_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_settings_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_settings_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_settings_request_decode(event->payload, event->payload_len, router->get_underwater_settings_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_settings_request.handler(router->get_underwater_settings_request.user_data, router->get_underwater_settings_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_settings_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_settings_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_settings_response_decode(event->payload, event->payload_len, router->get_underwater_settings_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_settings_response.handler(router->get_underwater_settings_response.user_data, router->get_underwater_settings_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->set_underwater_settings_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->set_underwater_settings_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = set_underwater_settings_request_decode(event->payload, event->payload_len, router->set_underwater_settings_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->set_underwater_settings_request.handler(router->set_underwater_settings_request.user_data, router->set_underwater_settings_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->set_underwater_settings_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->set_underwater_settings_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = set_underwater_settings_response_decode(event->payload, event->payload_len, router->set_underwater_settings_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->set_underwater_settings_response.handler(router->set_underwater_settings_response.user_data, router->set_underwater_settings_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_default_settings_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_default_settings_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_default_settings_request_decode(event->payload, event->payload_len, router->get_underwater_default_settings_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_default_settings_request.handler(router->get_underwater_default_settings_request.user_data, router->get_underwater_default_settings_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->get_underwater_default_settings_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->get_underwater_default_settings_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = get_underwater_default_settings_response_decode(event->payload, event->payload_len, router->get_underwater_default_settings_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->get_underwater_default_settings_response.handler(router->get_underwater_default_settings_response.user_data, router->get_underwater_default_settings_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case ZEROING_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->zeroing_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->zeroing_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = zeroing_request_decode(event->payload, event->payload_len, router->zeroing_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->zeroing_request.handler(router->zeroing_request.user_data, router->zeroing_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case ZEROING_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->zeroing_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->zeroing_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = zeroing_response_decode(event->payload, event->payload_len, router->zeroing_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->zeroing_response.handler(router->zeroing_response.user_data, router->zeroing_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
     default:
       result.domain = FCI_DEVICE_DISPATCH_UNKNOWN_MESSAGE;
       if (router != NULL) fci_device_count(&router->counters.unknown_message);
@@ -2897,6 +3339,295 @@ fci_device_send_result_t fci_device_reboot_response_send(wl_ctx_t *ctx, const re
   result.core_result = wl_tx_payload_claim(ctx, REBOOT_RESPONSE_MESSAGE_ID, delivery, &claim);
   if (result.core_result != WL_OK) return result;
   result.codec_status = reboot_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_underwater_status_send(wl_ctx_t *ctx, const underwater_status_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, UNDERWATER_STATUS_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = underwater_status_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_underwater_settings_send(wl_ctx_t *ctx, const underwater_settings_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, UNDERWATER_SETTINGS_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = underwater_settings_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_underwater_settings_snapshot_send(wl_ctx_t *ctx, const underwater_settings_snapshot_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, UNDERWATER_SETTINGS_SNAPSHOT_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = underwater_settings_snapshot_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_underwater_arm_status_send(wl_ctx_t *ctx, const underwater_arm_status_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, UNDERWATER_ARM_STATUS_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = underwater_arm_status_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_underwater_arm_command_send(wl_ctx_t *ctx, const underwater_arm_command_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, UNDERWATER_ARM_COMMAND_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = underwater_arm_command_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_status_request_send(wl_ctx_t *ctx, const get_underwater_status_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_STATUS_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_status_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_status_response_send(wl_ctx_t *ctx, const get_underwater_status_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_STATUS_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_status_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_set_underwater_mode_request_send(wl_ctx_t *ctx, const set_underwater_mode_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SET_UNDERWATER_MODE_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = set_underwater_mode_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_set_underwater_mode_response_send(wl_ctx_t *ctx, const set_underwater_mode_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SET_UNDERWATER_MODE_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = set_underwater_mode_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_settings_request_send(wl_ctx_t *ctx, const get_underwater_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_settings_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_settings_response_send(wl_ctx_t *ctx, const get_underwater_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_settings_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_set_underwater_settings_request_send(wl_ctx_t *ctx, const set_underwater_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SET_UNDERWATER_SETTINGS_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = set_underwater_settings_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_set_underwater_settings_response_send(wl_ctx_t *ctx, const set_underwater_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SET_UNDERWATER_SETTINGS_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = set_underwater_settings_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_default_settings_request_send(wl_ctx_t *ctx, const get_underwater_default_settings_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_DEFAULT_SETTINGS_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_default_settings_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_get_underwater_default_settings_response_send(wl_ctx_t *ctx, const get_underwater_default_settings_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, GET_UNDERWATER_DEFAULT_SETTINGS_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = get_underwater_default_settings_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_zeroing_request_send(wl_ctx_t *ctx, const zeroing_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, ZEROING_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = zeroing_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_zeroing_response_send(wl_ctx_t *ctx, const zeroing_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, ZEROING_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = zeroing_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
   if (result.codec_status != WL_CODEC_OK) {
     result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
     (void)wl_tx_payload_abort(ctx, &claim);

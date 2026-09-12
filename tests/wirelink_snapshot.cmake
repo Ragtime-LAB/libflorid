@@ -13,6 +13,7 @@ file(COPY "${LF_SOURCE_DIR}/protocol/cmake/FciProtocolWirelink.cmake"
 file(COPY "${LF_SOURCE_DIR}/protocol/schema/wirelink/arm"
     "${LF_SOURCE_DIR}/protocol/schema/wirelink/upgrade"
     "${LF_SOURCE_DIR}/protocol/schema/wirelink/device"
+    "${LF_SOURCE_DIR}/protocol/schema/wirelink/underwater"
     DESTINATION "${_source}/protocol/schema/wirelink")
 file(COPY "${LF_SOURCE_DIR}/generated/wirelink" DESTINATION "${_source}/generated")
 set(_project [=[
@@ -47,7 +48,8 @@ endfunction()
 
 _configure_case("valid snapshot without WLC" PASS)
 
-foreach(_input IN ITEMS upgrade/fci_upgrade.wl device/fci_device.wl device/host.bind.wl)
+foreach(_input IN ITEMS upgrade/fci_upgrade.wl device/fci_device.wl device/host.bind.wl
+        underwater/fci_underwater.wl underwater/services.bind.wl)
     set(_path "${_source}/protocol/schema/wirelink/${_input}")
     file(READ "${_path}" _saved)
     file(APPEND "${_path}" "\n// transitive snapshot dependency probe\n")

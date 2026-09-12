@@ -74,7 +74,7 @@ struct UsbBulkSelectionResult {
 [[nodiscard]] UsbBulkSelectionResult selectUsbBulkDevice(
     std::span<const UsbBulkDeviceInfo> s_devices, std::string_view s_uri);
 
-// Convenience form used by Arm::create(): enumerate, then select.
+// Convenience form used by the product connection API: enumerate, then select.
 [[nodiscard]] UsbBulkSelectionResult resolveUsbBulkDevice(
     std::string_view s_uri);
 
