@@ -90,7 +90,7 @@ file(WRITE "${_manifest}" "${_changed}")
 _configure_case("wrong compiler ABI" "does not match")
 file(WRITE "${_manifest}" "${_original_manifest}")
 
-# Git can independently convert line endings in the protocol submodule.
+# Git can independently convert line endings in the protocol sources.
 string(REPLACE "\r\n" "\n" _lf "${_original_schema}")
 string(REPLACE "\n" "\r\n" _crlf "${_lf}")
 file(WRITE "${_schema}" "${_crlf}")

@@ -1,0 +1,4 @@
+name: fci_protocol
+build:
+  cmake: .
+  kconfig: zephyr/Kconfig

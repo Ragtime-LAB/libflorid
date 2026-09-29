@@ -13,8 +13,7 @@ j1-j4, master gripper, slave j1-j4, and slave gripper.
 ## Build
 
 ```bash
-git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
-git -C protocol apply ../protocol-patches/underwater-management.patch
+git submodule update --init 3rdparty/astrial 3rdparty/wirelink
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
 cmake --build build

@@ -17,9 +17,9 @@ python3 tools/underwater_console/run.py --smoke
 
 `LF_ENABLE_WLC=OFF` is the normal build. It verifies and compiles
 `generated/wirelink/` without resolving or executing WLC. For schema work,
-apply `protocol-patches/underwater-management.patch`, configure with the paired
-ABI 32 compiler, and use `lf_update_wirelink` / `lf_check_wirelink` as described
-in `protocol-patches/README.md`.
+edit the tracked `protocol/` sources, configure with the paired ABI 32 compiler,
+and use `lf_update_wirelink` / `lf_check_wirelink` as described in
+`protocol-patches/README.md`.
 
 ## API and behavior
 

@@ -1,0 +1,32 @@
+menuconfig FCI_PROTOCOL
+    bool "FCI protocol library"
+    depends on WIRELINK
+    help
+      Generate the selected Wirelink FCI schema components. Applications
+      explicitly link fci_protocol::arm, fci_protocol::upgrade, or
+      fci_protocol::dual. No component is selected by default.
+
+if FCI_PROTOCOL
+
+config FCI_PROTOCOL_ARM
+    bool "Generate the single-arm FCI component"
+    help
+      Generate the firmware-side single-arm bindings and runtime.
+
+config FCI_PROTOCOL_UPGRADE
+    bool "Generate the upgrade FCI component"
+    help
+      Generate the firmware-side boot and image-upgrade bindings and runtime.
+
+config FCI_PROTOCOL_DUAL
+    bool "Generate the dual-arm FCI component"
+    help
+      Generate the firmware-side dual-arm bindings and runtime.
+
+config FCI_PROTOCOL_DEVICE
+    bool "Generate the composed arm and upgrade product component"
+    help
+      One endpoint owns the arm RPCs, upgrade management RPCs, and direct
+      bulk routes. Do not include the standalone codecs in the same source.
+
+endif

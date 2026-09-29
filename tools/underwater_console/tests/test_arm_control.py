@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from test_controller import FakeSdk, Mode, ControlKind
-from underwater_console.arm_control import ArmControlPage, joint_limits
+from underwater_console.arm_control import ArmControlPage, MODE_REQUEST_TEXT, joint_limits
 from underwater_console.arm_stream import StreamReport
 import tkinter as tk
 
@@ -76,10 +76,27 @@ class ArmPageTests(unittest.TestCase):
 
     def test_four_mode_buttons_route_rpcs_and_commit_pending_inputs(self):
         self.page.rows[4]["values"]["tau"].set("0.35")
-        for mode in ("Damp", "Gravity", "Teleop", "Control"):
+        for mode, method in (("Damp", "disable"), ("Gravity", "enable"),
+                             ("Teleop", "enter_teleop"), ("Control", "enter_control")):
             self.page.mode_buttons[mode].invoke()
+            self.assertEqual(self.page.feedback.get(), MODE_REQUEST_TEXT[method])
         self.assertEqual(self.modes, ["disable", "enable", "enter_teleop", "enter_control"])
         self.assertEqual(self.sent[-1].tau[4], 0.35)
+
+    def test_status_refresh_between_mouse_press_and_release_does_not_cancel_click(self):
+        button = self.page.mode_buttons["Gravity"]
+        button.event_generate("<Enter>", x=5, y=5)
+        button.event_generate("<ButtonPress-1>", x=5, y=5)
+        self.root.update()
+
+        self.page.update_mode(SimpleNamespace(mode=Mode.Damp))
+        self.root.update()
+        button.event_generate("<ButtonRelease-1>", x=5, y=5)
+        self.root.update()
+
+        self.assertEqual(self.modes, ["enable"])
+        self.assertIn("selected", self.page.mode_buttons["Damp"].state())
+        self.assertNotIn("selected", button.state())
 
     def test_outside_limit_feedback_is_not_silently_clamped_to_command(self):
         status = self.status()

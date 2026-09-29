@@ -1,0 +1,7 @@
+if(NOT CONFIG_FCI_PROTOCOL)
+    return()
+endif()
+
+if(NOT CONFIG_WIRELINK)
+    message(FATAL_ERROR "CONFIG_FCI_PROTOCOL requires CONFIG_WIRELINK")
+endif()

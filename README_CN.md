@@ -11,8 +11,7 @@ Zeroing 和遥操对齐过渡状态。Control 模式只接受 MIT 与带固件�
 ## 构建
 
 ```bash
-git submodule update --init protocol 3rdparty/astrial 3rdparty/wirelink
-git -C protocol apply ../protocol-patches/underwater-management.patch
+git submodule update --init 3rdparty/astrial 3rdparty/wirelink
 cmake -S . -B build -G Ninja \
   -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON
 cmake --build build

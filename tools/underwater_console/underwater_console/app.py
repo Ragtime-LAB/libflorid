@@ -8,6 +8,8 @@ from .controller import ConsoleController
 from .settings import SettingsPage
 from .arm_control import ArmControlPage
 
+MOTOR_STATUS_REFRESH_S = 1.0 / 30.0
+
 
 def name(value):
     return getattr(value, "name", str(value))
@@ -24,6 +26,7 @@ class UnderwaterApp:
         self.awaiting_reboot = False
         self.expected_version = None
         self.closing = False
+        self.last_motor_refresh = 0.0
         root.title("Underwater · USB 控制台")
         root.geometry("1160x900")
         root.minsize(1020, 680)
@@ -39,8 +42,8 @@ class UnderwaterApp:
         style.configure("TLabelframe", background="#f2f5f8")
         style.configure("TLabelframe.Label", background="#f2f5f8", foreground="#243747")
         style.map("TEntry", fieldbackground=[("invalid", "#ffe6e6")])
-        style.map("TButton", foreground=[("pressed", "#ffffff")],
-                  background=[("pressed", "#095c72")])
+        style.map("TButton", foreground=[("selected", "#ffffff")],
+                  background=[("selected", "#095c72")])
         outer = ttk.Frame(root, padding=16)
         outer.pack(fill="both", expand=True)
         outer.columnconfigure(0, weight=1)
@@ -98,6 +101,22 @@ class UnderwaterApp:
         ttk.Label(control, text="位图 0～3：joint1～4；位 4：夹爪。接收请求与完成使能 / 对齐分别显示。").pack(anchor="w", pady=(10, 4))
         ttk.Label(control, text="Gravity / Teleop 断开后保持当前模式；Control 在命令超时或 USB 断开后失能。").pack(anchor="w")
 
+        ttk.Label(control, text="电机遥测（界面约 30 Hz 刷新，数据来自 250 Hz ArmStatus 缓存）").pack(anchor="w", pady=(18, 6))
+        motor_columns = ("motor", "q", "dq", "tau", "feedback")
+        self.motor_table = ttk.Treeview(control, columns=motor_columns, show="headings", height=10, selectmode="none")
+        for column, title, width in (
+                ("motor", "电机", 190), ("q", "角度 q / rad", 165),
+                ("dq", "速度 dq / rad/s", 165), ("tau", "扭矩 τ / N·m", 165),
+                ("feedback", "反馈", 130)):
+            self.motor_table.heading(column, text=title)
+            self.motor_table.column(column, width=width, anchor="center")
+        self.motor_table.tag_configure("stale", foreground="#a35a00")
+        self.motor_table.pack(fill="x")
+        for index, label in enumerate(
+                [f"主臂 / Master · joint{i}" for i in range(1, 5)] + ["主臂 / Master · gripper"] +
+                [f"从臂 / Slave · joint{i}" for i in range(1, 5)] + ["从臂 / Slave · gripper"]):
+            self.motor_table.insert("", "end", iid=f"motor-{index}", values=(label, "—", "—", "—", "等待反馈"))
+
         ttk.Label(upgrade, text="本地固件文件（zephyr.signed.bin）").pack(anchor="w")
         file_row = ttk.Frame(upgrade)
         file_row.pack(fill="x", pady=(6, 12))
@@ -132,7 +151,7 @@ class UnderwaterApp:
                                font=("monospace", 10), padx=10, pady=8, wrap="word", state="disabled")
         self.log_box.grid(row=5, column=0, sticky="ew")
         root.protocol("WM_DELETE_WINDOW", self.close)
-        root.after(50, self.events)
+        root.after(33, self.events)
         root.after(1000, self.poll)
         if auto_scan:
             self.search()
@@ -160,6 +179,27 @@ class UnderwaterApp:
     def refresh_zeroing_button(self):
         enabled = self.controller.connected and self.zeroing_ready and not self.zeroing_busy
         self.zeroing_button.configure(state="normal" if enabled else "disabled")
+
+    def reset_motor_status(self):
+        self.last_motor_refresh = 0.0
+        for index in range(10):
+            label = self.motor_table.item(f"motor-{index}", "values")[0]
+            self.motor_table.item(f"motor-{index}", values=(label, "—", "—", "—", "等待反馈"), tags=())
+
+    def update_motor_status(self, report, now=None):
+        now = time.monotonic() if now is None else now
+        if (report is None or report.status is None or
+                now - self.last_motor_refresh < MOTOR_STATUS_REFRESH_S):
+            return
+        self.last_motor_refresh = now
+        status = report.status
+        for index in range(10):
+            label = self.motor_table.item(f"motor-{index}", "values")[0]
+            fresh = bool(status.fresh_mask & (1 << index))
+            self.motor_table.item(f"motor-{index}", values=(
+                label, f"{status.q[index]:.4f}", f"{status.dq[index]:.4f}",
+                f"{status.tau[index]:.4f}", "正常" if fresh else "反馈过期"),
+                tags=() if fresh else ("stale",))
 
     def zeroing(self):
         if not self.zeroing_ready or self.zeroing_busy:
@@ -243,6 +283,7 @@ class UnderwaterApp:
             self.log(f"找到 {len(value)} 个 USB 设备，请选择后连接。")
         elif event.kind == "connected":
             self.arm_page.reset()
+            self.reset_motor_status()
             self.zeroing_busy = self.zeroing_ready = False
             self.refresh_zeroing_button()
             self.settings_page.reset()
@@ -256,6 +297,7 @@ class UnderwaterApp:
             self.controller.command("settings")
         elif event.kind == "disconnected":
             self.arm_page.reset()
+            self.reset_motor_status()
             self.zeroing_busy = self.zeroing_ready = False
             self.refresh_zeroing_button()
             self.settings_page.reset()
@@ -347,8 +389,10 @@ class UnderwaterApp:
                 self.handle_event(self.controller.events.get_nowait())
         except Empty:
             pass
-        self.arm_page.update_stream(self.controller.arm_stream_report())
-        self.root.after(50, self.events)
+        report = self.controller.arm_stream_report()
+        self.arm_page.update_stream(report)
+        self.update_motor_status(report)
+        self.root.after(33, self.events)
 
     def poll(self):
         if self.closing:

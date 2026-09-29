@@ -25,7 +25,7 @@ index 68828f4..144907c 100644
  
 -Arm revision 8 uses managed RPC and requires **WLC v0.6.0 / codegen ABI 31**
 -with **Wirelink v0.6.0**. WLC v0.5.0 / ABI 30 cannot generate this API.
-+The current composed endpoint requires **WLC v0.7.0-rc.1 / codegen ABI 32**
++The current composed endpoint requires **WLC v0.8.0 / codegen ABI 32**
 +and its matching Wirelink runtime. The pinned runtime's CMake integration can
 +automatically obtain that released WLC; no development executable is required.
  Deploy host and firmware together: revision 7 arm RPC

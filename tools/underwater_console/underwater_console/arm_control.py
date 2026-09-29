@@ -9,6 +9,12 @@ from tkinter import ttk
 
 MODE_BUTTONS = (("失能", "disable", "Damp"), ("拖动", "enable", "Gravity"),
                 ("跟随", "enter_teleop", "Teleop"), ("上位机控制", "enter_control", "Control"))
+MODE_REQUEST_TEXT = {
+    "disable": "正在请求失能（Damp），等待设备响应。",
+    "enable": "正在请求拖动（Gravity），等待设备响应。",
+    "enter_teleop": "正在请求跟随（Teleop），等待设备响应。",
+    "enter_control": "正在请求上位机控制；设备接受后按 250 Hz 发送当前目标。",
+}
 FIELDS = (("dq", "速度 / rad/s", 0.0), ("tau", "前馈 / N·m", 0.0),
           ("kp", "Kp / N·m/rad", 20.0), ("kd", "Kd / N·m·s/rad", 0.5))
 REJECT_REASONS = {1: "当前模式不接收命令", 2: "Control 会话不匹配", 3: "命令序号过期",
@@ -197,7 +203,7 @@ class ArmControlPage(ttk.Frame):
                 for field in row["values"]:
                     if not self.commit(index, field):
                         return
-            self.feedback.set("正在请求上位机控制；设备接受后按 250 Hz 发送当前目标。")
+        self.feedback.set(MODE_REQUEST_TEXT[method])
         self.send_mode(method)
 
     def use_measured_angles(self):
@@ -231,7 +237,11 @@ class ArmControlPage(ttk.Frame):
         translated = next((label for label, _, m in MODE_BUTTONS if m == mode), mode)
         self.mode.set(translated)
         for key, button in self.mode_buttons.items():
-            button.state(["pressed"] if key == mode else ["!pressed"])
+            # `pressed` belongs to Tk's pointer press/release binding. Clearing
+            # it from a telemetry refresh between those events cancels the
+            # click. Keep the reported device mode in the independent selected
+            # state instead.
+            button.state(["selected"] if key == mode else ["!selected"])
 
     def update_stream(self, report):
         if report is None:
