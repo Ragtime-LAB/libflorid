@@ -72,3 +72,18 @@ UART 独立 Protocol 3.1 使用 DYNAMIXEL 风格帧头／填充／CRC16，A1 命
 USB 支持 `start_upload(image_bytes)`、`firmware_progress()`、`cancel_upload()` 和
 `reboot_and_wait(Version)`，复用原升级生命周期及失能确认；重启验证成功后刷新身份。
 UART 不支持升级。操作界面与启动方式见 [控制台说明](../tools/underwater_single_console/README.md)。
+
+
+## 固件 0.4.0：本地校零与掉线报警
+
+Protocol 3.2 不改四电机帧长，新增 `mode=4 Zeroing` 和 `stop_reason=5 ZeroingFailed`。
+PA15 长按至少 1 秒后松开进入 Zeroing（可结束 USB／UART Control 会话），短按才保存四电机
+硬件零点；200 ms 等待、最多 3 次重试后成功或失败均回 Damp。期间只有零 MIT，需承托机械臂，
+保持 URDF 零姿态直到流程结束。校零中正常 Drag／Control 请求 Busy，Damp 可取消。
+SDK 不增加远程校零方法，也不自动恢复旧会话。重新控制前核对零位和新目标。
+
+GUI 显示校零操作提示、失败原因，并提醒用“读取当前角度到目标”更新零位后的输入；
+单个 Damp 状态不代表一定校零成功，成功／取消详情看 USART1 日志。失败可能已修改部分电机零点。
+报警监测四电机反馈：曾回复后超过100 ms掉线即双短音，从未回复者启动满5 s后报警；
+全部恢复立即静音。它不改变已有模式、恢复或升级规则。
+旧 0.3.0 / Protocol 3.1 固件仍可使用原 USB／UART 控制与设置 API。

@@ -122,6 +122,8 @@ class UnderwaterSingle:
 
     @staticmethod
     def _mode_reason(error, data):
+        if error == 5 and data.get("mode") == 4:
+            return "Zeroing in progress; short-press PA15 to save, or request Damp to cancel"
         if error == 5 and data.get("mode") == 3 and data.get("source") == 1:
             owner = {1: "USB", 2: "UART7"}.get(data.get("source"), "another link")
             return f"controlled by {owner}; request Damp before switching links"
