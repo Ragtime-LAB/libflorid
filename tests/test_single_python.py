@@ -44,6 +44,7 @@ class Port:
         self.lock = threading.Lock()
         self.closed = False
         self.settings_delay = .15
+        self.settings_command_count = 0
         self.mode_requests = []
 
     def mode_body(self):
@@ -80,6 +81,7 @@ class Port:
                     body = self.mode_body()
                 elif op in (0xa7, 0xa8):
                     if op == 0xa8:
+                        self.settings_command_count = len(self.commands)
                         self.gravity = list(struct.unpack_from("<3f", data, 4))
                         delay = self.settings_delay
                     body = struct.pack("<Ii3f", 1, 0, *self.gravity)
@@ -154,6 +156,13 @@ class Usb:
 
 
 class SingleTests(unittest.TestCase):
+    def wait_for(self, predicate, timeout=1):
+        deadline = time.monotonic() + timeout
+        while not predicate():
+            if time.monotonic() >= deadline:
+                self.fail("asynchronous condition did not become true")
+            time.sleep(.001)
+
     def serial_device(self):
         port = Port()
         backend = SerialBackend("unused", transport=port)
@@ -198,7 +207,7 @@ class SingleTests(unittest.TestCase):
         try:
             self.assertEqual(device.info()["uid"], "FAKE-DEVICE-UID")
             self.assertEqual(device.info()["axis_count"], 4)
-            time.sleep(.03)
+            self.wait_for(lambda: device.read_state() is not None)
             state = device.read_state()
             self.assertEqual(len(state.q), 4)
             self.assertAlmostEqual(state.q[3], .4)
@@ -212,7 +221,9 @@ class SingleTests(unittest.TestCase):
         try:
             device.start_control(*([[0]*4]*5))
             values = device.settings((.5, -.25, 1.2))
-            self.assertGreater(len(port.commands), 20)
+            # Prove progress while the settings reply is delayed, independent of
+            # the host's timer quantum. Hardware throughput is a separate check.
+            self.assertGreater(len(port.commands) - port.settings_command_count, 3)
             self.assertTrue(device.controlling)
             self.assertEqual(port.mode, 3)
             self.assertAlmostEqual(values["gravity_scale"][1], -.25)
@@ -277,11 +288,10 @@ class SingleTests(unittest.TestCase):
             self.assertEqual(device.info()["role"], 2)
             self.assertEqual(backend.commands, [])
             device.start_control(*([[0]*4]*5))
-            time.sleep(.03)
-            self.assertGreater(len(backend.commands), 3)
+            self.wait_for(lambda: len(backend.commands) > 3)
             self.assertEqual(len(backend.commands[0][0][0]), 4)
             backend.mode, backend.session = 0, 0
-            time.sleep(.02)
+            self.wait_for(lambda: not device.controlling)
             self.assertFalse(device.controlling)
             backend.rejected = True
             with self.assertRaises(sdk.DeviceRejected):

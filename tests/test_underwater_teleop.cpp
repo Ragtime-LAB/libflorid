@@ -717,16 +717,23 @@ void testControlStreaming() {
         s_command.m_q[s_i] = -0.1f*s_i; s_command.m_dq[s_i] = 0.02f*s_i;
         s_command.m_kp[s_i] = s_i+5; s_command.m_kd[s_i] = 0.5f; s_command.m_tau[s_i] = s_i*0.25f;
     }
-    auto s_deadline = std::chrono::steady_clock::now();
     std::uint32_t s_last{};
     for (int s_i = 0; s_i < 250; ++s_i) {
         s_command.m_kind = s_i < 125 ? UnderwaterControlKind::kMIT : UnderwaterControlKind::kMitWithGravity;
         const auto s_result = s_device.writeArmCommand(s_command);
-        require(bool(s_result), "250 Hz command admitted"); s_last = s_result.m_sequence;
-        s_deadline += 4ms; std::this_thread::sleep_until(s_deadline);
+        require(bool(s_result), "paced command admitted"); s_last = s_result.m_sequence;
+        // This is a codec/lifecycle test, not a host scheduling benchmark.
+        // Avoid catch-up bursts when Windows sleeps exceed the 4 ms target;
+        // those bursts can overwrite most commands in the latest-value queue.
+        std::this_thread::sleep_for(4ms);
     }
-    std::this_thread::sleep_for(20ms);
-    const auto s_status = s_device.readArmStatus();
+    const auto s_deadline = std::chrono::steady_clock::now() + 1s;
+    auto s_status = s_device.readArmStatus();
+    while ((!s_status || s_status->m_applied_command_sequence != s_last) &&
+           std::chrono::steady_clock::now() < s_deadline) {
+        std::this_thread::sleep_for(2ms);
+        s_status = s_device.readArmStatus();
+    }
     require(s_status.has_value() && s_status->m_sequence >= 100, "continuous ten-axis latest telemetry");
     require(s_status->m_applied_command_sequence == s_last && s_status->m_applied_mask == 0x3ff,
             "command sequence echo through actual wire codec");
@@ -736,7 +743,7 @@ void testControlStreaming() {
     }
     {
         std::lock_guard s_lock(s_state->m_stream_mutex);
-        require(s_state->m_command_count >= 100, "250 Hz producer reaches peer without RPC per frame");
+        require(s_state->m_command_count >= 100, "stream producer reaches peer without RPC per frame");
         const auto& s_wire = s_state->m_command;
         require(s_wire.kind == UNDERWATER_CONTROL_MIT_WITH_GRAVITY, "second MIT variant");
         require(std::equal(s_command.m_q.begin(), s_command.m_q.end(), s_wire.q) &&

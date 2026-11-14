@@ -67,22 +67,27 @@ class Console:
         self.root.after(33, self.refresh)
 
     def _style(self):
+        s_available = set(font.families(self.root))
+        s_ui_font = next((s_name for s_name in ("Noto Sans CJK SC", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI")
+                         if s_name in s_available), font.nametofont("TkDefaultFont").actual("family"))
+        s_mono_font = next((s_name for s_name in ("Consolas", "DejaVu Sans Mono") if s_name in s_available), s_ui_font)
+        self.ui_font = s_ui_font
         self.root.title("Underwater Single · 单臂控制台")
         self.root.geometry("1180x900")
         self.root.minsize(880, 540)
-        font.nametofont("TkDefaultFont").configure(family="Noto Sans CJK SC", size=10)
-        font.nametofont("TkTextFont").configure(family="Noto Sans CJK SC", size=10)
+        font.nametofont("TkDefaultFont").configure(family=s_ui_font, size=10)
+        font.nametofont("TkTextFont").configure(family=s_ui_font, size=10)
         style = ttk.Style(self.root)
         style.theme_use("clam")
         style.configure("TFrame", background="#f3f6f6")
         style.configure("TLabel", background="#f3f6f6", foreground="#17343d")
-        style.configure("TButton", padding=(12, 7), font=("Noto Sans CJK SC", 10))
+        style.configure("TButton", padding=(12, 7), font=(s_ui_font, 10))
         style.configure("Accent.TButton", background="#126a76", foreground="white")
         style.configure("Stop.TButton", background="#9b3434", foreground="white")
-        style.configure("Title.TLabel", font=("Noto Sans CJK SC", 19, "bold"))
-        style.configure("Mode.TLabel", font=("Noto Sans CJK SC", 12, "bold"), foreground="#126a76")
-        style.configure("Treeview", rowheight=34, font=("DejaVu Sans Mono", 10))
-        style.configure("Treeview.Heading", font=("Noto Sans CJK SC", 10, "bold"))
+        style.configure("Title.TLabel", font=(s_ui_font, 19, "bold"))
+        style.configure("Mode.TLabel", font=(s_ui_font, 12, "bold"), foreground="#126a76")
+        style.configure("Treeview", rowheight=34, font=(s_mono_font, 10))
+        style.configure("Treeview.Heading", font=(s_ui_font, 10, "bold"))
         style.configure("TNotebook.Tab", padding=(19, 9))
         style.map("TEntry", fieldbackground=[("invalid", "#ffecec")], foreground=[("invalid", "#a42e2e")])
 
@@ -222,7 +227,7 @@ class Console:
         self.upgrade_status.pack(anchor="w")
         ttk.Label(upgrade, text="固件会请求 Damp 并等待失能反馈后开始升级。上传完成仅表示暂存，需显式重启。", foreground="#53676c").pack(anchor="w", pady=12)
         ttk.Label(outer, text="事件日志").pack(anchor="w", pady=(12, 4))
-        self.log = tk.Text(outer, height=5, font=("Noto Sans CJK SC", 9), background="#e7eef0", foreground="#24444c", relief="flat", state="disabled")
+        self.log = tk.Text(outer, height=5, font=(self.ui_font, 9), background="#e7eef0", foreground="#24444c", relief="flat", state="disabled")
         self.log.pack(fill="x")
 
     @staticmethod

@@ -4,6 +4,81 @@
 主／从臂由固件报告：主臂蓝色、从臂绿色。需要固件 **0.3.0 / Protocol 3.1**。
 旧双臂控制台 `tools/underwater_console` 保留，不用于本单臂产品。
 
+## Windows 单文件版本
+
+在 GitHub Releases 下载 `UnderwaterSingle-<版本>-windows-x64.exe`，双击运行。
+EXE 自带 CPython、Tk/Tcl、单臂 SDK 和 pyserial，无需安装 Python；目标为 Windows
+10/11 x64，首次发布仍需在干净系统和实际设备上验收。启动时会向用户临时目录解包。
+USB Bulk 接口需要兼容的 WinUSB 驱动；USB 转串口适配器需要对应厂商驱动。
+驱动安装只针对正确的设备接口，不要替换无关串口或复合设备的其他接口。
+
+Release 同时提供 `SHA256SUMS.txt`、`THIRD_PARTY_NOTICES.txt` 和 `build-info.json`。
+可用 PowerShell `Get-FileHash ./UnderwaterSingle-<版本>-windows-x64.exe -Algorithm SHA256`
+与校验文件比较。构建信息记录应用版本、SDK 版本、提交、子模块和运行时依赖。
+应用版本独立于 SDK 和设备固件版本；固件兼容要求仍为本页所述版本。
+
+启动和 Tk 回调异常保存在 `%LOCALAPPDATA%\UnderwaterSingle\logs\desktop.log`，
+日志自动轮换。程序默认以普通用户权限运行。
+
+### 本地构建与验证
+
+需要 PowerShell 7.2+、常规 x64 CPython（含 Tk；不使用 free-threaded 版本）、
+Visual Studio C++ x64 工具链、Windows SDK、CMake、Ninja、Git 和已 bootstrap 的 vcpkg。
+CI 固定使用 CPython **3.15.2**；本地脚本接受 Python 3.12+。
+首次运行需要网络下载子模块、固定版本的 Python 依赖和 vcpkg 包。
+
+在仓库根目录执行：
+
+```powershell
+./scripts/packaging/build-underwater-single.ps1 -VcpkgRoot C:/path/to/vcpkg
+# 或显式指定解释器、应用版本：
+./scripts/packaging/build-underwater-single.ps1 `
+  -Python C:/path/to/python.exe -VcpkgRoot C:/path/to/vcpkg -Version 0.3.1-rc.1
+```
+
+默认通过 `py -3` 查找解释器，自动进入 MSVC x64 环境。脚本在
+`build/windows-single/venv-cp<ABI>` 中安装固定依赖，构建当前源码的 wheel，
+使用 `x64-windows-static-md` 链接 libusb，保持 CPython 的动态 CRT。
+始终关闭 WLC，使用仓库提交的生成快照。
+
+发布前必须通过 CTest、双臂控制台回归、单臂模拟串口/Tk 测试、启动异常报告测试、
+源码启动检查，以及打包 EXE 的 `--self-test` 和 `--smoke`。
+EXE 验证会将单个 EXE 复制到仓库外含中文和空格的临时目录，清除 Python/Tcl
+环境变量并将 PATH 缩减为系统目录，不扫描或连接设备。
+打包检查还解析内置 DLL/PYD 的 PE 导入表，确认需要的 VC 运行库已包含在 EXE 中。
+`--self-test` 检查原生扩展、单臂 USB API、Windows 串口枚举后端和 Tk/Tcl 是否齐全。
+
+仅通过验证的文件才复制到 `build/windows-single/release/<版本>/`。
+默认版本为 `<SDK版本>-dev.<提交短哈希>`。完整构建日志在
+`build/windows-single/build.log`，各次构建的报告、GUI 日志和打包诊断保留在
+`build/windows-single/run-*/`；CTest 日志在 `sdk-cp*/Testing/Temporary/`。
+
+### CI 与发布
+
+`.github/workflows/underwater-single-windows.yml` 在 `underwater-single` 分支相关
+push/PR 上构建和测试，成功后保留 `underwater-single-windows-x64` Actions artifact。
+也支持手动构建，可填写应用版本；手动构建始终只上传 Actions artifact。
+GitHub 的手动运行入口要求工作流已存在于默认分支；尚未同步到默认分支时，
+可以通过本产品分支的 push/PR 先验证流程。
+
+自动发布步骤：
+
+1. 将代码及工作流推送到 `underwater-single`，等待 CI 通过。
+2. 在该分支提交上创建标签，如 `single-v0.3.1` 或 `single-v0.3.1-rc.1`。
+3. 在 GitHub 发布对应 Release 或 Pre-release。仅推送标签不会上传 EXE。
+4. 工作流检出标签所指提交，检查它属于产品分支历史，重新构建、测试并上传附件。
+
+使用 `single-v*` 前缀，与现有 `v*` 触发的 SDK/PyPI 发布分开。
+构建任务只有读取权限，只有上传 Release 的独立任务具有 `contents: write`；
+使用仓库内置 `GITHUB_TOKEN`，无需新增发布密钥。重复运行会替换同名附件。
+Release 发布后到构建结束之间，附件尚未就绪；失败时到 Actions 下载诊断 artifact。
+当前流程在发布后追加附件，因此需要 Release 允许上传附件，不能启用发布即锁定附件的模式。
+如果将来开启 immutable releases，应改为先构建并上传到 draft，再发布 Release。
+
+首次发布需另行验证干净 Windows 系统、USB/UART 连接、250 Hz 行为、显式 Damp、
+设置保存和 USB 固件升级。普通 CI 没有实物设备，也不能证明系统未安装的 VC 运行库
+都已正确收集；这些由干净系统和台架验收确认。
+
 ## 构建并启动
 
 ```sh

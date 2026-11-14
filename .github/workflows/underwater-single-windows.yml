@@ -1,0 +1,148 @@
+name: Underwater Single Windows
+
+on:
+  push:
+    branches: [underwater-single]
+    paths:
+      - '.github/workflows/underwater-single-windows.yml'
+      - 'scripts/packaging/**'
+      - 'tools/underwater_single_console/**'
+      - 'tools/underwater_console/**'
+      - 'pyflorid/**'
+      - 'include/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'cmake/**'
+      - 'protocol/**'
+      - 'generated/**'
+      - '3rdparty/**'
+      - 'CMakeLists.txt'
+      - 'pyproject.toml'
+      - 'vcpkg.json'
+  pull_request:
+    branches: [underwater-single]
+    paths:
+      - '.github/workflows/underwater-single-windows.yml'
+      - 'scripts/packaging/**'
+      - 'tools/**'
+      - 'pyflorid/**'
+      - 'include/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'cmake/**'
+      - 'protocol/**'
+      - 'generated/**'
+      - '3rdparty/**'
+      - 'CMakeLists.txt'
+      - 'pyproject.toml'
+      - 'vcpkg.json'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional application version, e.g. 0.3.1-rc.1. Manual builds never upload to Releases.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-windows-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+jobs:
+  build:
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'single-v')
+    runs-on: windows-2025
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+    steps:
+      - name: Check out the exact source commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release tag and product branch
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^single-v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw 'Expected a single-vMAJOR.MINOR.PATCH tag with an optional prerelease suffix.'
+          }
+          git merge-base --is-ancestor HEAD origin/underwater-single
+          if ($LASTEXITCODE -ne 0) { throw 'Release commit is not in the underwater-single branch history.' }
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.15.2'
+          architecture: x64
+          cache: pip
+          cache-dependency-path: scripts/packaging/requirements-windows.txt
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/vcpkg/archives
+          key: single-vcpkg-windows-2025-${{ hashFiles('vcpkg.json') }}
+
+      - name: Build, test and package the Single EXE
+        id: package
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          MANUAL_VERSION: ${{ inputs.version }}
+        run: |
+          $version = $env:MANUAL_VERSION
+          if ($env:RELEASE_TAG) { $version = $env:RELEASE_TAG.Substring('single-v'.Length) }
+          ./scripts/packaging/build-underwater-single.ps1 `
+            -Python (Get-Command python.exe).Source `
+            -VcpkgRoot $env:VCPKG_INSTALLATION_ROOT -Version $version
+
+      - name: Upload verified release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: underwater-single-windows-x64
+          path: ${{ steps.package.outputs.release_dir }}/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Preserve build and test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: underwater-single-windows-diagnostics
+          path: |
+            build/windows-single/build.log
+            build/windows-single/sdk-*/Testing/Temporary/*.log
+            build/windows-single/run-*/reports/**
+            build/windows-single/run-*/pyinstaller/**/warn-*.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified files
+        uses: actions/download-artifact@v4
+        with:
+          name: underwater-single-windows-x64
+          path: release-assets
+
+      - name: Attach files to this Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$RELEASE_TAG" release-assets/* --clobber

@@ -7,4 +7,6 @@ __pycache__
 *.cpython*
 build_*
 build-*
+!scripts/packaging/build-single.py
+!scripts/packaging/build-underwater-single.ps1
 launch.json
