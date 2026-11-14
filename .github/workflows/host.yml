@@ -109,15 +109,17 @@ jobs:
           -DLF_ENABLE_WLC=OFF -DWLC_EXECUTABLE=C:/wlc-must-not-run.exe
           -DWIRELINK_WLC_AUTO_DOWNLOAD=OFF
 
-      - name: Build and test Release
-        run: |
-          cmake --build --preset ${{ matrix.release_preset }} --parallel
-          ctest --preset ${{ matrix.release_preset }}
+      - name: Build Release
+        run: cmake --build --preset ${{ matrix.release_preset }} --parallel
 
-      - name: Build and test Debug
-        run: |
-          cmake --build --preset ${{ matrix.debug_preset }} --parallel
-          ctest --preset ${{ matrix.debug_preset }}
+      - name: Test Release
+        run: ctest --preset ${{ matrix.release_preset }}
+
+      - name: Build Debug
+        run: cmake --build --preset ${{ matrix.debug_preset }} --parallel
+
+      - name: Test Debug
+        run: ctest --preset ${{ matrix.debug_preset }}
 
       - name: Verify dynamic app-local deployment
         if: matrix.linkage == 'dynamic'
