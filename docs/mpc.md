@@ -78,11 +78,16 @@ solve time; it does not restart the trajectory at zero when a solve completes.
 This accounts for known host-side delay, not an unsynchronized device's unknown
 one-way transport delay.
 
-Each interval uses cubic Hermite interpolation. On a new plan, a 20 ms Hermite
+Each interval uses cubic Hermite interpolation. On a new plan, a Hermite
 transition starts from the executing reference q/dq and joins the new prediction
-at its corresponding future time, preserving C1 continuity. The first transition
-starts at measured q/dq. MPC initialization always uses measured state. Every
-spline, including transitions, is checked at its exact position/velocity extrema
+at its corresponding future time, preserving C1 continuity. The executor tries
+20, 22, ..., 40 ms and accepts the shortest candidate satisfying all joint limits.
+The transition must finish within both the prediction horizon and the plan's
+remaining lifetime. New plans may replace an unfinished transition, starting at
+its current q/dq; there is no pending-plan queue or wait for a transition to finish.
+If none of the bounded candidates is feasible, the session faults as before.
+The first transition starts at measured q/dq. MPC initialization always uses
+measured state. Every spline, including transitions, is checked at its exact position/velocity extrema
 and acceleration endpoints. The velocity setting also constrains the OCP; the
 acceleration setting is an interpolation acceptance limit. A trajectory that
 exceeds it is rejected and stops the session, rather than being clipped.
@@ -108,8 +113,8 @@ and the actual PVT servo do not inherit the optimizer's torque feasibility.
 
 Planning/output periods are fixed at 20/2 ms for this generated model. A custom
 plan timeout must exceed 20 ms and be at most 80 ms, leaving room for the
-transition inside the 100 ms horizon. An output lateness limit must be at least
-2 ms and shorter than plan timeout. Targets/feedback must be finite, feedback
+minimum transition inside the 100 ms horizon. An output lateness limit must be
+at least 2 ms and shorter than plan timeout. Targets/feedback must be finite, feedback
 must stay inside position/velocity limits and report no device errors. Duplicate
 sequence/timestamp samples do not refresh feedback age.
 

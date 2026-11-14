@@ -102,6 +102,111 @@ void testCubic() {
             "handoff lost C1 continuity");
 }
 
+void requireSameState(const MPCJointState& s_a, const MPCJointState& s_b) {
+    for (int i = 0; i < 6; ++i)
+        require(std::abs(s_a.m_q[i] - s_b.m_q[i]) < 1e-12 &&
+                std::abs(s_a.m_dq[i] - s_b.m_dq[i]) < 1e-12, "transition lost C1 continuity");
+}
+
+void testWindowsTransition() {
+    // Native MSVC failure: prediction segments were valid, but the 20 ms handoff
+    // needed 10.580102 rad/s^2 on joint 2. Keep the captured doubles and plan age.
+    // https://github.com/Ragtime-LAB/libflorid/actions/runs/34377417068
+    MPCJointLimits s_limits;
+    s_limits.m_lower = {-3.1400001049041748, 0, 0, -1.2999999523162842, -1.5700000524520874, -1.5700000524520874};
+    s_limits.m_upper = {3.1400001049041748, 3.1400001049041748, 3.1400001049041748, 1.2999999523162842, 1.5700000524520874, 1.5700000524520874};
+    s_limits.m_velocity.fill(0.5); s_limits.m_acceleration.fill(10);
+    const MPCJointState s_anchor{
+        {0.09765782315964168, 1.5117579463045068, 0.30788505895886603, 0.089907266727183494, 0.19951800699227404, 0.10001564463135885},
+        {-0.0077748664555391742, 0.040898633297347074, 0.029268941197865203, -0.031315605117026926, -0.0016724162524378782, 5.6443359054458225e-05}
+    };
+    const std::array<MPCJointState, 6> s_knots{{
+        {
+            {0.097852610051631927, 1.5107414722442627, 0.30715674161911011, 0.090719617903232574, 0.1995597630739212, 0.10001423954963684},
+            {-0.0021296243648976088, 0.0096062822267413139, 0.0028063852805644274, -0.0089779496192932129, -0.00051905709551647305, 1.3659398064191919e-05}
+        },
+        {
+            {0.097768009826218791, 1.5111442659616823, 0.30736192117066202, 0.090353889215255459, 0.19954067958895269, 0.10001485682434598},
+            {-0.0063196266600503365, 0.0307543364166219, 0.017788488806078528, -0.027422662032866855, -0.0013523328451140577, 4.3411354803774588e-06}
+        },
+        {
+            {0.097640062472062486, 1.5117878803686446, 0.3077564073112502, 0.089806081728966466, 0.19951250869804518, 0.1000155908330215},
+            {-0.0064579471840674942, 0.03374573269189373, 0.021771458427352453, -0.027114441609234839, -0.0014015007219856112, 1.759256787396385e-06}
+        },
+        {
+            {0.097510501686477832, 1.5124599188239887, 0.30817894317124878, 0.089273060160937237, 0.19948346002657261, 0.10001627579796939},
+            {-0.0064814575890468993, 0.033604304253663064, 0.020591406149875712, -0.02595891639449496, -0.0014386412110127477, 1.0352144237324069e-06}
+        },
+        {
+            {0.097382927559653429, 1.5130855510604111, 0.30853208212534239, 0.088770142665239873, 0.19945377958711236, 0.10001688000056357},
+            {-0.0062647856190208373, 0.02909294199178537, 0.014826110286677434, -0.024115367206685081, -0.0014747063659523746, 2.2170979996374482e-06}
+        },
+        {
+            {0.097319937021595998, 1.5133779695638756, 0.30868274424116865, 0.08852615433004199, 0.19943872200939838, 0.10001716323537314},
+            {-3.042008218392113e-05, 0.00021071428707767107, 0.00029011858529544483, -0.00017583305892893982, -7.0537275088597005e-06, -3.9900662313240439e-08}
+        },
+    }};
+    constexpr double s_age = 0.0210323;
+    for (std::size_t i = 0; i + 1 < s_knots.size(); ++i)
+        require(MPCCubic(s_knots[i], s_knots[i+1], 0.020).within(s_limits),
+                "captured prediction itself exceeds limits");
+    require(!MPCCubic(s_anchor, sampleMPC(s_knots, 0.020, s_age + 0.020), 0.020).within(s_limits),
+            "captured Windows handoff no longer reproduces the acceleration violation");
+
+    const auto s_bridge = makeMPCTransition(s_anchor, s_knots, 0.020, s_age, 0.080, s_limits);
+    require(s_bridge && std::abs(s_bridge->duration() - 0.022) < 1e-12 &&
+            s_bridge->within(s_limits), "no shortest feasible Windows handoff found");
+    requireSameState(s_bridge->sample(0), s_anchor);
+    requireSameState(s_bridge->sample(s_bridge->duration()),
+                     sampleMPC(s_knots, 0.020, s_age + s_bridge->duration()));
+    require(!makeMPCTransition(s_anchor, s_knots, 0.020, s_age, s_age + 0.021, s_limits),
+            "transition exceeded the remaining plan lifetime");
+}
+
+void testTransitionBoundsAndRetargeting() {
+    MPCJointLimits s_limits;
+    s_limits.m_lower.fill(-10); s_limits.m_upper.fill(10);
+    s_limits.m_velocity.fill(0.5); s_limits.m_acceleration.fill(10);
+    std::array<MPCJointState, 6> s_knots{};
+    MPCJointState s_anchor;
+    const auto s_hold = makeMPCTransition(s_anchor, s_knots, 0.020, 0, 0.080, s_limits);
+    require(s_hold && s_hold->duration() == 0.020, "ordinary hold unnecessarily extended");
+    require(!makeMPCTransition(s_anchor, s_knots, 0.020, 0.061, 0.080, s_limits),
+            "transition ignored plan expiry");
+    require(!makeMPCTransition(s_anchor, s_knots, 0.004, 0.001, 0.080, s_limits),
+            "transition sampled beyond the prediction horizon");
+    require(!makeMPCTransition(s_anchor, s_knots, 0.020, -0.001, 0.080, s_limits) &&
+            !makeMPCTransition(s_anchor, s_knots, 0.020, NAN, 0.080, s_limits),
+            "invalid prediction time accepted");
+
+    // This motion needs >40 ms even though there is enough prediction/lifetime.
+    s_anchor.m_q[0] = 0.003;
+    require(MPCCubic(s_anchor, s_knots[0], 0.044).within(s_limits),
+            "duration-cap fixture is not feasible after 40 ms");
+    require(!makeMPCTransition(s_anchor, s_knots, 0.020, 0, 0.080, s_limits),
+            "transition search exceeded its 40 ms cap");
+
+    // Replan every 20 ms on a moving reference. The first bridge takes >20 ms,
+    // so the next update must start from the middle of it, not measured state.
+    s_anchor.m_q[0] = 0.101;
+    s_anchor.m_dq[0] = 0.04;
+    for (int s_update = 0; s_update < 50; ++s_update) {
+        for (std::size_t i = 0; i < s_knots.size(); ++i) {
+            s_knots[i].m_q[0] = 0.1 + 0.04 * (s_update * 0.020 + i * 0.020);
+            s_knots[i].m_dq[0] = 0.04;
+        }
+        const auto s_bridge = makeMPCTransition(s_anchor, s_knots, 0.020, 0, 0.080, s_limits);
+        require(s_bridge && s_bridge->within(s_limits), "successive handoff became infeasible");
+        if (s_update == 0) require(s_bridge->duration() > 0.020, "unfinished handoff not exercised");
+        requireSameState(s_bridge->sample(0), s_anchor);
+        requireSameState(s_bridge->sample(s_bridge->duration()),
+                         sampleMPC(s_knots, 0.020, s_bridge->duration()));
+        s_anchor = s_bridge->sample(0.020);
+    }
+    require(std::abs(s_anchor.m_q[0] - 0.14) < 1e-9 &&
+            std::abs(s_anchor.m_dq[0] - 0.04) < 1e-9, "repeated retargeting accumulated reference lag");
+}
+
 void testSlowSolverAndLifecycle() {
     std::atomic<int> calls{0};
     std::atomic<bool> slow_started{false};
@@ -385,6 +490,8 @@ void testExampleMotionWithLag() {
 int main() {
     try {
         testCubic();
+        testWindowsTransition();
+        testTransitionBoundsAndRetargeting();
         testSlowSolverAndLifecycle();
         testConcurrentExchange();
         testFaults();
