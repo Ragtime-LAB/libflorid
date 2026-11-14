@@ -317,6 +317,11 @@ wl_codec_status_t set_zero_request_wlc_detail_fingerprint(const set_zero_request
 void set_zero_request_wlc_detail_value_copy(const set_zero_request_t *, set_zero_request_value_t *);
 #endif
 
+wl_codec_status_t single_request_wlc_detail_fingerprint(const single_request_t *, uint64_t *, size_t *);
+#if SINGLE_REQUEST_HAS_VALUE
+void single_request_wlc_detail_value_copy(const single_request_t *, single_request_value_t *);
+#endif
+
 wl_codec_status_t start_upgrade_request_wlc_detail_fingerprint(const start_upgrade_request_t *, uint64_t *, size_t *);
 #if START_UPGRADE_REQUEST_HAS_VALUE
 void start_upgrade_request_wlc_detail_value_copy(const start_upgrade_request_t *, start_upgrade_request_value_t *);
@@ -346,6 +351,7 @@ wl_err_t fci_device_runtime_config_defaults(fci_device_runtime_config_t *config)
   config->motor_feedback_latest_initial_generation = 1U;
   config->arm_diagnostics_latest_initial_generation = 1U;
   config->underwater_arm_status_latest_initial_generation = 1U;
+  config->single_state_latest_initial_generation = 1U;
   config->rpc_client_slot_count = 1U;
   config->rpc_client_next_operation_id = 1U;
   config->rpc_server_pending_slot_count = 1U;
@@ -407,6 +413,7 @@ static int fci_device_runtime_roles_valid(const fci_device_runtime_config_t *con
   if (config->set_underwater_mode_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (config->set_underwater_settings_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (config->set_zero_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
+  if (config->single_exchange_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (config->start_upgrade_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   if (config->zeroing_request_handler != NULL) return WL_ERR_NOT_SUPPORTED;
   (void)config;
@@ -454,6 +461,7 @@ typedef struct {
   void *motor_feedback_latest_storage;
   void *arm_diagnostics_latest_storage;
   void *underwater_arm_status_latest_storage;
+  void *single_state_latest_storage;
   void *rpc_client_slots;
   void *rpc_client_responses;
   size_t rpc_client_responses_size;
@@ -522,6 +530,15 @@ static int fci_device_runtime_layout(const fci_device_runtime_config_t *config, 
     if (result != WL_OK) return result;
     if (alignment < _Alignof(underwater_arm_status_t)) alignment = _Alignof(underwater_arm_status_t);
     result = fci_device_runtime_storage_region(&cursor, _Alignof(underwater_arm_status_t), 1U, route_requirements.storage_size, out_layout == NULL ? NULL : &out_layout->underwater_arm_status_latest_storage, NULL);
+    if (result != WL_OK) return result;
+  }
+  {
+    const wl_latest_config_t route_config = {sizeof(single_state_t), _Alignof(single_state_t), config->single_state_latest_initial_generation};
+    wl_latest_requirements_t route_requirements;
+    result = wl_latest_requirements(&route_config, &route_requirements);
+    if (result != WL_OK) return result;
+    if (alignment < _Alignof(single_state_t)) alignment = _Alignof(single_state_t);
+    result = fci_device_runtime_storage_region(&cursor, _Alignof(single_state_t), 1U, route_requirements.storage_size, out_layout == NULL ? NULL : &out_layout->single_state_latest_storage, NULL);
     if (result != WL_OK) return result;
   }
   if (fci_device_runtime_roles_valid(config) != WL_OK) return WL_ERR_NOT_SUPPORTED;
@@ -665,6 +682,18 @@ int fci_device_runtime_init(fci_device_runtime_instance_t *instance, const fci_d
     result = wl_latest_init(&instance->underwater_arm_status_latest, &route_config, &route_storage);
     if (result != WL_OK) goto init_failed;
     instance->runtime.underwater_arm_status_latest = &instance->underwater_arm_status_latest;
+  }
+  {
+    const wl_latest_config_t route_config = {sizeof(single_state_t), _Alignof(single_state_t), config->single_state_latest_initial_generation};
+    wl_latest_requirements_t route_requirements;
+    wl_latest_storage_t route_storage;
+    result = wl_latest_requirements(&route_config, &route_requirements);
+    if (result != WL_OK) goto init_failed;
+    route_storage.data = layout.single_state_latest_storage;
+    route_storage.size = route_requirements.storage_size;
+    result = wl_latest_init(&instance->single_state_latest, &route_config, &route_storage);
+    if (result != WL_OK) goto init_failed;
+    instance->runtime.single_state_latest = &instance->single_state_latest;
   }
   instance->runtime.bulk_status_direct.handler = config->bulk_status_direct_handler;
   instance->runtime.bulk_status_direct.user_data = config->bulk_status_direct_user_data;
@@ -969,6 +998,16 @@ int fci_device_runtime_init(fci_device_runtime_instance_t *instance, const fci_d
 #endif
 #if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
   if (config->rpc_server_enabled != 0U) {
+    instance->runtime.single_exchange.request_scratch = &instance->single_exchange_scratch.request;
+    instance->runtime.single_exchange.request_handler = config->single_exchange_request_handler;
+    instance->runtime.single_exchange.user_data = config->single_exchange_user_data;
+  }
+#endif
+#if FCI_DEVICE_RUNTIME_HAS_RPC_CLIENT
+  if (config->rpc_client_enabled != 0U) instance->runtime.single_exchange.response_scratch = &instance->single_exchange_scratch.response;
+#endif
+#if FCI_DEVICE_RUNTIME_HAS_RPC_SERVER
+  if (config->rpc_server_enabled != 0U) {
     instance->runtime.start_upgrade.request_scratch = &instance->start_upgrade_scratch.request;
     instance->runtime.start_upgrade.request_handler = config->start_upgrade_request_handler;
     instance->runtime.start_upgrade.user_data = config->start_upgrade_user_data;
@@ -1245,6 +1284,13 @@ wl_rpc_err_t fci_device_runtime_service(wl_ctx_t *ctx, fci_device_runtime_t *run
       break;
     case SET_ZERO_RESPONSE_MESSAGE_ID:
       if (response.identity.request_message_id != SET_ZERO_REQUEST_MESSAGE_ID) {
+        result = WL_RPC_ERR_RESPONSE_MISMATCH;
+        break;
+      }
+      reliable_response = 1U;
+      break;
+    case SINGLE_RESPONSE_MESSAGE_ID:
+      if (response.identity.request_message_id != SINGLE_REQUEST_MESSAGE_ID) {
         result = WL_RPC_ERR_RESPONSE_MISMATCH;
         break;
       }
@@ -1538,6 +1584,49 @@ fci_device_runtime_result_t fci_device_runtime_dispatch_event(wl_ctx_t *ctx, con
       result.detail.retained.storage_result = wl_latest_write_publish(runtime->underwater_arm_status_latest, &claim);
       if (result.detail.retained.storage_result != WL_OK) {
         result.detail.retained.abort_result = wl_latest_write_abort(runtime->underwater_arm_status_latest, &claim);
+        result.domain = FCI_DEVICE_RUNTIME_STORAGE_ERROR;
+        break;
+      }
+      result.domain = FCI_DEVICE_RUNTIME_OK;
+      break;
+    }
+    case SINGLE_STATE_MESSAGE_ID: {
+      wl_latest_write_claim_t claim = {0};
+      result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RETAINED;
+      if (event->type != WL_EVT_UNRELIABLE_RX) {
+        result.domain = FCI_DEVICE_RUNTIME_DELIVERY_MISMATCH;
+        break;
+      }
+      if (runtime->single_state_latest == NULL) {
+        result.domain = FCI_DEVICE_RUNTIME_MISSING_ROUTE;
+        break;
+      }
+      result.detail.retained.storage_result = wl_latest_write_claim(runtime->single_state_latest, &claim);
+      if (result.detail.retained.storage_result != WL_OK) {
+        result.domain = FCI_DEVICE_RUNTIME_STORAGE_ERROR;
+        break;
+      }
+      if (claim.value_size < sizeof(single_state_t)) {
+        result.detail.retained.storage_result = WL_ERR_BUF_TOO_SMALL;
+        result.detail.retained.abort_result = wl_latest_write_abort(runtime->single_state_latest, &claim);
+        result.domain = FCI_DEVICE_RUNTIME_STORAGE_ERROR;
+        break;
+      }
+      if (((uintptr_t)claim.value % _Alignof(single_state_t)) != 0U) {
+        result.detail.retained.storage_result = WL_ERR_INVALID_ARG;
+        result.detail.retained.abort_result = wl_latest_write_abort(runtime->single_state_latest, &claim);
+        result.domain = FCI_DEVICE_RUNTIME_STORAGE_ERROR;
+        break;
+      }
+      result.detail.retained.codec_status = single_state_decode(event->payload, event->payload_len, (single_state_t *)claim.value);
+      if (result.detail.retained.codec_status != WL_CODEC_OK) {
+        result.detail.retained.abort_result = wl_latest_write_abort(runtime->single_state_latest, &claim);
+        result.domain = FCI_DEVICE_RUNTIME_CODEC_ERROR;
+        break;
+      }
+      result.detail.retained.storage_result = wl_latest_write_publish(runtime->single_state_latest, &claim);
+      if (result.detail.retained.storage_result != WL_OK) {
+        result.detail.retained.abort_result = wl_latest_write_abort(runtime->single_state_latest, &claim);
         result.domain = FCI_DEVICE_RUNTIME_STORAGE_ERROR;
         break;
       }
@@ -3426,6 +3515,81 @@ fci_device_runtime_result_t fci_device_runtime_dispatch_event(wl_ctx_t *ctx, con
           FCI_DEVICE_RUNTIME_OK : FCI_DEVICE_RUNTIME_RPC_ERROR;
       break;
     }
+    case 30209U:
+      result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
+      result.domain = event->type == WL_EVT_RELIABLE_RX ? FCI_DEVICE_RUNTIME_MISSING_ROUTE : FCI_DEVICE_RUNTIME_DELIVERY_MISMATCH;
+      break;
+    case 30210U: {
+      wl_rpc_client_result_t client;
+      uint64_t session = 0U;
+      result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
+      if (event->type != WL_EVT_RELIABLE_RX) {
+        result.domain = FCI_DEVICE_RUNTIME_DELIVERY_MISMATCH;
+        break;
+      }
+      if (runtime->rpc_client == NULL) {
+        result.domain = FCI_DEVICE_RUNTIME_MISSING_ROUTE;
+        break;
+      }
+      result.detail.rpc.rpc_result = fci_device_rpc_header_read(event->payload,
+          event->payload_len, 2U, &result.detail.rpc.operation_id,
+          &result.detail.rpc.application_result, &session);
+      if (result.detail.rpc.rpc_result != WL_RPC_OK ||
+          (result.detail.rpc.application_result != 0 && event->payload_len != 20U)) {
+        result.detail.rpc.rpc_result = WL_RPC_ERR_MALFORMED_METADATA;
+        result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+        break;
+      }
+      if (session != wl_link_session_id(ctx)) {
+        /* Observable stale/misdirected reply; do not touch another call. */
+        result.detail.rpc.rpc_result = WL_RPC_ERR_SESSION_MISMATCH;
+        result.domain = FCI_DEVICE_RUNTIME_OK;
+        break;
+      }
+      if (runtime->rpc_async != NULL) {
+        uint16_t expired;
+        /* A reply received at/after the acceptance deadline cannot resurrect
+         * that call, even though event dispatch precedes owner progress. */
+        (void)wl_rpc_client_poll(runtime->rpc_client, now_ms, &expired);
+      }
+      result.detail.rpc.rpc_result = wl_rpc_client_get(runtime->rpc_client,
+          result.detail.rpc.operation_id, &client);
+      if (result.detail.rpc.rpc_result == WL_RPC_ERR_NOT_FOUND) {
+        /* Unknown/late responses are observable, not failures of another call. */
+        result.domain = FCI_DEVICE_RUNTIME_OK;
+        break;
+      }
+      if (result.detail.rpc.rpc_result != WL_RPC_OK ||
+          client.request_message_id != 30209U || client.response_message_id != 30210U) {
+        result.detail.rpc.rpc_result = WL_RPC_ERR_RESPONSE_MISMATCH;
+        result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+        break;
+      }
+      if (client.state != WL_RPC_CLIENT_LINK_PENDING && client.state != WL_RPC_CLIENT_WAIT_RESPONSE) {
+        result.detail.rpc.rpc_result = WL_RPC_ERR_INVALID_STATE;
+        result.domain = FCI_DEVICE_RUNTIME_OK;
+        break;
+      }
+      if (result.detail.rpc.application_result == 0) {
+        if (runtime->single_exchange.response_scratch == NULL) {
+          result.domain = FCI_DEVICE_RUNTIME_MISSING_SCRATCH;
+          break;
+        }
+        result.detail.rpc.codec_status = single_response_decode(event->payload + 20U,
+            event->payload_len - 20U, runtime->single_exchange.response_scratch);
+        if (result.detail.rpc.codec_status != WL_CODEC_OK) {
+          result.domain = FCI_DEVICE_RUNTIME_CODEC_ERROR;
+          break;
+        }
+      }
+      result.detail.rpc.payload_length = event->payload_len;
+      result.detail.rpc.rpc_result = wl_rpc_client_on_response(runtime->rpc_client,
+          30210U, result.detail.rpc.operation_id, result.detail.rpc.application_result,
+          event->payload, event->payload_len);
+      result.domain = result.detail.rpc.rpc_result == WL_RPC_OK ?
+          FCI_DEVICE_RUNTIME_OK : FCI_DEVICE_RUNTIME_RPC_ERROR;
+      break;
+    }
     case 28930U:
       result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
       result.domain = event->type == WL_EVT_RELIABLE_RX ? FCI_DEVICE_RUNTIME_MISSING_ROUTE : FCI_DEVICE_RUNTIME_DELIVERY_MISMATCH;
@@ -3663,6 +3827,36 @@ int fci_device_underwater_arm_status_latest_release(fci_device_runtime_t *runtim
   if (runtime->underwater_arm_status_latest == NULL) return WL_ERR_NOT_INITIALIZED;
   if ((const void *)view->value != view->lease.value || view->generation != view->lease.generation) return WL_ERR_INVALID_STATE;
   result = wl_latest_read_release(runtime->underwater_arm_status_latest, &view->lease);
+  if (result == WL_OK) memset(view, 0, sizeof(*view));
+  return result;
+}
+
+int fci_device_single_state_latest_acquire(fci_device_runtime_t *runtime, fci_device_single_state_latest_view_t *out_view) {
+  wl_latest_view_t lease = {0};
+  int result;
+  if (out_view != NULL) memset(out_view, 0, sizeof(*out_view));
+  if (runtime == NULL || out_view == NULL) return WL_ERR_INVALID_ARG;
+  if (runtime->single_state_latest == NULL) return WL_ERR_NOT_INITIALIZED;
+  result = wl_latest_read_acquire(runtime->single_state_latest, &lease);
+  if (result != WL_OK) return result;
+  if (lease.value == NULL || lease.value_size < sizeof(single_state_t) || ((uintptr_t)lease.value % _Alignof(single_state_t)) != 0U) {
+    int failure = lease.value_size < sizeof(single_state_t) ? WL_ERR_BUF_TOO_SMALL : WL_ERR_INVALID_STATE;
+    int release_result = wl_latest_read_release(runtime->single_state_latest, &lease);
+    if (release_result != WL_OK) return release_result;
+    return failure;
+  }
+  out_view->value = (const single_state_t *)lease.value;
+  out_view->generation = lease.generation;
+  out_view->lease = lease;
+  return WL_OK;
+}
+
+int fci_device_single_state_latest_release(fci_device_runtime_t *runtime, fci_device_single_state_latest_view_t *view) {
+  int result;
+  if (runtime == NULL || view == NULL) return WL_ERR_INVALID_ARG;
+  if (runtime->single_state_latest == NULL) return WL_ERR_NOT_INITIALIZED;
+  if ((const void *)view->value != view->lease.value || view->generation != view->lease.generation) return WL_ERR_INVALID_STATE;
+  result = wl_latest_read_release(runtime->single_state_latest, &view->lease);
   if (result == WL_OK) memset(view, 0, sizeof(*view));
   return result;
 }
@@ -8469,6 +8663,192 @@ wl_err_t fci_device_set_zero_encode_submission(const void *request, uint32_t ope
   if (session == 0U) return WL_ERR_INVALID_ARG;
   fci_device_rpc_header_write(out, 1U, operation_id, 0, session);
   status = set_zero_request_value_encode(request, out + 20U, capacity - 20U, &size);
+  if (status != WL_CODEC_OK) return WL_ERR_CORRUPT_PAYLOAD;
+  *length = size + 20U;
+  return WL_OK;
+}
+#endif
+
+fci_device_runtime_result_t fci_device_single_exchange_client_start(wl_ctx_t *ctx,
+    fci_device_runtime_t *runtime, const single_request_t *request, uint32_t timeout_ms,
+    wl_time_ms_t now_ms) {
+  fci_device_runtime_result_t result = fci_device_runtime_result(NULL);
+  wl_tx_payload_claim_t claim = {0};
+  uint32_t operation_id = 0U;
+  size_t encoded_length = 0U;
+  result.message_id = 30209U;
+  result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
+  if (ctx == NULL || runtime == NULL || runtime->rpc_client == NULL || request == NULL)
+    return result;
+  result.detail.rpc.rpc_result = wl_rpc_client_begin(runtime->rpc_client,
+      30209U, 30210U, timeout_ms, now_ms, &operation_id);
+  if (result.detail.rpc.rpc_result != WL_RPC_OK) {
+    result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+    return result;
+  }
+  result.detail.rpc.operation_id = operation_id;
+  result.detail.rpc.core_result = wl_tx_payload_claim(ctx, 30209U, WL_DELIVERY_RELIABLE, &claim);
+  if (result.detail.rpc.core_result != WL_OK) {
+    result.domain = FCI_DEVICE_RUNTIME_CORE_ERROR;
+    goto start_failed;
+  }
+  if (claim.span.length < 20U) {
+    result.detail.rpc.core_result = WL_ERR_BUF_TOO_SMALL;
+    result.domain = FCI_DEVICE_RUNTIME_CORE_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    goto start_failed;
+  }
+  /* Encode directly into the link claim: no whole-request copy or heap. */
+  fci_device_rpc_header_write(claim.span.data, 1U, operation_id, 0, wl_link_session_id(ctx));
+  result.detail.rpc.codec_status = single_request_encode(request, claim.span.data + 20U,
+      claim.span.length - 20U, &encoded_length);
+  if (result.detail.rpc.codec_status != WL_CODEC_OK) {
+    result.detail.rpc.core_result = WL_ERR_CORRUPT_PAYLOAD;
+    result.domain = FCI_DEVICE_RUNTIME_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    goto start_failed;
+  }
+  result.detail.rpc.payload_length = encoded_length + 20U;
+  result.detail.rpc.core_result = wl_tx_payload_commit(ctx, &claim,
+      encoded_length + 20U, now_ms, &result.detail.rpc.handle);
+  if (result.detail.rpc.core_result != WL_OK) {
+    result.domain = FCI_DEVICE_RUNTIME_CORE_ERROR;
+    goto start_failed;
+  }
+  result.detail.rpc.rpc_result = wl_rpc_client_bind_tx(runtime->rpc_client, operation_id, result.detail.rpc.handle);
+  result.domain = result.detail.rpc.rpc_result == WL_RPC_OK ? FCI_DEVICE_RUNTIME_OK : FCI_DEVICE_RUNTIME_RPC_ERROR;
+  return result;
+start_failed:
+  result.detail.rpc.rpc_result = wl_rpc_client_link_failed(runtime->rpc_client,
+      operation_id, result.detail.rpc.core_result);
+  if (result.detail.rpc.rpc_result == WL_RPC_OK)
+    result.detail.rpc.rpc_result = wl_rpc_client_release(runtime->rpc_client, operation_id);
+  if (result.detail.rpc.rpc_result == WL_RPC_OK) result.detail.rpc.operation_id = 0U;
+  return result;
+}
+
+wl_rpc_err_t fci_device_single_exchange_client_inspect(const fci_device_runtime_t *runtime,
+    uint32_t operation_id, wl_rpc_client_result_t *out_client) {
+  wl_rpc_err_t result;
+  if (out_client != NULL) memset(out_client, 0, sizeof(*out_client));
+  if (runtime == NULL || runtime->rpc_client == NULL || out_client == NULL)
+    return WL_RPC_ERR_INVALID_ARG;
+  result = wl_rpc_client_get(runtime->rpc_client, operation_id, out_client);
+  if (result != WL_RPC_OK) return result;
+  return out_client->request_message_id == 30209U && out_client->response_message_id == 30210U
+      ? WL_RPC_OK : WL_RPC_ERR_RESPONSE_MISMATCH;
+}
+
+fci_device_runtime_result_t fci_device_single_exchange_client_decode(const wl_rpc_client_result_t *client,
+    single_response_t *response) {
+  fci_device_runtime_result_t result = fci_device_runtime_result(NULL);
+  uint32_t operation_id;
+  uint64_t session;
+  int32_t status;
+  result.message_id = 30210U;
+  result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
+  if (client == NULL || response == NULL) return result;
+  result.detail.rpc.operation_id = client->operation_id;
+  result.detail.rpc.application_result = client->application_status;
+  result.detail.rpc.core_result = client->link_result;
+  result.detail.rpc.payload_length = client->response_length;
+  if (client->request_message_id != 30209U || client->response_message_id != 30210U) {
+    result.detail.rpc.rpc_result = WL_RPC_ERR_RESPONSE_MISMATCH;
+    result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+    return result;
+  }
+  if (client->state != WL_RPC_CLIENT_COMPLETED) {
+    result.detail.rpc.rpc_result = WL_RPC_ERR_INVALID_STATE;
+    result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+    return result;
+  }
+  result.detail.rpc.rpc_result = fci_device_rpc_header_read(client->response_data,
+      client->response_length, 2U, &operation_id, &status, &session);
+  if (result.detail.rpc.rpc_result != WL_RPC_OK ||
+      operation_id != client->operation_id || status != 0) {
+    result.detail.rpc.rpc_result = WL_RPC_ERR_RESPONSE_MISMATCH;
+    result.domain = FCI_DEVICE_RUNTIME_RPC_ERROR;
+    return result;
+  }
+  result.detail.rpc.codec_status = single_response_decode(client->response_data + 20U,
+      client->response_length - 20U, response);
+  result.domain = result.detail.rpc.codec_status == WL_CODEC_OK ? FCI_DEVICE_RUNTIME_OK : FCI_DEVICE_RUNTIME_CODEC_ERROR;
+  return result;
+}
+
+wl_rpc_err_t fci_device_single_exchange_client_release(fci_device_runtime_t *runtime, uint32_t operation_id) {
+  wl_rpc_client_result_t client;
+  wl_rpc_err_t result = fci_device_single_exchange_client_inspect(runtime, operation_id, &client);
+  return result == WL_RPC_OK ? wl_rpc_client_release(runtime->rpc_client, operation_id) : result;
+}
+
+static wl_codec_status_t fci_device_single_exchange_encode_response(const void *response,
+    uint8_t *out, size_t capacity, size_t *length, bool owned) {
+#if SINGLE_REQUEST_HAS_VALUE && SINGLE_RESPONSE_HAS_VALUE
+  if (owned) return single_response_value_encode(response, out, capacity, length);
+#else
+  (void)owned;
+#endif
+  return single_response_encode(response, out, capacity, length);
+}
+
+static fci_device_runtime_result_t fci_device_single_exchange_server_finish(fci_device_runtime_t *runtime,
+    const fci_device_single_exchange_request_token_t *token, int32_t application_status,
+    const void *response, wl_time_ms_t now_ms, bool owned) {
+  fci_device_runtime_result_t result = fci_device_runtime_result(NULL);
+  const wl_rpc_server_request_t *request;
+  result.message_id = 30210U;
+  result.detail_kind = FCI_DEVICE_RUNTIME_DETAIL_RPC;
+  result.detail.rpc.application_result = application_status;
+  if (runtime == NULL || runtime->rpc_server == NULL || token == NULL ||
+      token->private_state.owner != runtime ||
+      token->private_state.incarnation != runtime->rpc_incarnation ||
+      (application_status == 0 && response == NULL)) return result;
+  request = &token->private_state.request;
+  if (request->identity.request_message_id != 30209U ||
+      request->identity.response_message_id != 30210U) return result;
+  fci_device_rpc_finish_response(runtime, request, application_status, response, now_ms,
+      owned, fci_device_single_exchange_encode_response, &result);
+  return result;
+}
+
+wl_rpc_err_t fci_device_single_exchange_request_inspect(fci_device_runtime_t *runtime,
+    const fci_device_single_exchange_request_token_t *token, wl_rpc_server_request_t *out_request) {
+  if (runtime == NULL || token == NULL || out_request == NULL)
+    return WL_RPC_ERR_INVALID_ARG;
+  if (token->private_state.owner != runtime ||
+      token->private_state.incarnation != runtime->rpc_incarnation ||
+      token->private_state.request.identity.request_message_id != 30209U ||
+      token->private_state.request.identity.response_message_id != 30210U)
+    return WL_RPC_ERR_NOT_FOUND;
+  *out_request = token->private_state.request;
+  return WL_RPC_OK;
+}
+
+fci_device_runtime_result_t fci_device_single_exchange_server_complete(fci_device_runtime_t *runtime,
+    const fci_device_single_exchange_request_token_t *token, const single_response_t *response, wl_time_ms_t now_ms) {
+  return fci_device_single_exchange_server_finish(runtime, token, 0, response, now_ms, false);
+}
+fci_device_runtime_result_t fci_device_single_exchange_server_reject(fci_device_runtime_t *runtime,
+    const fci_device_single_exchange_request_token_t *token, int32_t application_status, wl_time_ms_t now_ms) {
+  return fci_device_single_exchange_server_finish(runtime, token, application_status, NULL, now_ms, false);
+}
+
+#if SINGLE_REQUEST_HAS_VALUE && SINGLE_RESPONSE_HAS_VALUE
+fci_device_runtime_result_t fci_device_single_exchange_server_complete_value(fci_device_runtime_t *runtime,
+    const fci_device_single_exchange_request_token_t *token, const single_response_value_t *response,
+    wl_time_ms_t now_ms) {
+  return fci_device_single_exchange_server_finish(runtime, token, 0, response, now_ms, true);
+}
+
+wl_err_t fci_device_single_exchange_encode_submission(const void *request, uint32_t operation_id, uint64_t session,
+    uint8_t *out, size_t capacity, size_t *length) {
+  wl_codec_status_t status;
+  size_t size = 0U;
+  if (capacity < 20U) return WL_ERR_BUF_TOO_SMALL;
+  if (session == 0U) return WL_ERR_INVALID_ARG;
+  fci_device_rpc_header_write(out, 1U, operation_id, 0, session);
+  status = single_request_value_encode(request, out + 20U, capacity - 20U, &size);
   if (status != WL_CODEC_OK) return WL_ERR_CORRUPT_PAYLOAD;
   *length = size + 20U;
   return WL_OK;

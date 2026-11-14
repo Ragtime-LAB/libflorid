@@ -128,7 +128,8 @@ function(fci_protocol_generate_wirelink_component)
             "${_fci_protocol_root}/schema/wirelink/arm/services.bind.wl"
             "${_fci_protocol_root}/schema/wirelink/arm/${FCI_ROLE}.bind.wl"
             "${_fci_protocol_root}/schema/wirelink/upgrade/${FCI_ROLE}.bind.wl"
-            "${_fci_protocol_root}/schema/wirelink/underwater/services.bind.wl")
+            "${_fci_protocol_root}/schema/wirelink/underwater/services.bind.wl"
+            "${_fci_protocol_root}/schema/wirelink/single/services.bind.wl")
     endif()
     set(_codec_target "fci_protocol_wirelink_${FCI_COMPONENT}_codec")
     if(FCI_OUTPUT_DIR)

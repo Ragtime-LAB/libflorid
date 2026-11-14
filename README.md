@@ -1,6 +1,6 @@
 # libflorid-underwater
 
-C++20 and Python SDK for the Ragtime Underwater dual-arm controller. It uses
+C++20 and Python SDK for Ragtime Underwater controllers. It uses
 USB Bulk and generated FCI Wirelink bindings to provide device discovery,
 mode RPCs, settings, zeroing, firmware update, 250 Hz ten-motor telemetry, and
 MIT control commands.
@@ -9,6 +9,20 @@ The public entry point is `florid::UnderwaterTeleop`. Supported robot modes are
 Damp, Gravity, Teleop, Control, Zeroing, and the Teleop alignment transition.
 Control mode accepts only MIT and MIT-with-firmware-gravity commands for master
 j1-j4, master gripper, slave j1-j4, and slave gripper.
+
+## Single-arm console: USB or UART
+
+For three joints plus gripper, use the separate `UnderwaterSingle` Python API
+and desktop console (firmware 0.3.0 / UART Protocol 3.1):
+
+```sh
+python3 tools/underwater_single_console/run.py
+```
+
+Both connections support 250 Hz four-motor control/status and three gravity
+settings; USB also supports firmware update. Connecting is read-only. See
+[build and operation](tools/underwater_single_console/README.md) and
+[the single-arm API](docs/single.md). The dual-arm API below remains available.
 
 ## Build
 
@@ -68,7 +82,8 @@ for operating details.
 - `include/florid/UnderwaterTypes.hpp`: RPC, settings, telemetry, and command types
 - `src/`: USB transport, discovery, Wirelink endpoint, and update implementation
 - `pyflorid/`: Python bindings and example
-- `tools/underwater_console/`: Tk desktop application
+- `tools/underwater_console/`: dual-arm Tk desktop application
+- `tools/underwater_single_console/`: four-motor USB/UART Tk application
 - `generated/wirelink/`: checked-in ABI 32 protocol snapshot
 - `tests/`: host-side protocol, update, control, and packaging tests
 

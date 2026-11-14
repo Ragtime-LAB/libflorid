@@ -4,3 +4,5 @@ version 1;
 import "../arm/fci_arm.wl";
 import "../upgrade/fci_upgrade.wl";
 import "../underwater/fci_underwater.wl";
+
+import "../single/fci_single.wl";

@@ -829,6 +829,10 @@ static const wlc_desc_t get_underwater_default_settings_request_desc;
 static const wlc_desc_t get_underwater_default_settings_response_desc;
 static const wlc_desc_t zeroing_request_desc;
 static const wlc_desc_t zeroing_response_desc;
+static const wlc_desc_t single_request_desc;
+static const wlc_desc_t single_state_desc;
+static const wlc_desc_t single_response_desc;
+static const wlc_desc_t single_command_desc;
 
 static const wlc_field_t semantic_version_fields[] = {
   { 1U, WLC_OPTIONAL, WLC_U32, 1, 0U, 1U, offsetof(semantic_version_t, major), offsetof(semantic_version_t, has_major), 0, 0, sizeof(uint32_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
@@ -1406,6 +1410,70 @@ static const wlc_field_t zeroing_response_fields[] = {
   { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(zeroing_response_t, info), offsetof(zeroing_response_t, has_info), 0, 0, sizeof(underwater_status_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &underwater_status_desc },
 };
 static const wlc_desc_t zeroing_response_desc = { zeroing_response_fields, sizeof(zeroing_response_fields) / sizeof(zeroing_response_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t single_request_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(single_request_t, operation), offsetof(single_request_t, has_operation), 0, 0, sizeof(uint8_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(single_request_t, mode), offsetof(single_request_t, has_mode), 0, 0, sizeof(uint8_t), 0U, 0U, { 16U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_request_t, gravity_scale), offsetof(single_request_t, has_gravity_scale), 0, 0, sizeof(float), 3U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t single_request_desc = { single_request_fields, sizeof(single_request_fields) / sizeof(single_request_fields[0]), WLC_LOOKUP_LINEAR };
+
+static const wlc_field_t single_state_fields[] = {
+  { 1U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_state_t, q), offsetof(single_state_t, has_q), 0, 0, sizeof(float), 4U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_state_t, dq), offsetof(single_state_t, has_dq), 0, 0, sizeof(float), 4U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_state_t, tau), offsetof(single_state_t, has_tau), 0, 0, sizeof(float), 4U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_PACKED, WLC_F32, 1, 2U, 1U, offsetof(single_state_t, motor_info), offsetof(single_state_t, has_motor_info), 0, 0, sizeof(uint32_t), 4U, 0U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_PACKED, WLC_F32, 1, 2U, 1U, offsetof(single_state_t, feedback_age_ms), offsetof(single_state_t, has_feedback_age_ms), 0, 0, sizeof(uint32_t), 4U, 0U, { 50U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(single_state_t, fresh_mask), offsetof(single_state_t, has_fresh_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 56U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(single_state_t, enabled_mask), offsetof(single_state_t, has_enabled_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 64U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(single_state_t, available_mask), offsetof(single_state_t, has_available_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 72U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 10U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(single_state_t, mode), offsetof(single_state_t, has_mode), 0, 0, sizeof(uint8_t), 0U, 0U, { 80U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 11U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(single_state_t, kind), offsetof(single_state_t, has_kind), 0, 0, sizeof(underwater_control_kind_t), 0U, 0U, { 88U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 12U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(single_state_t, sequence), offsetof(single_state_t, has_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 101U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 13U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(single_state_t, timestamp_us), offsetof(single_state_t, has_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 105U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 14U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(single_state_t, control_session), offsetof(single_state_t, has_control_session), 0, 0, sizeof(uint64_t), 0U, 0U, { 113U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 15U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(single_state_t, applied_command_sequence), offsetof(single_state_t, has_applied_command_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 125U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 16U, WLC_OPTIONAL, WLC_F64, 1, 1U, 2U, offsetof(single_state_t, last_sdk_timestamp_us), offsetof(single_state_t, has_last_sdk_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 129U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 17U, WLC_OPTIONAL, WLC_U16, 1, 0U, 2U, offsetof(single_state_t, applied_mask), offsetof(single_state_t, has_applied_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 136U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 18U, WLC_OPTIONAL, WLC_BOOL, 1, 0U, 2U, offsetof(single_state_t, command_received), offsetof(single_state_t, has_command_received), 0, 0, sizeof(bool), 0U, 0U, { 144U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 19U, WLC_OPTIONAL, WLC_U8, 1, 0U, 2U, offsetof(single_state_t, control_stop_reason), offsetof(single_state_t, has_control_stop_reason), 0, 0, sizeof(uint8_t), 0U, 0U, { 152U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 20U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(single_state_t, commands_received), offsetof(single_state_t, has_commands_received), 0, 0, sizeof(uint32_t), 0U, 0U, { 165U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 21U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(single_state_t, commands_overwritten), offsetof(single_state_t, has_commands_overwritten), 0, 0, sizeof(uint32_t), 0U, 0U, { 173U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 22U, WLC_OPTIONAL, WLC_F32, 1, 5U, 2U, offsetof(single_state_t, commands_rejected), offsetof(single_state_t, has_commands_rejected), 0, 0, sizeof(uint32_t), 0U, 0U, { 181U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 23U, WLC_OPTIONAL, WLC_U8, 1, 0U, 2U, offsetof(single_state_t, command_reject_reason), offsetof(single_state_t, has_command_reject_reason), 0, 0, sizeof(uint8_t), 0U, 0U, { 184U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 24U, WLC_OPTIONAL, WLC_U8, 1, 0U, 2U, offsetof(single_state_t, control_source), offsetof(single_state_t, has_control_source), 0, 0, sizeof(uint8_t), 0U, 0U, { 192U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 25U, WLC_OPTIONAL, WLC_BOOL, 1, 0U, 2U, offsetof(single_state_t, enabling), offsetof(single_state_t, has_enabling), 0, 0, sizeof(bool), 0U, 0U, { 200U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+  { 26U, WLC_OPTIONAL, WLC_BOOL, 1, 0U, 2U, offsetof(single_state_t, upgrading), offsetof(single_state_t, has_upgrading), 0, 0, sizeof(bool), 0U, 0U, { 208U, 1U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t single_state_desc = { single_state_fields, sizeof(single_state_fields) / sizeof(single_state_fields[0]), WLC_LOOKUP_BINARY };
+
+static const wlc_field_t single_response_fields[] = {
+  { 1U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(single_response_t, result), offsetof(single_response_t, has_result), 0, 0, sizeof(uint8_t), 0U, 0U, { 8U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_OPTIONAL, WLC_MESSAGE, 1, 2U, 1U, offsetof(single_response_t, state), offsetof(single_response_t, has_state), 0, 0, sizeof(single_state_t), 0U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, &single_state_desc },
+  { 3U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(single_response_t, boot_id), offsetof(single_response_t, has_boot_id), 0, 0, sizeof(uint64_t), 0U, 0U, { 25U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(single_response_t, uid), offsetof(single_response_t, has_uid), 0, 0, sizeof(wl_codec_string_t), 0U, 32U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 5U, WLC_OPTIONAL, WLC_U8, 1, 0U, 1U, offsetof(single_response_t, role), offsetof(single_response_t, has_role), 0, 0, sizeof(uint8_t), 0U, 0U, { 40U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_response_t, gravity_scale), offsetof(single_response_t, has_gravity_scale), 0, 0, sizeof(float), 3U, 0U, { 50U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(single_response_t, revision), offsetof(single_response_t, has_revision), 0, 0, sizeof(uint32_t), 0U, 0U, { 61U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_I32, 1, 0U, 1U, offsetof(single_response_t, storage_error), offsetof(single_response_t, has_storage_error), 0, 0, sizeof(int32_t), 0U, 0U, { 64U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(single_response_t, disable_pending_mask), offsetof(single_response_t, has_disable_pending_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 72U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 10U, WLC_OPTIONAL, WLC_U16, 1, 0U, 1U, offsetof(single_response_t, disabled_mask), offsetof(single_response_t, has_disabled_mask), 0, 0, sizeof(uint16_t), 0U, 0U, { 80U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 11U, WLC_OPTIONAL, WLC_STRING, 1, 2U, 1U, offsetof(single_response_t, reason), offsetof(single_response_t, has_reason), 0, 0, sizeof(wl_codec_string_t), 0U, 95U, { 90U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t single_response_desc = { single_response_fields, sizeof(single_response_fields) / sizeof(single_response_fields[0]), WLC_LOOKUP_DENSE };
+
+static const wlc_field_t single_command_fields[] = {
+  { 1U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_command_t, q), offsetof(single_command_t, has_q), 0, 0, sizeof(float), 4U, 0U, { 10U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 2U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_command_t, dq), offsetof(single_command_t, has_dq), 0, 0, sizeof(float), 4U, 0U, { 18U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 3U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_command_t, kp), offsetof(single_command_t, has_kp), 0, 0, sizeof(float), 4U, 0U, { 26U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 4U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_command_t, kd), offsetof(single_command_t, has_kd), 0, 0, sizeof(float), 4U, 0U, { 34U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 5U, WLC_PACKED, WLC_FLOAT32, 1, 2U, 1U, offsetof(single_command_t, tau), offsetof(single_command_t, has_tau), 0, 0, sizeof(float), 4U, 0U, { 42U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 6U, WLC_OPTIONAL, WLC_ENUM, 1, 0U, 1U, offsetof(single_command_t, kind), offsetof(single_command_t, has_kind), 0, 0, sizeof(underwater_control_kind_t), 0U, 0U, { 48U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 7U, WLC_OPTIONAL, WLC_F32, 1, 5U, 1U, offsetof(single_command_t, sequence), offsetof(single_command_t, has_sequence), 0, 0, sizeof(uint32_t), 0U, 0U, { 61U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 8U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(single_command_t, sdk_timestamp_us), offsetof(single_command_t, has_sdk_timestamp_us), 0, 0, sizeof(uint64_t), 0U, 0U, { 65U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+  { 9U, WLC_OPTIONAL, WLC_F64, 1, 1U, 1U, offsetof(single_command_t, control_session), offsetof(single_command_t, has_control_session), 0, 0, sizeof(uint64_t), 0U, 0U, { 73U, 0U, 0U }, 0, 0ULL, NULL, NULL },
+};
+static const wlc_desc_t single_command_desc = { single_command_fields, sizeof(single_command_fields) / sizeof(single_command_fields[0]), WLC_LOOKUP_DENSE };
 
 void semantic_version_clear(semantic_version_t *value) { if (value != NULL) wlc_clear(&semantic_version_desc, value); }
 size_t semantic_version_encoded_size(const semantic_version_t *value) { size_t size; return wlc_measure(&semantic_version_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
@@ -2828,6 +2896,74 @@ wl_codec_status_t zeroing_response_decode(const uint8_t *input, size_t length, z
 wl_codec_status_t zeroing_response_wlc_detail_fingerprint(const zeroing_response_t *value, uint64_t *hash, size_t *length) {
   wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
   wl_codec_status_t status = wlc_hash_emit_fields(&zeroing_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void single_request_clear(single_request_t *value) { if (value != NULL) wlc_clear(&single_request_desc, value); }
+size_t single_request_encoded_size(const single_request_t *value) { size_t size; return wlc_measure(&single_request_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t single_request_encode(const single_request_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&single_request_desc, value, out, cap, length); }
+wl_codec_status_t single_request_decode(const uint8_t *input, size_t length, single_request_t *out) { return wlc_decode(&single_request_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t single_request_wlc_detail_fingerprint(const single_request_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&single_request_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void single_state_clear(single_state_t *value) { if (value != NULL) wlc_clear(&single_state_desc, value); }
+size_t single_state_encoded_size(const single_state_t *value) { size_t size; return wlc_measure(&single_state_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t single_state_encode(const single_state_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&single_state_desc, value, out, cap, length); }
+wl_codec_status_t single_state_decode(const uint8_t *input, size_t length, single_state_t *out) { return wlc_decode(&single_state_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t single_state_wlc_detail_fingerprint(const single_state_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&single_state_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void single_response_clear(single_response_t *value) { if (value != NULL) wlc_clear(&single_response_desc, value); }
+size_t single_response_encoded_size(const single_response_t *value) { size_t size; return wlc_measure(&single_response_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t single_response_encode(const single_response_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&single_response_desc, value, out, cap, length); }
+wl_codec_status_t single_response_decode(const uint8_t *input, size_t length, single_response_t *out) { return wlc_decode(&single_response_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t single_response_wlc_detail_fingerprint(const single_response_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&single_response_desc, value, &state);
+  if (status != WL_CODEC_OK) return status;
+  if (state.status != WL_CODEC_OK) return state.status;
+  *hash = state.hash;
+  *length = state.length;
+  return WL_CODEC_OK;
+}
+
+void single_command_clear(single_command_t *value) { if (value != NULL) wlc_clear(&single_command_desc, value); }
+size_t single_command_encoded_size(const single_command_t *value) { size_t size; return wlc_measure(&single_command_desc, value, &size) == WL_CODEC_OK ? size : SIZE_MAX; }
+wl_codec_status_t single_command_encode(const single_command_t *value, uint8_t *out, size_t cap, size_t *length) { return wlc_encode(&single_command_desc, value, out, cap, length); }
+wl_codec_status_t single_command_decode(const uint8_t *input, size_t length, single_command_t *out) { return wlc_decode(&single_command_desc, input, length, out); }
+
+/* Generator-private: value must be the unmodified result of successful decode.
+ * hash supplies the caller domain seed; codec has no RPC identity policy. */
+wl_codec_status_t single_command_wlc_detail_fingerprint(const single_command_t *value, uint64_t *hash, size_t *length) {
+  wlc_hash_state_t state = {*hash, 0U, WL_CODEC_OK};
+  wl_codec_status_t status = wlc_hash_emit_fields(&single_command_desc, value, &state);
   if (status != WL_CODEC_OK) return status;
   if (state.status != WL_CODEC_OK) return state.status;
   *hash = state.hash;
@@ -10870,6 +11006,626 @@ wl_codec_status_t zeroing_response_value_decode(const uint8_t *input, size_t len
   status = zeroing_response_decode(input, length, &view);
   if (status != WL_CODEC_OK) return status;
   zeroing_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void single_request_value_defaults(single_request_value_t *out) {
+  (void)out;
+  out->operation = 0;
+  out->mode = 0;
+}
+
+static void single_request_value_copy_fields(const single_request_t *view, single_request_value_t *out) {
+  out->has_operation = view->has_operation;
+  out->operation = view->has_operation ? view->operation : 0;
+  out->has_mode = view->has_mode;
+  out->mode = view->has_mode ? view->mode : 0;
+  out->has_gravity_scale = view->has_gravity_scale;
+  if (view->has_gravity_scale) memcpy(out->gravity_scale, view->gravity_scale, sizeof(out->gravity_scale));
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void single_request_wlc_detail_value_copy(const single_request_t *view, single_request_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  single_request_value_copy_fields(view, out);
+}
+
+void single_request_value_clear(single_request_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  single_request_value_defaults(value);
+}
+
+wl_codec_status_t single_request_value_from_view(const single_request_t *view, single_request_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&single_request_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  single_request_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t single_request_value_borrow(const single_request_value_t *value, single_request_t *out) {
+  single_request_clear(out);
+  out->has_operation = value->has_operation;
+  if (value->has_operation) {
+    out->operation = value->operation;
+  }
+  out->has_mode = value->has_mode;
+  if (value->has_mode) {
+    out->mode = value->mode;
+  }
+  out->has_gravity_scale = value->has_gravity_scale;
+  if (value->has_gravity_scale) {
+    memcpy(out->gravity_scale, value->gravity_scale, sizeof(out->gravity_scale));
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t single_request_value_to_view(const single_request_value_t *value, single_request_t *out) {
+  single_request_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_request_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&single_request_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t single_request_value_encoded_size(const single_request_value_t *value) {
+  single_request_t view;
+  if (value == NULL || single_request_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return single_request_encoded_size(&view);
+}
+
+wl_codec_status_t single_request_value_encode(const single_request_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  single_request_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_request_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? single_request_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t single_request_value_decode(const uint8_t *input, size_t length, single_request_value_t *out) {
+  single_request_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_request_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  single_request_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void single_state_value_defaults(single_state_value_t *out) {
+  (void)out;
+  out->fresh_mask = 0;
+  out->enabled_mask = 0;
+  out->available_mask = 0;
+  out->mode = 0;
+  out->kind = 0;
+  out->sequence = UINT32_C(0);
+  out->timestamp_us = UINT64_C(0);
+  out->control_session = UINT64_C(0);
+  out->applied_command_sequence = UINT32_C(0);
+  out->last_sdk_timestamp_us = UINT64_C(0);
+  out->applied_mask = 0;
+  out->command_received = 0;
+  out->control_stop_reason = 0;
+  out->commands_received = UINT32_C(0);
+  out->commands_overwritten = UINT32_C(0);
+  out->commands_rejected = UINT32_C(0);
+  out->command_reject_reason = 0;
+  out->control_source = 0;
+  out->enabling = 0;
+  out->upgrading = 0;
+}
+
+static void single_state_value_copy_fields(const single_state_t *view, single_state_value_t *out) {
+  out->has_q = view->has_q;
+  if (view->has_q) memcpy(out->q, view->q, sizeof(out->q));
+  out->has_dq = view->has_dq;
+  if (view->has_dq) memcpy(out->dq, view->dq, sizeof(out->dq));
+  out->has_tau = view->has_tau;
+  if (view->has_tau) memcpy(out->tau, view->tau, sizeof(out->tau));
+  out->has_motor_info = view->has_motor_info;
+  if (view->has_motor_info) memcpy(out->motor_info, view->motor_info, sizeof(out->motor_info));
+  out->has_feedback_age_ms = view->has_feedback_age_ms;
+  if (view->has_feedback_age_ms) memcpy(out->feedback_age_ms, view->feedback_age_ms, sizeof(out->feedback_age_ms));
+  out->has_fresh_mask = view->has_fresh_mask;
+  out->fresh_mask = view->has_fresh_mask ? view->fresh_mask : 0;
+  out->has_enabled_mask = view->has_enabled_mask;
+  out->enabled_mask = view->has_enabled_mask ? view->enabled_mask : 0;
+  out->has_available_mask = view->has_available_mask;
+  out->available_mask = view->has_available_mask ? view->available_mask : 0;
+  out->has_mode = view->has_mode;
+  out->mode = view->has_mode ? view->mode : 0;
+  out->has_kind = view->has_kind;
+  out->kind = view->has_kind ? view->kind : 0;
+  out->has_sequence = view->has_sequence;
+  out->sequence = view->has_sequence ? view->sequence : UINT32_C(0);
+  out->has_timestamp_us = view->has_timestamp_us;
+  out->timestamp_us = view->has_timestamp_us ? view->timestamp_us : UINT64_C(0);
+  out->has_control_session = view->has_control_session;
+  out->control_session = view->has_control_session ? view->control_session : UINT64_C(0);
+  out->has_applied_command_sequence = view->has_applied_command_sequence;
+  out->applied_command_sequence = view->has_applied_command_sequence ? view->applied_command_sequence : UINT32_C(0);
+  out->has_last_sdk_timestamp_us = view->has_last_sdk_timestamp_us;
+  out->last_sdk_timestamp_us = view->has_last_sdk_timestamp_us ? view->last_sdk_timestamp_us : UINT64_C(0);
+  out->has_applied_mask = view->has_applied_mask;
+  out->applied_mask = view->has_applied_mask ? view->applied_mask : 0;
+  out->has_command_received = view->has_command_received;
+  out->command_received = view->has_command_received ? view->command_received : 0;
+  out->has_control_stop_reason = view->has_control_stop_reason;
+  out->control_stop_reason = view->has_control_stop_reason ? view->control_stop_reason : 0;
+  out->has_commands_received = view->has_commands_received;
+  out->commands_received = view->has_commands_received ? view->commands_received : UINT32_C(0);
+  out->has_commands_overwritten = view->has_commands_overwritten;
+  out->commands_overwritten = view->has_commands_overwritten ? view->commands_overwritten : UINT32_C(0);
+  out->has_commands_rejected = view->has_commands_rejected;
+  out->commands_rejected = view->has_commands_rejected ? view->commands_rejected : UINT32_C(0);
+  out->has_command_reject_reason = view->has_command_reject_reason;
+  out->command_reject_reason = view->has_command_reject_reason ? view->command_reject_reason : 0;
+  out->has_control_source = view->has_control_source;
+  out->control_source = view->has_control_source ? view->control_source : 0;
+  out->has_enabling = view->has_enabling;
+  out->enabling = view->has_enabling ? view->enabling : 0;
+  out->has_upgrading = view->has_upgrading;
+  out->upgrading = view->has_upgrading ? view->upgrading : 0;
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void single_state_wlc_detail_value_copy(const single_state_t *view, single_state_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  single_state_value_copy_fields(view, out);
+}
+
+void single_state_value_clear(single_state_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  single_state_value_defaults(value);
+}
+
+wl_codec_status_t single_state_value_from_view(const single_state_t *view, single_state_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&single_state_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  single_state_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t single_state_value_borrow(const single_state_value_t *value, single_state_t *out) {
+  single_state_clear(out);
+  out->has_q = value->has_q;
+  if (value->has_q) {
+    memcpy(out->q, value->q, sizeof(out->q));
+  }
+  out->has_dq = value->has_dq;
+  if (value->has_dq) {
+    memcpy(out->dq, value->dq, sizeof(out->dq));
+  }
+  out->has_tau = value->has_tau;
+  if (value->has_tau) {
+    memcpy(out->tau, value->tau, sizeof(out->tau));
+  }
+  out->has_motor_info = value->has_motor_info;
+  if (value->has_motor_info) {
+    memcpy(out->motor_info, value->motor_info, sizeof(out->motor_info));
+  }
+  out->has_feedback_age_ms = value->has_feedback_age_ms;
+  if (value->has_feedback_age_ms) {
+    memcpy(out->feedback_age_ms, value->feedback_age_ms, sizeof(out->feedback_age_ms));
+  }
+  out->has_fresh_mask = value->has_fresh_mask;
+  if (value->has_fresh_mask) {
+    out->fresh_mask = value->fresh_mask;
+  }
+  out->has_enabled_mask = value->has_enabled_mask;
+  if (value->has_enabled_mask) {
+    out->enabled_mask = value->enabled_mask;
+  }
+  out->has_available_mask = value->has_available_mask;
+  if (value->has_available_mask) {
+    out->available_mask = value->available_mask;
+  }
+  out->has_mode = value->has_mode;
+  if (value->has_mode) {
+    out->mode = value->mode;
+  }
+  out->has_kind = value->has_kind;
+  if (value->has_kind) {
+    out->kind = value->kind;
+  }
+  out->has_sequence = value->has_sequence;
+  if (value->has_sequence) {
+    out->sequence = value->sequence;
+  }
+  out->has_timestamp_us = value->has_timestamp_us;
+  if (value->has_timestamp_us) {
+    out->timestamp_us = value->timestamp_us;
+  }
+  out->has_control_session = value->has_control_session;
+  if (value->has_control_session) {
+    out->control_session = value->control_session;
+  }
+  out->has_applied_command_sequence = value->has_applied_command_sequence;
+  if (value->has_applied_command_sequence) {
+    out->applied_command_sequence = value->applied_command_sequence;
+  }
+  out->has_last_sdk_timestamp_us = value->has_last_sdk_timestamp_us;
+  if (value->has_last_sdk_timestamp_us) {
+    out->last_sdk_timestamp_us = value->last_sdk_timestamp_us;
+  }
+  out->has_applied_mask = value->has_applied_mask;
+  if (value->has_applied_mask) {
+    out->applied_mask = value->applied_mask;
+  }
+  out->has_command_received = value->has_command_received;
+  if (value->has_command_received) {
+    out->command_received = value->command_received;
+  }
+  out->has_control_stop_reason = value->has_control_stop_reason;
+  if (value->has_control_stop_reason) {
+    out->control_stop_reason = value->control_stop_reason;
+  }
+  out->has_commands_received = value->has_commands_received;
+  if (value->has_commands_received) {
+    out->commands_received = value->commands_received;
+  }
+  out->has_commands_overwritten = value->has_commands_overwritten;
+  if (value->has_commands_overwritten) {
+    out->commands_overwritten = value->commands_overwritten;
+  }
+  out->has_commands_rejected = value->has_commands_rejected;
+  if (value->has_commands_rejected) {
+    out->commands_rejected = value->commands_rejected;
+  }
+  out->has_command_reject_reason = value->has_command_reject_reason;
+  if (value->has_command_reject_reason) {
+    out->command_reject_reason = value->command_reject_reason;
+  }
+  out->has_control_source = value->has_control_source;
+  if (value->has_control_source) {
+    out->control_source = value->control_source;
+  }
+  out->has_enabling = value->has_enabling;
+  if (value->has_enabling) {
+    out->enabling = value->enabling;
+  }
+  out->has_upgrading = value->has_upgrading;
+  if (value->has_upgrading) {
+    out->upgrading = value->upgrading;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t single_state_value_to_view(const single_state_value_t *value, single_state_t *out) {
+  single_state_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_state_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&single_state_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t single_state_value_encoded_size(const single_state_value_t *value) {
+  single_state_t view;
+  if (value == NULL || single_state_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return single_state_encoded_size(&view);
+}
+
+wl_codec_status_t single_state_value_encode(const single_state_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  single_state_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_state_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? single_state_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t single_state_value_decode(const uint8_t *input, size_t length, single_state_value_t *out) {
+  single_state_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_state_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  single_state_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void single_response_value_defaults(single_response_value_t *out) {
+  (void)out;
+  out->result = 0;
+  single_state_value_defaults(&out->state);
+  out->boot_id = UINT64_C(0);
+  out->role = 0;
+  out->revision = UINT32_C(0);
+  out->storage_error = 0;
+  out->disable_pending_mask = 0;
+  out->disabled_mask = 0;
+}
+
+static void single_response_value_copy_fields(const single_response_t *view, single_response_value_t *out) {
+  out->has_result = view->has_result;
+  out->result = view->has_result ? view->result : 0;
+  out->has_state = view->has_state;
+  if (view->has_state) single_state_value_copy_fields(&view->state, &out->state);
+  else single_state_value_defaults(&out->state);
+  out->has_boot_id = view->has_boot_id;
+  out->boot_id = view->has_boot_id ? view->boot_id : UINT64_C(0);
+  out->has_uid = view->has_uid;
+  if (view->has_uid) {
+    out->uid.length = view->uid.length;
+    if (view->uid.length != 0U) memcpy(out->uid.data, view->uid.data, view->uid.length);
+  } else {
+  }
+  out->has_role = view->has_role;
+  out->role = view->has_role ? view->role : 0;
+  out->has_gravity_scale = view->has_gravity_scale;
+  if (view->has_gravity_scale) memcpy(out->gravity_scale, view->gravity_scale, sizeof(out->gravity_scale));
+  out->has_revision = view->has_revision;
+  out->revision = view->has_revision ? view->revision : UINT32_C(0);
+  out->has_storage_error = view->has_storage_error;
+  out->storage_error = view->has_storage_error ? view->storage_error : 0;
+  out->has_disable_pending_mask = view->has_disable_pending_mask;
+  out->disable_pending_mask = view->has_disable_pending_mask ? view->disable_pending_mask : 0;
+  out->has_disabled_mask = view->has_disabled_mask;
+  out->disabled_mask = view->has_disabled_mask ? view->disabled_mask : 0;
+  out->has_reason = view->has_reason;
+  if (view->has_reason) {
+    out->reason.length = view->reason.length;
+    if (view->reason.length != 0U) memcpy(out->reason.data, view->reason.data, view->reason.length);
+  } else {
+  }
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void single_response_wlc_detail_value_copy(const single_response_t *view, single_response_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  single_response_value_copy_fields(view, out);
+}
+
+void single_response_value_clear(single_response_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  single_response_value_defaults(value);
+}
+
+wl_codec_status_t single_response_value_from_view(const single_response_t *view, single_response_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&single_response_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  single_response_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t single_response_value_borrow(const single_response_value_t *value, single_response_t *out) {
+  single_response_clear(out);
+  out->has_result = value->has_result;
+  if (value->has_result) {
+    out->result = value->result;
+  }
+  out->has_state = value->has_state;
+  if (value->has_state) {
+    wl_codec_status_t status = single_state_value_borrow(&value->state, &out->state);
+    if (status != WL_CODEC_OK) return status;
+  }
+  out->has_boot_id = value->has_boot_id;
+  if (value->has_boot_id) {
+    out->boot_id = value->boot_id;
+  }
+  out->has_uid = value->has_uid;
+  if (value->has_uid) {
+    if (value->uid.length > 32U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->uid.length = value->uid.length;
+    out->uid.data = value->uid.data;
+  }
+  out->has_role = value->has_role;
+  if (value->has_role) {
+    out->role = value->role;
+  }
+  out->has_gravity_scale = value->has_gravity_scale;
+  if (value->has_gravity_scale) {
+    memcpy(out->gravity_scale, value->gravity_scale, sizeof(out->gravity_scale));
+  }
+  out->has_revision = value->has_revision;
+  if (value->has_revision) {
+    out->revision = value->revision;
+  }
+  out->has_storage_error = value->has_storage_error;
+  if (value->has_storage_error) {
+    out->storage_error = value->storage_error;
+  }
+  out->has_disable_pending_mask = value->has_disable_pending_mask;
+  if (value->has_disable_pending_mask) {
+    out->disable_pending_mask = value->disable_pending_mask;
+  }
+  out->has_disabled_mask = value->has_disabled_mask;
+  if (value->has_disabled_mask) {
+    out->disabled_mask = value->disabled_mask;
+  }
+  out->has_reason = value->has_reason;
+  if (value->has_reason) {
+    if (value->reason.length > 95U) return WL_CODEC_ERR_INVALID_VALUE;
+    out->reason.length = value->reason.length;
+    out->reason.data = value->reason.data;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t single_response_value_to_view(const single_response_value_t *value, single_response_t *out) {
+  single_response_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_response_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&single_response_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t single_response_value_encoded_size(const single_response_value_t *value) {
+  single_response_t view;
+  if (value == NULL || single_response_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return single_response_encoded_size(&view);
+}
+
+wl_codec_status_t single_response_value_encode(const single_response_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  single_response_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_response_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? single_response_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t single_response_value_decode(const uint8_t *input, size_t length, single_response_value_t *out) {
+  single_response_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_response_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  single_response_wlc_detail_value_copy(&view, out);
+  return WL_CODEC_OK;
+}
+
+static void single_command_value_defaults(single_command_value_t *out) {
+  (void)out;
+  out->kind = 0;
+  out->sequence = UINT32_C(0);
+  out->sdk_timestamp_us = UINT64_C(0);
+  out->control_session = UINT64_C(0);
+}
+
+static void single_command_value_copy_fields(const single_command_t *view, single_command_value_t *out) {
+  out->has_q = view->has_q;
+  if (view->has_q) memcpy(out->q, view->q, sizeof(out->q));
+  out->has_dq = view->has_dq;
+  if (view->has_dq) memcpy(out->dq, view->dq, sizeof(out->dq));
+  out->has_kp = view->has_kp;
+  if (view->has_kp) memcpy(out->kp, view->kp, sizeof(out->kp));
+  out->has_kd = view->has_kd;
+  if (view->has_kd) memcpy(out->kd, view->kd, sizeof(out->kd));
+  out->has_tau = view->has_tau;
+  if (view->has_tau) memcpy(out->tau, view->tau, sizeof(out->tau));
+  out->has_kind = view->has_kind;
+  out->kind = view->has_kind ? view->kind : 0;
+  out->has_sequence = view->has_sequence;
+  out->sequence = view->has_sequence ? view->sequence : UINT32_C(0);
+  out->has_sdk_timestamp_us = view->has_sdk_timestamp_us;
+  out->sdk_timestamp_us = view->has_sdk_timestamp_us ? view->sdk_timestamp_us : UINT64_C(0);
+  out->has_control_session = view->has_control_session;
+  out->control_session = view->has_control_session ? view->control_session : UINT64_C(0);
+}
+
+/* Generator-private: input is an unmodified successful decode, or has been measured. */
+void single_command_wlc_detail_value_copy(const single_command_t *view, single_command_value_t *out) {
+  memset(out, 0, sizeof(*out));
+  single_command_value_copy_fields(view, out);
+}
+
+void single_command_value_clear(single_command_value_t *value) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  single_command_value_defaults(value);
+}
+
+wl_codec_status_t single_command_value_from_view(const single_command_t *view, single_command_value_t *out) {
+  size_t size;
+  wl_codec_status_t status;
+  if (view == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = wlc_measure(&single_command_desc, view, &size);
+  if (status != WL_CODEC_OK) return status;
+  single_command_wlc_detail_value_copy(view, out);
+  return WL_CODEC_OK;
+}
+
+/* Private conversion does not re-validate each nested subtree. */
+static wl_codec_status_t single_command_value_borrow(const single_command_value_t *value, single_command_t *out) {
+  single_command_clear(out);
+  out->has_q = value->has_q;
+  if (value->has_q) {
+    memcpy(out->q, value->q, sizeof(out->q));
+  }
+  out->has_dq = value->has_dq;
+  if (value->has_dq) {
+    memcpy(out->dq, value->dq, sizeof(out->dq));
+  }
+  out->has_kp = value->has_kp;
+  if (value->has_kp) {
+    memcpy(out->kp, value->kp, sizeof(out->kp));
+  }
+  out->has_kd = value->has_kd;
+  if (value->has_kd) {
+    memcpy(out->kd, value->kd, sizeof(out->kd));
+  }
+  out->has_tau = value->has_tau;
+  if (value->has_tau) {
+    memcpy(out->tau, value->tau, sizeof(out->tau));
+  }
+  out->has_kind = value->has_kind;
+  if (value->has_kind) {
+    out->kind = value->kind;
+  }
+  out->has_sequence = value->has_sequence;
+  if (value->has_sequence) {
+    out->sequence = value->sequence;
+  }
+  out->has_sdk_timestamp_us = value->has_sdk_timestamp_us;
+  if (value->has_sdk_timestamp_us) {
+    out->sdk_timestamp_us = value->sdk_timestamp_us;
+  }
+  out->has_control_session = value->has_control_session;
+  if (value->has_control_session) {
+    out->control_session = value->control_session;
+  }
+  return WL_CODEC_OK;
+}
+
+wl_codec_status_t single_command_value_to_view(const single_command_value_t *value, single_command_t *out) {
+  single_command_t view;
+  size_t size;
+  wl_codec_status_t status;
+  if (value == NULL || out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_command_value_borrow(value, &view);
+  if (status == WL_CODEC_OK) status = wlc_measure(&single_command_desc, &view, &size);
+  if (status != WL_CODEC_OK) return status;
+  *out = view;
+  return WL_CODEC_OK;
+}
+
+size_t single_command_value_encoded_size(const single_command_value_t *value) {
+  single_command_t view;
+  if (value == NULL || single_command_value_borrow(value, &view) != WL_CODEC_OK) return SIZE_MAX;
+  return single_command_encoded_size(&view);
+}
+
+wl_codec_status_t single_command_value_encode(const single_command_value_t *value, uint8_t *out, size_t capacity, size_t *length) {
+  single_command_t view;
+  wl_codec_status_t status;
+  if (value == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_command_value_borrow(value, &view);
+  return status == WL_CODEC_OK ? single_command_encode(&view, out, capacity, length) : status;
+}
+
+wl_codec_status_t single_command_value_decode(const uint8_t *input, size_t length, single_command_value_t *out) {
+  single_command_t view;
+  wl_codec_status_t status;
+  if (out == NULL) return WL_CODEC_ERR_INVALID_VALUE;
+  status = single_command_decode(input, length, &view);
+  if (status != WL_CODEC_OK) return status;
+  single_command_wlc_detail_value_copy(&view, out);
   return WL_CODEC_OK;
 }
 

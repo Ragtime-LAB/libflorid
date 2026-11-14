@@ -17,3 +17,10 @@ __all__ = [
     "FirmwareDeviceInfoResult", "FirmwareRebootResult", "FirmwareUploadProgress",
     "FirmwareInstallResult", "BootStatus",
 ]
+
+try:
+    from _pyflorid import _SingleUsb
+except ImportError:
+    from ._pyflorid import _SingleUsb
+from .single import UnderwaterSingle, DeviceRejected
+__all__ += ["UnderwaterSingle", "DeviceRejected"]

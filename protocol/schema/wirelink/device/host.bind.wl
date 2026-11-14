@@ -9,3 +9,6 @@ direct BulkStatus { delivery = unreliable; }
 // Underwater ten-axis control and state streams.
 send UnderwaterArmCommand { delivery = unreliable; }
 latest UnderwaterArmStatus { delivery = unreliable; }
+
+send SingleCommand { delivery = unreliable; }
+latest SingleState { delivery = unreliable; }

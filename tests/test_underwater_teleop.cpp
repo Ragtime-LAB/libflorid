@@ -1,5 +1,6 @@
 #include "../protocol/tests/support/managed_rpc_wire.hpp"
 #include <florid/UnderwaterTeleop.hpp>
+#include <florid/detail/FciWirelinkEndpoint.hpp>
 #include <florid/detail/Transport.hpp>
 #include <wirelink/bulk.h>
 #include <wirelink/crc.h>
@@ -107,8 +108,23 @@ void checkSettings(const UnderwaterSettings& s_settings, const underwater_settin
     require(s_settings.m_force_low_load_nm == s_wire.force_low_load_nm &&
             s_settings.m_force_high_load_nm == s_wire.force_high_load_nm, "load threshold round trip");
 }
+single_state_t singleFixture() {
+    single_state_t v{};
+    v.has_q=v.has_dq=v.has_tau=v.has_motor_info=v.has_feedback_age_ms=true;
+    for(unsigned i=0;i<4;++i){v.q[i]=.1f*(i+1);v.motor_info[i]=25+i;v.feedback_age_ms[i]=i;}
+#define FIELD(f,x) v.has_##f=true; v.f=x;
+    FIELD(fresh_mask,15) FIELD(enabled_mask,0) FIELD(available_mask,15) FIELD(mode,0)
+    FIELD(kind,UNDERWATER_CONTROL_MIT) FIELD(sequence,100) FIELD(timestamp_us,1000000)
+    FIELD(control_session,42) FIELD(applied_command_sequence,7) FIELD(last_sdk_timestamp_us,123)
+    FIELD(applied_mask,0) FIELD(command_received,false) FIELD(control_stop_reason,0)
+    FIELD(commands_received,0) FIELD(commands_overwritten,0) FIELD(commands_rejected,0)
+    FIELD(command_reject_reason,0) FIELD(control_source,0) FIELD(enabling,false) FIELD(upgrading,false)
+#undef FIELD
+    return v;
+}
 struct State {
     std::atomic<unsigned> m_zeroing_count{};
+    std::atomic<unsigned> m_single_commands{};
     std::mutex m_stream_mutex;
     underwater_arm_command_t m_command{};
     std::uint32_t m_command_count{}, m_stream_sequence{};
@@ -317,6 +333,33 @@ private:
     }
     void receive(const wl_event_t& s_event) {
         switch (s_event.message_id) {
+        case SINGLE_REQUEST_MESSAGE_ID: {
+            using Request=test_rpc::Envelope<single_request_t,true,single_request_encode,single_request_decode>;
+            using Response=test_rpc::Envelope<single_response_t,false,single_response_encode,single_response_decode>;
+            Request request{};
+            require(Request::decode(s_event.payload,s_event.payload_len,&request)==WL_CODEC_OK,"single request decode");
+            Response response{};
+            response.has_operation_id=response.has_status=true;response.operation_id=request.operation_id;response.session=request.session;
+            response.has_result=response.has_state=response.has_boot_id=response.has_uid=response.has_role=true;
+            response.result=request.operation==1 ? 5 : 0;
+            response.state=singleFixture();response.boot_id=987;response.uid={"SINGLE-UID",10};response.role=2;
+            response.has_gravity_scale=response.has_revision=response.has_storage_error=true;
+            response.gravity_scale[0]=.5f;response.gravity_scale[1]=.6f;response.gravity_scale[2]=.7f;
+            response.revision=3;response.storage_error=0;
+            response.has_disable_pending_mask=response.has_disabled_mask=response.has_reason=true;
+            response.disabled_mask=15;response.reason={"test reply",10};
+            reply(SINGLE_RESPONSE_MESSAGE_ID,response,Response::encode);
+            auto state=singleFixture();std::array<uint8_t,512> bytes{};size_t n{};
+            require(single_state_encode(&state,bytes.data(),bytes.size(),&n)==WL_CODEC_OK,"single state encode");
+            wl_tx_handle_t handle{};(void)wl_send_unreliable(&m_peer,SINGLE_STATE_MESSAGE_ID,bytes.data(),n);
+            break;
+        }
+        case SINGLE_COMMAND_MESSAGE_ID: {
+            single_command_t command{};
+            require(single_command_decode(s_event.payload,s_event.payload_len,&command)==WL_CODEC_OK,"single command decode");
+            require(command.q[3]==.4f && command.control_session==42,"single command four-motor/session values");
+            ++m_state->m_single_commands;break;
+        }
         case ZEROING_REQUEST_MESSAGE_ID: {
             using Request = test_rpc::Envelope<zeroing_request_t, true, zeroing_request_encode, zeroing_request_decode>;
             using Response = test_rpc::Envelope<zeroing_response_t, false, zeroing_response_encode, zeroing_response_decode>;
@@ -705,8 +748,37 @@ void testControlStreaming() {
     s_device.close();
 }
 
+void testSingleEndpoint() {
+    using namespace florid::detail;
+    auto peer=std::make_shared<State>();
+    PeerTransport transport(peer);FciWirelinkEndpoint endpoint;
+    require(endpoint.initialize()==FciEndpointStatus::kOk,"single endpoint init");
+    require(endpoint.attachDirectTransport(transport)==FciEndpointStatus::kOk,"single transport attach");
+    require(endpoint.start()==FciEndpointStatus::kOk,"single endpoint start");
+    single_request_value_t request{};request.has_operation=request.has_mode=request.has_gravity_scale=true;
+    for(auto op:{0,1}) {
+        request.operation=op;
+        auto submitted=endpoint.singleExchange(request,500);
+        require(submitted.m_status==FciEndpointStatus::kOk,"single submit");
+        FciOperationResult result{};single_response_value_t response{};
+        (void)endpoint.waitOperation(submitted.m_request_id,1s,result);
+        const auto status=endpoint.takeSingleResponse(submitted.m_request_id,result,response);
+        require(status==(op==0 ? FciEndpointStatus::kOk:FciEndpointStatus::kDomainError),"single success/business failure distinction");
+        require(response.boot_id==987 && response.role==2 && response.uid.length==10,"single identity copied");
+        require(response.state.q[3]==.4f && response.gravity_scale[2]==.7f && response.disabled_mask==15,"single four-motor values and settings");
+    }
+    for(int i=0;i<100 && !endpoint.singleState();++i)std::this_thread::sleep_for(1ms);
+    require(endpoint.singleState().has_value() && endpoint.singleState()->q[3]==.4f,"single state cache");
+    single_command_t command{};command.has_q=command.has_dq=command.has_kp=command.has_kd=command.has_tau=true;
+    command.has_kind=command.has_sequence=command.has_control_session=command.has_sdk_timestamp_us=true;
+    command.q[3]=.4f;command.kind=UNDERWATER_CONTROL_MIT;command.sequence=7;command.control_session=42;
+    require(endpoint.sendSingleCommand(command)==FciEndpointStatus::kOk,"single command submit");
+    for(int i=0;i<100 && !peer->m_single_commands;++i)std::this_thread::sleep_for(1ms);
+    require(peer->m_single_commands==1,"single command delivered");endpoint.stop();
+}
+
 }
 int main() {
-    try { testModeAndLifecycle(); testUpgradeReuse(); testSettings(); testControlStreaming(); testZeroing(); std::puts("underwater SDK protocol/lifecycle/upgrade/settings tests passed"); }
+    try { testSingleEndpoint(); testModeAndLifecycle(); testUpgradeReuse(); testSettings(); testControlStreaming(); testZeroing(); std::puts("underwater SDK protocol/lifecycle/upgrade/settings tests passed"); }
     catch (const std::exception& s_error) { std::fprintf(stderr, "%s\n", s_error.what()); return 1; }
 }

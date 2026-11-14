@@ -61,7 +61,7 @@ The first canonical single-arm core contract is
   once. The role files declare COBS, client/server capability and outbound
   `send` routes. There is no generic `USBAck` in the Wirelink schema.
 
-The current composed endpoint requires **WLC v0.8.0 / codegen ABI 32**
+The current composed endpoint requires **WLC v0.7.0-rc.1 / codegen ABI 32**
 and its matching Wirelink runtime. The pinned runtime's CMake integration can
 automatically obtain that released WLC; no development executable is required.
 Deploy host and firmware together: revision 7 arm RPC
@@ -194,3 +194,12 @@ mask widths, required fields, the string bound, settings ownership,
 read-only defaults, upgrade Busy and the full settings response size (including
 its 20-byte managed header) within a 2048-byte payload. The existing compiler
 matrix also builds the device composition as strict C11 and C++20 in both roles.
+
+## Four-motor Underwater Single
+
+The additive `schema/wirelink/single/` contract provides a managed
+SingleExchange RPC and latest SingleCommand/SingleState in the composed device
+profiles. Its IDs 30209..30212 are separate from the original ten-motor dual-arm
+contract; array order is j1, j2, j3, gripper. Device builds include both contracts
+and the application chooses which product callbacks/streams it supplies.
+See [the SDK single-arm guide](../docs/single.md) for operations and ownership.

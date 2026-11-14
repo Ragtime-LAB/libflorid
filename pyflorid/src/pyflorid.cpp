@@ -12,6 +12,7 @@
 namespace py = pybind11;
 
 void bind_underwater(py::module_& m);
+void bind_single(py::module_& m);
 
 PYBIND11_MODULE(_pyflorid, m) {
     m.doc() = "Python SDK for the Ragtime Underwater dual-arm controller";
@@ -96,4 +97,5 @@ PYBIND11_MODULE(_pyflorid, m) {
     }, py::arg("selector"), py::arg("timeout_ms") = 10'000);
 
     bind_underwater(m);
+    bind_single(m);
 }

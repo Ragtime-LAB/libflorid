@@ -92,6 +92,10 @@ typedef struct get_underwater_default_settings_request get_underwater_default_se
 typedef struct get_underwater_default_settings_response get_underwater_default_settings_response_t;
 typedef struct zeroing_request zeroing_request_t;
 typedef struct zeroing_response zeroing_response_t;
+typedef struct single_request single_request_t;
+typedef struct single_state single_state_t;
+typedef struct single_response single_response_t;
+typedef struct single_command single_command_t;
 
 struct semantic_version {
   bool has_major;
@@ -942,6 +946,114 @@ struct zeroing_response {
   underwater_status_t info;
 };
 
+struct single_request {
+  bool has_operation;
+  uint8_t operation;
+  bool has_mode;
+  uint8_t mode;
+  bool has_gravity_scale;
+  float gravity_scale[3];
+};
+
+struct single_state {
+  bool has_q;
+  float q[4];
+  bool has_dq;
+  float dq[4];
+  bool has_tau;
+  float tau[4];
+  bool has_motor_info;
+  uint32_t motor_info[4];
+  bool has_feedback_age_ms;
+  uint32_t feedback_age_ms[4];
+  bool has_fresh_mask;
+  uint16_t fresh_mask;
+  bool has_enabled_mask;
+  uint16_t enabled_mask;
+  bool has_available_mask;
+  uint16_t available_mask;
+  bool has_mode;
+  uint8_t mode;
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_timestamp_us;
+  uint64_t timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+  bool has_applied_command_sequence;
+  uint32_t applied_command_sequence;
+  bool has_last_sdk_timestamp_us;
+  uint64_t last_sdk_timestamp_us;
+  bool has_applied_mask;
+  uint16_t applied_mask;
+  bool has_command_received;
+  bool command_received;
+  bool has_control_stop_reason;
+  uint8_t control_stop_reason;
+  bool has_commands_received;
+  uint32_t commands_received;
+  bool has_commands_overwritten;
+  uint32_t commands_overwritten;
+  bool has_commands_rejected;
+  uint32_t commands_rejected;
+  bool has_command_reject_reason;
+  uint8_t command_reject_reason;
+  bool has_control_source;
+  uint8_t control_source;
+  bool has_enabling;
+  bool enabling;
+  bool has_upgrading;
+  bool upgrading;
+};
+
+struct single_response {
+  bool has_result;
+  uint8_t result;
+  bool has_state;
+  single_state_t state;
+  bool has_boot_id;
+  uint64_t boot_id;
+  bool has_uid;
+  wl_codec_string_t uid;
+  bool has_role;
+  uint8_t role;
+  bool has_gravity_scale;
+  float gravity_scale[3];
+  bool has_revision;
+  uint32_t revision;
+  bool has_storage_error;
+  int32_t storage_error;
+  bool has_disable_pending_mask;
+  uint16_t disable_pending_mask;
+  bool has_disabled_mask;
+  uint16_t disabled_mask;
+  bool has_reason;
+  wl_codec_string_t reason;
+};
+
+struct single_command {
+  bool has_q;
+  float q[4];
+  bool has_dq;
+  float dq[4];
+  bool has_kp;
+  float kp[4];
+  bool has_kd;
+  float kd[4];
+  bool has_tau;
+  float tau[4];
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_sdk_timestamp_us;
+  uint64_t sdk_timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+};
+
 void semantic_version_clear(semantic_version_t *value);
 size_t semantic_version_encoded_size(const semantic_version_t *value);
 wl_codec_status_t semantic_version_encode(const semantic_version_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
@@ -1781,6 +1893,46 @@ wl_codec_status_t zeroing_response_decode(const uint8_t *input, size_t input_len
  * must not overlap; failures leave output unchanged. */
 wl_codec_status_t zeroing_response_value_from_view(const zeroing_response_t *view, zeroing_response_value_t *out);
 wl_codec_status_t zeroing_response_value_to_view(const zeroing_response_value_t *value, zeroing_response_t *out);
+
+void single_request_clear(single_request_t *value);
+size_t single_request_encoded_size(const single_request_t *value);
+wl_codec_status_t single_request_encode(const single_request_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t single_request_decode(const uint8_t *input, size_t input_length, single_request_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t single_request_value_from_view(const single_request_t *view, single_request_value_t *out);
+wl_codec_status_t single_request_value_to_view(const single_request_value_t *value, single_request_t *out);
+
+void single_state_clear(single_state_t *value);
+size_t single_state_encoded_size(const single_state_t *value);
+wl_codec_status_t single_state_encode(const single_state_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t single_state_decode(const uint8_t *input, size_t input_length, single_state_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t single_state_value_from_view(const single_state_t *view, single_state_value_t *out);
+wl_codec_status_t single_state_value_to_view(const single_state_value_t *value, single_state_t *out);
+
+void single_response_clear(single_response_t *value);
+size_t single_response_encoded_size(const single_response_t *value);
+wl_codec_status_t single_response_encode(const single_response_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t single_response_decode(const uint8_t *input, size_t input_length, single_response_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t single_response_value_from_view(const single_response_t *view, single_response_value_t *out);
+wl_codec_status_t single_response_value_to_view(const single_response_value_t *value, single_response_t *out);
+
+void single_command_clear(single_command_t *value);
+size_t single_command_encoded_size(const single_command_t *value);
+wl_codec_status_t single_command_encode(const single_command_t *value, uint8_t *out, size_t out_capacity, size_t *out_length);
+wl_codec_status_t single_command_decode(const uint8_t *input, size_t input_length, single_command_t *out);
+
+/* Advanced conversions: views borrow value/input storage. Inputs and outputs
+ * must not overlap; failures leave output unchanged. */
+wl_codec_status_t single_command_value_from_view(const single_command_t *view, single_command_value_t *out);
+wl_codec_status_t single_command_value_to_view(const single_command_value_t *value, single_command_t *out);
 
 #ifdef __cplusplus
 }

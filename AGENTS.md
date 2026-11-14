@@ -1,7 +1,8 @@
 # libflorid-underwater agent guide
 
-This repository is the host SDK for the Ragtime Underwater dual-arm firmware.
-Keep changes scoped to the Underwater USB Bulk product API. Do not restore the
+This repository is the host SDK for Ragtime Underwater firmware: the existing
+dual-arm USB product and the four-motor Underwater Single USB/UART product.
+Keep changes scoped to these Underwater product APIs. Do not restore the
 generic Arm, UDP, model-generation, or MPC layers removed from this branch.
 
 ## Build and test
@@ -24,13 +25,22 @@ and use `lf_update_wirelink` / `lf_check_wirelink` as described in
 ## API and behavior
 
 - Public C++ API: `UnderwaterTeleop`, `UnderwaterTypes`, device discovery, and firmware-update DTOs.
-- Python API mirrors the C++ Underwater API through `pyflorid`.
-- Control telemetry and commands contain ten motors in master four joints,
+- Python API mirrors the C++ dual-arm API through `pyflorid`; `UnderwaterSingle`
+  is a separate Python facade over native USB and Python UART backends.
+- Dual-arm control telemetry and commands contain ten motors in master four joints,
   master gripper, slave four joints, slave gripper order.
 - Control commands support only MIT and MitWithGravity.
 - Closing an SDK object does not request Damp. Call `disable()` explicitly.
-- Device settings are persisted by firmware; the desktop console performs the
+- Dual-arm settings are persisted by firmware; its console performs the
   user confirmation and Damp transition before writing them.
+- Underwater Single is three joints plus gripper, four-element arrays in
+  j1/j2/j3/gripper order, 250 Hz command/state, and three gravity settings. Its
+  asynchronous settings writes do not implicitly change mode.
+- Single Control is exclusive to USB or UART per session. Other links may query
+  or request Damp; switch ownership only after Damp. Closing stops the local
+  producer, never sends implicit Damp or resumes motion.
+- Single firmware update/reboot is USB only; UART uses independent Protocol 3.1
+  at 921600 8N1, not Wirelink. See docs/single.md and the single console README.
 - Zeroing is admitted by firmware only from Damp.
 
 Use C++20. Method parameters and local result values conventionally use the

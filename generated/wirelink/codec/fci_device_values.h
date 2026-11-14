@@ -1549,6 +1549,138 @@ size_t zeroing_response_value_encoded_size(const zeroing_response_value_t *value
 wl_codec_status_t zeroing_response_value_encode(const zeroing_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
 wl_codec_status_t zeroing_response_value_decode(const uint8_t *input, size_t length, zeroing_response_value_t *out);
 
+#define SINGLE_REQUEST_HAS_VALUE 1
+typedef struct {
+  bool has_operation;
+  uint8_t operation;
+  bool has_mode;
+  uint8_t mode;
+  bool has_gravity_scale;
+  float gravity_scale[3];
+} single_request_value_t;
+#define SINGLE_REQUEST_VALUE_SIZE (sizeof(single_request_value_t))
+void single_request_value_clear(single_request_value_t *value);
+size_t single_request_value_encoded_size(const single_request_value_t *value);
+wl_codec_status_t single_request_value_encode(const single_request_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t single_request_value_decode(const uint8_t *input, size_t length, single_request_value_t *out);
+
+#define SINGLE_STATE_HAS_VALUE 1
+typedef struct {
+  bool has_q;
+  float q[4];
+  bool has_dq;
+  float dq[4];
+  bool has_tau;
+  float tau[4];
+  bool has_motor_info;
+  uint32_t motor_info[4];
+  bool has_feedback_age_ms;
+  uint32_t feedback_age_ms[4];
+  bool has_fresh_mask;
+  uint16_t fresh_mask;
+  bool has_enabled_mask;
+  uint16_t enabled_mask;
+  bool has_available_mask;
+  uint16_t available_mask;
+  bool has_mode;
+  uint8_t mode;
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_timestamp_us;
+  uint64_t timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+  bool has_applied_command_sequence;
+  uint32_t applied_command_sequence;
+  bool has_last_sdk_timestamp_us;
+  uint64_t last_sdk_timestamp_us;
+  bool has_applied_mask;
+  uint16_t applied_mask;
+  bool has_command_received;
+  bool command_received;
+  bool has_control_stop_reason;
+  uint8_t control_stop_reason;
+  bool has_commands_received;
+  uint32_t commands_received;
+  bool has_commands_overwritten;
+  uint32_t commands_overwritten;
+  bool has_commands_rejected;
+  uint32_t commands_rejected;
+  bool has_command_reject_reason;
+  uint8_t command_reject_reason;
+  bool has_control_source;
+  uint8_t control_source;
+  bool has_enabling;
+  bool enabling;
+  bool has_upgrading;
+  bool upgrading;
+} single_state_value_t;
+#define SINGLE_STATE_VALUE_SIZE (sizeof(single_state_value_t))
+void single_state_value_clear(single_state_value_t *value);
+size_t single_state_value_encoded_size(const single_state_value_t *value);
+wl_codec_status_t single_state_value_encode(const single_state_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t single_state_value_decode(const uint8_t *input, size_t length, single_state_value_t *out);
+
+#define SINGLE_RESPONSE_HAS_VALUE 1
+typedef struct {
+  bool has_result;
+  uint8_t result;
+  bool has_state;
+  single_state_value_t state;
+  bool has_boot_id;
+  uint64_t boot_id;
+  bool has_uid;
+  struct { size_t length; char data[33]; } uid;
+  bool has_role;
+  uint8_t role;
+  bool has_gravity_scale;
+  float gravity_scale[3];
+  bool has_revision;
+  uint32_t revision;
+  bool has_storage_error;
+  int32_t storage_error;
+  bool has_disable_pending_mask;
+  uint16_t disable_pending_mask;
+  bool has_disabled_mask;
+  uint16_t disabled_mask;
+  bool has_reason;
+  struct { size_t length; char data[96]; } reason;
+} single_response_value_t;
+#define SINGLE_RESPONSE_VALUE_SIZE (sizeof(single_response_value_t))
+void single_response_value_clear(single_response_value_t *value);
+size_t single_response_value_encoded_size(const single_response_value_t *value);
+wl_codec_status_t single_response_value_encode(const single_response_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t single_response_value_decode(const uint8_t *input, size_t length, single_response_value_t *out);
+
+#define SINGLE_COMMAND_HAS_VALUE 1
+typedef struct {
+  bool has_q;
+  float q[4];
+  bool has_dq;
+  float dq[4];
+  bool has_kp;
+  float kp[4];
+  bool has_kd;
+  float kd[4];
+  bool has_tau;
+  float tau[4];
+  bool has_kind;
+  underwater_control_kind_t kind;
+  bool has_sequence;
+  uint32_t sequence;
+  bool has_sdk_timestamp_us;
+  uint64_t sdk_timestamp_us;
+  bool has_control_session;
+  uint64_t control_session;
+} single_command_value_t;
+#define SINGLE_COMMAND_VALUE_SIZE (sizeof(single_command_value_t))
+void single_command_value_clear(single_command_value_t *value);
+size_t single_command_value_encoded_size(const single_command_value_t *value);
+wl_codec_status_t single_command_value_encode(const single_command_value_t *value, uint8_t *out, size_t capacity, size_t *length);
+wl_codec_status_t single_command_value_decode(const uint8_t *input, size_t length, single_command_value_t *out);
+
 #define SEMANTIC_VERSION_MESSAGE_ID 20737U
 #define SEMANTIC_VERSION_HAS_MAX_ENCODED_SIZE 1
 #define SEMANTIC_VERSION_MAX_ENCODED_SIZE UINT64_C(18)
@@ -1801,6 +1933,18 @@ wl_codec_status_t zeroing_response_value_decode(const uint8_t *input, size_t len
 #define ZEROING_RESPONSE_MESSAGE_ID 29995U
 #define ZEROING_RESPONSE_HAS_MAX_ENCODED_SIZE 1
 #define ZEROING_RESPONSE_MAX_ENCODED_SIZE UINT64_C(158)
+#define SINGLE_REQUEST_MESSAGE_ID 30209U
+#define SINGLE_REQUEST_HAS_MAX_ENCODED_SIZE 1
+#define SINGLE_REQUEST_MAX_ENCODED_SIZE UINT64_C(20)
+#define SINGLE_STATE_MESSAGE_ID 30212U
+#define SINGLE_STATE_HAS_MAX_ENCODED_SIZE 1
+#define SINGLE_STATE_MAX_ENCODED_SIZE UINT64_C(193)
+#define SINGLE_RESPONSE_MESSAGE_ID 30210U
+#define SINGLE_RESPONSE_HAS_MAX_ENCODED_SIZE 1
+#define SINGLE_RESPONSE_MAX_ENCODED_SIZE UINT64_C(375)
+#define SINGLE_COMMAND_MESSAGE_ID 30211U
+#define SINGLE_COMMAND_HAS_MAX_ENCODED_SIZE 1
+#define SINGLE_COMMAND_MAX_ENCODED_SIZE UINT64_C(119)
 #ifdef __cplusplus
 }
 #endif

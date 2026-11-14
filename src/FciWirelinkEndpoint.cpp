@@ -393,6 +393,8 @@ FciEndpointStatus FciWirelinkEndpoint::initialize(
 
     m_command_capabilities.store(0U, std::memory_order_relaxed);
     m_underwater_arm_status.reset();
+    m_single_state.reset();
+    m_single_rx_count=0;
 
     std::lock_guard<std::mutex> s_lock(m_mutex);
     m_initialized = true;
@@ -534,6 +536,28 @@ FciSubmitResult FciWirelinkEndpoint::zeroing(std::uint32_t s_timeout_ms) noexcep
     if (s_timeout_ms == 0 || s_timeout_ms > s_kMaximumRelativeTimeout)
         return {FciEndpointStatus::kInvalidArgument, 0};
     return s_submit(RpcKind::kZeroing, s_timeout_ms, {}, false);
+}
+
+FciSubmitResult FciWirelinkEndpoint::singleExchange(const single_request_value_t& s_wire, std::uint32_t s_timeout) noexcept {
+    OperationRequest s_request{}; s_request.m_single_request=s_wire;
+    return s_submit(RpcKind::kSingleExchange,s_timeout,s_request,false);
+}
+FciEndpointStatus FciWirelinkEndpoint::takeSingleResponse(std::uint64_t s_id,FciOperationResult& s_result_out,single_response_value_t& s_response) {
+    std::lock_guard s_lock(m_mutex);
+    const auto s_index=s_findSlot(s_id);
+    if(s_index==s_kNoSlot || m_operations[s_index].m_kind!=RpcKind::kSingleExchange) return FciEndpointStatus::kNoData;
+    auto &s_slot=m_operations[s_index]; s_result_out=s_result(s_slot);
+    if(!s_terminal(s_slot.m_state)) return FciEndpointStatus::kBusy;
+    s_response=s_slot.m_single_response; s_slot={}; return s_result_out.m_status;
+}
+std::optional<single_state_t> FciWirelinkEndpoint::singleState() const {
+    std::lock_guard s_lock(m_mutex); return m_single_state;
+}
+std::uint64_t FciWirelinkEndpoint::singleRxCount() const { std::lock_guard s_lock(m_mutex); return m_single_rx_count; }
+FciEndpointStatus FciWirelinkEndpoint::sendSingleCommand(const single_command_t& s_command) {
+    std::array<uint8_t,WirelinkExecutor::s_kMaximumCommandPayload> s_payload{}; size_t s_size{};
+    if(single_command_encode(&s_command,s_payload.data(),s_payload.size(),&s_size)!=WL_CODEC_OK) return FciEndpointStatus::kCodecError;
+    return s_submitLatestPayload(SINGLE_COMMAND_MESSAGE_ID,s_payload.data(),s_size);
 }
 
 FciSubmitResult FciWirelinkEndpoint::getUnderwaterStatus(
@@ -1563,6 +1587,11 @@ bool FciWirelinkEndpoint::s_progress(wl_ctx_t& s_context,
 
 bool FciWirelinkEndpoint::s_drainLatest() noexcept {
     bool s_progressed = false;
+    fci_device_single_state_latest_view_t s_single{};
+    if(fci_device_single_state_latest_acquire(s_runtime(),&s_single)==WL_OK) {
+        if(s_single.value) { std::lock_guard s_lock(m_mutex); m_single_state=*s_single.value; ++m_single_rx_count; }
+        (void)fci_device_single_state_latest_release(s_runtime(),&s_single); s_progressed=true;
+    }
     fci_device_underwater_arm_status_latest_view_t s_underwater_view{};
     if (fci_device_underwater_arm_status_latest_acquire(s_runtime(), &s_underwater_view) == WL_OK) {
         if (s_underwater_view.value) {
@@ -1668,6 +1697,7 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
     std::int32_t s_domain_status = s_completion.rejection;
     FixedDeviceInfo s_device_info{};
     DeviceSettings s_device_settings{};
+    single_response_value_t s_single_response{};
     underwater_status_value_t s_underwater_status{};
     bool s_underwater_status_valid{};
     underwater_settings_snapshot_value_t s_underwater_settings_snapshot{};
@@ -1709,6 +1739,9 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
                             s_device_info.m_serial_number.size(), s_device_info.m_serial_number_size);
                     s_device_info.m_valid = s_response_valid;
                 }
+            } else if constexpr (std::is_same_v<Response, single_response_value_t>) {
+                s_response_valid=s_response.has_result && s_response.has_state && s_response.has_uid && s_response.has_boot_id;
+                if(s_response_valid) { s_single_response=s_response; s_domain_status=s_response.result; }
             } else if constexpr (std::is_same_v<Response, get_underwater_status_response_value_t> ||
                                  std::is_same_v<Response, set_underwater_mode_response_value_t> ||
                                  std::is_same_v<Response, zeroing_response_value_t>) {
@@ -1795,6 +1828,7 @@ void FciWirelinkEndpoint::s_finalize(std::size_t s_index,
     s_slot.m_link_status = s_completion.transport_error;
     s_slot.m_device_info = s_device_info;
     s_slot.m_device_settings = s_device_settings;
+    s_slot.m_single_response=s_single_response;
     s_slot.m_underwater_status = s_underwater_status;
     s_slot.m_underwater_status_valid = s_underwater_status_valid;
     s_slot.m_underwater_settings_snapshot = s_underwater_settings_snapshot;
@@ -1912,6 +1946,12 @@ bool FciWirelinkEndpoint::s_startNext(wl_ctx_t& s_context,
             zeroing_request_value_t s_request{};
             s_started = fci_device_endpoint_zeroing_async(&m_endpoint, &s_request, s_remaining,
                 s_complete<zeroing_response_value_t>, &m_operations[s_index], nullptr);
+            break;
+        }
+        case RpcKind::kSingleExchange: {
+            const auto &s_request=s_slot.m_request.m_single_request;
+            s_started=fci_device_endpoint_single_exchange_async(&m_endpoint,&s_request,s_remaining,
+                s_complete<single_response_value_t>,&m_operations[s_index],nullptr);
             break;
         }
         case RpcKind::kGetUnderwaterStatus: {
@@ -2165,7 +2205,7 @@ FciSubmitResult FciWirelinkEndpoint::s_submit(
     const OperationRequest& s_request, bool s_internal) noexcept {
     std::uint64_t s_request_id{};
     if (m_upgrade.active() && s_kind != RpcKind::kGetDeviceInfo &&
-        s_kind != RpcKind::kGetUnderwaterStatus && s_kind != RpcKind::kSetUnderwaterMode &&
+        s_kind != RpcKind::kSingleExchange && s_kind != RpcKind::kGetUnderwaterStatus && s_kind != RpcKind::kSetUnderwaterMode &&
         s_kind != RpcKind::kGetUnderwaterSettings && s_kind != RpcKind::kSetUnderwaterSettings &&
         s_kind != RpcKind::kGetUnderwaterDefaultSettings && s_kind != RpcKind::kZeroing &&
         s_kind != RpcKind::kGetDeviceSettings && s_kind != RpcKind::kEmergencyStop)

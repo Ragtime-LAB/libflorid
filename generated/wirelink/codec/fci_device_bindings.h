@@ -646,6 +646,34 @@ typedef struct {
   void *user_data;
 } fci_device_zeroing_response_route_t;
 
+typedef int32_t (*fci_device_single_request_handler_fn)(void *user_data, const single_request_t *message, wl_delivery_t delivery);
+typedef struct {
+  single_request_t *scratch;
+  fci_device_single_request_handler_fn handler;
+  void *user_data;
+} fci_device_single_request_route_t;
+
+typedef int32_t (*fci_device_single_state_handler_fn)(void *user_data, const single_state_t *message, wl_delivery_t delivery);
+typedef struct {
+  single_state_t *scratch;
+  fci_device_single_state_handler_fn handler;
+  void *user_data;
+} fci_device_single_state_route_t;
+
+typedef int32_t (*fci_device_single_response_handler_fn)(void *user_data, const single_response_t *message, wl_delivery_t delivery);
+typedef struct {
+  single_response_t *scratch;
+  fci_device_single_response_handler_fn handler;
+  void *user_data;
+} fci_device_single_response_route_t;
+
+typedef int32_t (*fci_device_single_command_handler_fn)(void *user_data, const single_command_t *message, wl_delivery_t delivery);
+typedef struct {
+  single_command_t *scratch;
+  fci_device_single_command_handler_fn handler;
+  void *user_data;
+} fci_device_single_command_route_t;
+
 typedef struct {
   fci_device_semantic_version_route_t semantic_version;
   fci_device_device_info_route_t device_info;
@@ -731,6 +759,10 @@ typedef struct {
   fci_device_get_underwater_default_settings_response_route_t get_underwater_default_settings_response;
   fci_device_zeroing_request_route_t zeroing_request;
   fci_device_zeroing_response_route_t zeroing_response;
+  fci_device_single_request_route_t single_request;
+  fci_device_single_state_route_t single_state;
+  fci_device_single_response_route_t single_response;
+  fci_device_single_command_route_t single_command;
   fci_device_dispatch_counters_t counters;
 } fci_device_router_t;
 
@@ -987,6 +1019,18 @@ fci_device_send_result_t fci_device_zeroing_request_send(wl_ctx_t *ctx, const ze
 
 /* Encodes directly into Wirelink-owned TX storage. */
 fci_device_send_result_t fci_device_zeroing_response_send(wl_ctx_t *ctx, const zeroing_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_single_request_send(wl_ctx_t *ctx, const single_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_single_state_send(wl_ctx_t *ctx, const single_state_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_single_response_send(wl_ctx_t *ctx, const single_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
+
+/* Encodes directly into Wirelink-owned TX storage. */
+fci_device_send_result_t fci_device_single_command_send(wl_ctx_t *ctx, const single_command_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms);
 
 #ifdef __cplusplus
 }

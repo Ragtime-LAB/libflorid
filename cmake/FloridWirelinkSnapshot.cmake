@@ -17,6 +17,8 @@ function(lf_wirelink_snapshot_content source_root snapshot_root out_content)
         protocol/schema/wirelink/upgrade/fci_upgrade.wl
         protocol/schema/wirelink/underwater/fci_underwater.wl
         protocol/schema/wirelink/underwater/services.bind.wl
+        protocol/schema/wirelink/single/fci_single.wl
+        protocol/schema/wirelink/single/services.bind.wl
         protocol/schema/wirelink/arm/services.bind.wl
         protocol/schema/wirelink/arm/host.bind.wl
         protocol/schema/wirelink/upgrade/host.bind.wl

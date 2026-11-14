@@ -2202,6 +2202,110 @@ fci_device_dispatch_result_t fci_device_dispatch_event(wl_ctx_t *ctx, const wl_e
       result.domain = FCI_DEVICE_DISPATCH_OK;
       fci_device_count(&router->counters.delivered);
       break;
+    case SINGLE_REQUEST_MESSAGE_ID:
+      if (router == NULL || router->single_request.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->single_request.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = single_request_decode(event->payload, event->payload_len, router->single_request.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->single_request.handler(router->single_request.user_data, router->single_request.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SINGLE_STATE_MESSAGE_ID:
+      if (router == NULL || router->single_state.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->single_state.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = single_state_decode(event->payload, event->payload_len, router->single_state.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->single_state.handler(router->single_state.user_data, router->single_state.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SINGLE_RESPONSE_MESSAGE_ID:
+      if (router == NULL || router->single_response.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->single_response.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = single_response_decode(event->payload, event->payload_len, router->single_response.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->single_response.handler(router->single_response.user_data, router->single_response.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
+    case SINGLE_COMMAND_MESSAGE_ID:
+      if (router == NULL || router->single_command.handler == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_ROUTE;
+        if (router != NULL) fci_device_count(&router->counters.missing_route);
+        break;
+      }
+      if (router->single_command.scratch == NULL) {
+        result.domain = FCI_DEVICE_DISPATCH_MISSING_SCRATCH;
+        fci_device_count(&router->counters.missing_scratch);
+        break;
+      }
+      result.codec_status = single_command_decode(event->payload, event->payload_len, router->single_command.scratch);
+      if (result.codec_status != WL_CODEC_OK) {
+        result.domain = FCI_DEVICE_DISPATCH_CODEC_ERROR;
+        fci_device_count(&router->counters.codec_failure);
+        break;
+      }
+      result.handler_result = router->single_command.handler(router->single_command.user_data, router->single_command.scratch, event->type == WL_EVT_RELIABLE_RX ? WL_DELIVERY_RELIABLE : WL_DELIVERY_UNRELIABLE);
+      if (result.handler_result != 0) {
+        result.domain = FCI_DEVICE_DISPATCH_HANDLER_ERROR;
+        fci_device_count(&router->counters.handler_failure);
+        break;
+      }
+      result.domain = FCI_DEVICE_DISPATCH_OK;
+      fci_device_count(&router->counters.delivered);
+      break;
     default:
       result.domain = FCI_DEVICE_DISPATCH_UNKNOWN_MESSAGE;
       if (router != NULL) fci_device_count(&router->counters.unknown_message);
@@ -3628,6 +3732,74 @@ fci_device_send_result_t fci_device_zeroing_response_send(wl_ctx_t *ctx, const z
   result.core_result = wl_tx_payload_claim(ctx, ZEROING_RESPONSE_MESSAGE_ID, delivery, &claim);
   if (result.core_result != WL_OK) return result;
   result.codec_status = zeroing_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_single_request_send(wl_ctx_t *ctx, const single_request_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SINGLE_REQUEST_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = single_request_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_single_state_send(wl_ctx_t *ctx, const single_state_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SINGLE_STATE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = single_state_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_single_response_send(wl_ctx_t *ctx, const single_response_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SINGLE_RESPONSE_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = single_response_encode(message, claim.span.data, claim.span.length, &result.payload_length);
+  if (result.codec_status != WL_CODEC_OK) {
+    result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
+    (void)wl_tx_payload_abort(ctx, &claim);
+    return result;
+  }
+  result.core_result = wl_tx_payload_commit(ctx, &claim, result.payload_length, now_ms, delivery == WL_DELIVERY_RELIABLE ? &result.handle : NULL);
+  if (result.core_result != WL_OK) return result;
+  result.domain = FCI_DEVICE_SEND_OK;
+  return result;
+}
+
+fci_device_send_result_t fci_device_single_command_send(wl_ctx_t *ctx, const single_command_t *message, wl_delivery_t delivery, wl_time_ms_t now_ms) {
+  fci_device_send_result_t result = { FCI_DEVICE_SEND_CORE_ERROR, WL_CODEC_OK, WL_OK, 0U, 0U };
+  wl_tx_payload_claim_t claim = {0};
+  result.core_result = wl_tx_payload_claim(ctx, SINGLE_COMMAND_MESSAGE_ID, delivery, &claim);
+  if (result.core_result != WL_OK) return result;
+  result.codec_status = single_command_encode(message, claim.span.data, claim.span.length, &result.payload_length);
   if (result.codec_status != WL_CODEC_OK) {
     result.domain = FCI_DEVICE_SEND_CODEC_ERROR;
     (void)wl_tx_payload_abort(ctx, &claim);

@@ -171,6 +171,11 @@ public:
     FciSubmitResult releaseControlLease(
         std::uint32_t s_rpc_timeout_ms) noexcept;
     FciSubmitResult getDeviceInfo(std::uint32_t s_timeout_ms) noexcept;
+    FciSubmitResult singleExchange(const single_request_value_t&, std::uint32_t timeout_ms) noexcept;
+    FciEndpointStatus takeSingleResponse(std::uint64_t, FciOperationResult&, single_response_value_t&);
+    std::optional<single_state_t> singleState() const;
+    std::uint64_t singleRxCount() const;
+    FciEndpointStatus sendSingleCommand(const single_command_t&);
     FciSubmitResult getUnderwaterStatus(std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult zeroing(std::uint32_t s_timeout_ms) noexcept;
     FciSubmitResult setUnderwaterMode(UnderwaterMode s_mode,
@@ -287,6 +292,7 @@ private:
         kReleaseLease,
         kGetDeviceInfo,
         kGetUnderwaterStatus,
+        kSingleExchange,
         kZeroing,
         kSetUnderwaterMode,
         kGetUnderwaterSettings,
@@ -310,6 +316,7 @@ private:
     };
 
     struct OperationRequest {
+        single_request_value_t m_single_request{};
         DeviceSettings m_device_settings{};
         UnderwaterSettings m_underwater_settings{};
         std::array<char, s_kMaximumDeviceNameBytes + 1> m_custom_name{};
@@ -354,6 +361,7 @@ private:
         DeviceSettings m_device_settings{};
         underwater_status_value_t m_underwater_status{};
         bool m_underwater_status_valid{};
+        single_response_value_t m_single_response{};
         underwater_settings_snapshot_value_t m_underwater_settings_snapshot{};
         std::array<char, 96> m_underwater_settings_reason{};
         std::uint8_t m_underwater_settings_reason_size{};
@@ -434,6 +442,8 @@ private:
     std::size_t m_active_operation{s_kOperationCapacity};
     std::uint64_t m_next_request_id{1};
     std::optional<UnderwaterArmStatus> m_underwater_arm_status;
+    std::optional<single_state_t> m_single_state;
+    std::uint64_t m_single_rx_count{};
     FciControlLeaseSnapshot m_lease{};
     wl_time_ms_t m_lease_renew_at_ms{};
     wl_time_ms_t m_lease_expire_at_ms{};

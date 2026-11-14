@@ -2,13 +2,13 @@
   "format": "wirelink-codegen-manifest-v1",
   "compiler": {
     "name": "wlc",
-    "version": "0.8.0",
+    "version": "0.7.0-rc.1",
     "codegen_abi": 32
   },
   "module": "fci_device",
   "identity": {
     "algorithm": "fnv1a64-v1",
-    "schema": "0x0df8dbd11bdbcb26",
+    "schema": "0xaef1eeddf2955f64",
     "binding_profile": null
   },
   "bounded_fields": [
@@ -20,14 +20,16 @@
     {"message": "UnderwaterStatus", "message_id": 29968, "field": "reason", "field_number": 12, "kind": "string", "max_length": 95},
     {"message": "GetUnderwaterSettingsResponse", "message_id": 29989, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95},
     {"message": "SetUnderwaterSettingsResponse", "message_id": 29991, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95},
-    {"message": "GetUnderwaterDefaultSettingsResponse", "message_id": 29993, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95}
+    {"message": "GetUnderwaterDefaultSettingsResponse", "message_id": 29993, "field": "reason", "field_number": 3, "kind": "string", "max_length": 95},
+    {"message": "SingleResponse", "message_id": 30210, "field": "uid", "field_number": 4, "kind": "string", "max_length": 32},
+    {"message": "SingleResponse", "message_id": 30210, "field": "reason", "field_number": 11, "kind": "string", "max_length": 95}
   ],
   "artifact_digest_algorithm": "fnv1a64-domain-bytes-v1",
   "artifacts": [
-    {"path": "fci_device.c", "size": 581923, "digest": "0x1c4aa06da7dc4a33"},
-    {"path": "fci_device.h", "size": 93180, "digest": "0xdc9d2bc446597558"},
-    {"path": "fci_device_bindings.c", "size": 197484, "digest": "0x79a6d974bf88f789"},
-    {"path": "fci_device_bindings.h", "size": 53531, "digest": "0x8e2f06f5084a38ea"},
-    {"path": "fci_device_values.h", "size": 89760, "digest": "0xb91081ed42e0dc44"}
+    {"path": "fci_device.c", "size": 622272, "digest": "0x25a9d22ece6c5c11"},
+    {"path": "fci_device.h", "size": 98556, "digest": "0x303263da9269ce9a"},
+    {"path": "fci_device_bindings.c", "size": 206412, "digest": "0x2c1fc29f02a37a5f"},
+    {"path": "fci_device_bindings.h", "size": 55682, "digest": "0xc184c0932d9dc3d6"},
+    {"path": "fci_device_values.h", "size": 94753, "digest": "0xf4db4f9fb7ce6fa7"}
   ]
 }
