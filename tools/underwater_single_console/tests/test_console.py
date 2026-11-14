@@ -81,5 +81,24 @@ class ConsoleTests(unittest.TestCase):
         self.pump(.3)
         self.assertTrue(self.port.closed)
 
+    def test_physical_zeroing_ends_sender_and_displays_instructions_and_failure(self):
+        from dataclasses import replace
+        from unittest.mock import patch
+        self.app.start_control()
+        self.pump(.08)
+        with self.port.lock:
+            self.port.mode, self.port.session = 4, 0
+        self.pump(.1)
+        self.assertFalse(self.device.controlling)
+        self.assertIn('Zeroing', self.app.mode.cget('text'))
+        self.assertIn('短按 PA15', self.app.reasons.cget('text'))
+        state = replace(self.device.read_state(), mode=0, stop_reason=5)
+        with patch.object(self.device, 'read_state', return_value=state):
+            self.pump(.05)
+            self.assertIn('校零反馈重试耗尽', self.app.reasons.cget('text'))
+            self.assertIn('校零失败', self.app.notice.get())
+            self.assertIn('USART1', self.app.notice.get())
+        self.assertIn('Zeroing', sdk.UnderwaterSingle._mode_reason(5, {'mode':4,'source':0}))
+
 if __name__=='__main__':
     unittest.main()

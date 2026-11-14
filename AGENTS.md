@@ -41,7 +41,10 @@ and use `lf_update_wirelink` / `lf_check_wirelink` as described in
   producer, never sends implicit Damp or resumes motion.
 - Single firmware update/reboot is USB only; UART uses independent Protocol 3.1
   at 921600 8N1, not Wirelink. See docs/single.md and the single console README.
-- Zeroing is admitted by firmware only from Damp.
+- Dual-arm remote Zeroing is admitted only from Damp. Underwater Single local
+  PA15 long-release enters Zeroing (mode 4), including from Control; short-release
+  commits four-motor zero. Damp cancels, normal Drag/Control requests are Busy.
+  Firmware 0.4.0 / Protocol 3.2 reports ZeroingFailed=5 and never resumes motion.
 
 Use C++20. Method parameters and local result values conventionally use the
 `s_` prefix; members use `m_`.

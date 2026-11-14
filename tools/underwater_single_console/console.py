@@ -55,6 +55,7 @@ class Console:
         self.upgrades = ThreadPoolExecutor(max_workers=1, thread_name_prefix="single-ui-upgrade")
         self.uris = {}
         self.last_sequence = None
+        self.previous_mode = None
         self.last_rx = self.rate_time = time.monotonic()
         self.rx_count = self.tx_previous = self.rx_previous = 0
         self.edited = set()
@@ -64,7 +65,7 @@ class Console:
         self._style()
         self._layout()
         self.root.protocol("WM_DELETE_WINDOW", self.close)
-        self.root.after(33, self.refresh)
+        self.refresh_timer = self.root.after(33, self.refresh)
 
     def _style(self):
         s_available = set(font.families(self.root))
@@ -283,6 +284,7 @@ class Console:
         self.edited.clear()
         self.initialized.clear()
         self.last_sequence = None
+        self.previous_mode = None
         self.last_rx = self.rate_time = time.monotonic()
         self.tx_previous, self.rx_previous = device.tx_count, device.rx_count
         info = device.info()
@@ -464,7 +466,13 @@ class Console:
                     self.last_sequence = state.sequence
                     self.rx_count += 1
                     self.last_rx = now
-                self.mode.configure(text=f"{ {0:'Damp',1:'Drag',3:'Control'}.get(state.mode,state.mode)}  ·  控制源 { {0:'无',1:'USB',2:'UART7'}.get(state.source,state.source)}")
+                if self.previous_mode != 4 and state.mode == 4:
+                    self.notice.set("校零中：承托机械臂，摆到 URDF 零姿态后短按 PA15 保存；Damp 可取消。")
+                if self.previous_mode == 4 and state.mode != 4:
+                    self.notice.set("校零失败：未收到设零后的新位置反馈。查看 USART1 的失败 ID，保持零姿态后长按重试。" if state.stop_reason == 5 else
+                                    "校零已退出，请核对停止原因；再次 Control 前可点击“读取当前角度到目标”更新零位后的目标。")
+                self.previous_mode = state.mode
+                self.mode.configure(text=f"{ {0:'Damp',1:'Drag',3:'Control',4:'校零 Zeroing'}.get(state.mode,state.mode)}  ·  控制源 { {0:'无',1:'USB',2:'UART7'}.get(state.source,state.source)}")
                 for i in range(4):
                     fresh = bool(state.fresh_mask & (1 << i))
                     self.table.item(str(i), tags=() if fresh else ("stale",), values=(self.motor_name(i), f"{state.q[i]:.5f}", f"{state.dq[i]:.4f}", f"{state.tau[i]:.4f}", state.temperature[i], state.motor_status[i], state.age_ms[i] if state.age_ms[i] != 0xffffffff else "未收到"))
@@ -475,9 +483,10 @@ class Console:
                         self.scales[i].set(state.q[i])
                         self.updating_sliders = False
                 self.masks.configure(text=f"available 0x{state.available_mask:02X}    fresh 0x{state.fresh_mask:02X}    enabled 0x{state.enabled_mask:02X}    applied 0x{state.applied_mask:02X}    状态序号 {state.sequence}    回显命令 {state.applied_sequence}")
-                stop = {0:"无",1:"命令间隔超过100ms，重新进入Control恢复",3:"输出失败，请检查CAN/反馈并显式请求模式",4:"使能超时，请检查电机反馈"}.get(state.stop_reason,state.stop_reason)
+                stop = {0:"无",1:"命令间隔超过100ms，重新进入Control恢复",3:"输出失败，请检查CAN/反馈并显式请求模式",4:"使能超时，请检查电机反馈",5:"校零反馈重试耗尽；查看USART1的失败ID，保持零姿态后长按重试"}.get(state.stop_reason,state.stop_reason)
                 reject = {0:"无",1:"非Control",2:"会话不匹配",3:"序号重复/倒序",4:"kind错误",5:"数值错误",6:"命令过期",7:"另一链路持有Control，请先Damp"}.get(state.reject_reason,state.reject_reason)
-                self.reasons.configure(text=f"停止原因：{stop}    最近拒绝：{reject}    状态交付距今 {(now-self.last_rx)*1000:.0f} ms")
+                calibration = "校零中：摆到 URDF 零姿态后短按 PA15 保存，Damp 可取消。\n" if state.mode == 4 else ""
+                self.reasons.configure(text=calibration + f"停止原因：{stop}    最近拒绝：{reject}    状态交付距今 {(now-self.last_rx)*1000:.0f} ms")
             if now - self.rate_time >= 1:
                 elapsed = now - self.rate_time
                 self.metrics.configure(text=f"命令提交 {(device.tx_count-self.tx_previous)/elapsed:.0f} Hz   状态交付 {(device.rx_count-self.rx_previous)/elapsed:.0f} Hz")
@@ -494,9 +503,10 @@ class Console:
                     self.upgrade_status.configure(text=f"{p.state} / {p.error}   {p.acknowledged_bytes} B")
                     if p.total_bytes:
                         self.progress["value"] = 100*p.acknowledged_bytes/p.total_bytes
-        self.root.after(33, self.refresh)
+        self.refresh_timer = self.root.after(33, self.refresh)
 
     def close(self):
+        self.root.after_cancel(self.refresh_timer)
         self.closed = True
         self.disconnect()
         while True:
